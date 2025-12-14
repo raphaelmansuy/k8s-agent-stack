@@ -46,19 +46,19 @@ https://www.apache.org/licenses/LICENSE-2.0
 ┌─────────────────────────────────────────────────────────┐
 │  Kagent Control Plane (k8s-native)                      │
 │  - Agent discovery & routing                            │
-│  - Lifecycle: Deploy → Scale → Monitor → Drain         │
+│  - Lifecycle: Deploy -> Scale -> Monitor -> Drain       │
 │  - Multi-tenancy isolation                              │
 └──────────────────────┬──────────────────────────────────┘
                        │
          ┌─────────────┴──────────────┐
-         ▼                            ▼
+         v                            v
 ┌──────────────────┐        ┌──────────────────┐
 │ Agent Instance A │        │ Agent Instance B │
 │ (FastAPI +       │        │ (Python/Go/Java) │
 │  ADK Runtime)    │        │                  │
 │                  │        │                  │
-│ [Tools] ◄───────┼────┐   │                  │
-│ [Streaming]      │    │   │ [Tools] ◄──────┐│
+│ [Tools] <--------┼────┐   │                  │
+│ [Streaming]      │    │   │ [Tools] <-------┐│
 └──────────────────┘    │   └─────────────────┘│
                         │                      │
                         └──────────┬───────────┘

@@ -80,23 +80,23 @@ curl https://hello.example.com
                      │         Internet                │
                      └────────────┬────────────────────┘
                                   │
-                                  ▼
+                                  v
                      ┌─────────────────────────────────┐
                      │   OVH Cloud LoadBalancer        │
                      │   Type: LoadBalancer            │
                      │   External IP: 51.89.xxx.xxx    │
                      └────────────┬────────────────────┘
                                   │
-                                  ▼
+                                  v
                      ┌─────────────────────────────────┐
                      │   NGINX Ingress Controller      │
-                     │   - TLS termination (443→80)    │
+                     │   - TLS termination (443->80)   │
                      │   - Virtual host routing        │
                      │   - Path-based routing          │
                      └────────────┬────────────────────┘
                                   │
               ┌───────────────────┼───────────────────┐
-              ▼                   ▼                   ▼
+              v                   v                   v
     ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
     │ Service A       │ │ Service B       │ │ Service C       │
     │ ClusterIP       │ │ ClusterIP       │ │ ClusterIP       │
