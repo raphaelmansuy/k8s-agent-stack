@@ -685,3 +685,7 @@ open http://localhost:8080/agents/kagent/google-adk-agent/chat
 ---
 
 *Last updated: December 2025*
+
+---
+
+[← Back to Documentation Index](README.md) • [Architecture](architecture.md) • [A2A Architecture](kagent-adk-a2a-architecture.md) • [Main README](../README.md)

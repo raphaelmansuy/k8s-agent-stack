@@ -1,0 +1,318 @@
+# Deployment Guide
+
+This guide covers deploying, updating, and managing agents on k8s-agent-stack.
+
+## Deploy an Agent
+
+### Method 1: Pre-built Google ADK Agent
+
+Deploy the included reference agent:
+
+```bash
+# Navigate to agent directory
+cd kagent-adk-agent
+
+# Deploy to Kubernetes
+kubectl apply -f kagent-deployment.yaml
+
+# Wait for ready (30-60 seconds)
+kubectl wait --for=condition=ready pod \
+  -l app.kubernetes.io/name=google-adk-agent \
+  -n kagent --timeout=120s
+
+# Test the agent
+kubectl port-forward -n kagent svc/google-adk-agent 8080:8080 &
+curl http://localhost:8080/health
+```
+
+### Method 2: Knative Service (kn CLI)
+
+```bash
+kn service create my-agent \
+  --image=gcr.io/your-project/my-agent:v1 \
+  --port=8080 \
+  --env GOOGLE_API_KEY=your-key \
+  --scale-min=0 \
+  --scale-max=10 \
+  --concurrency-target=10
+```
+
+### Method 3: From Local Docker Image
+
+```bash
+# Build locally
+cd my-agent
+docker build -t my-agent:dev .
+
+# Deploy
+kn service create my-agent --image=my-agent:dev --port=8080
+
+# Get URL
+kn service describe my-agent -o url
+```
+
+---
+
+## Update an Agent
+
+### Update Image Version
+
+```bash
+kn service update my-agent --image=gcr.io/your-project/agent:v2
+```
+
+### Update Environment Variables
+
+```bash
+kn service update my-agent \
+  --env MODEL=gpt-4-turbo \
+  --env MAX_TOKENS=2000
+```
+
+### Update Scaling Parameters
+
+```bash
+kn service update my-agent \
+  --scale-min=1 \
+  --scale-max=10 \
+  --concurrency-target=20
+```
+
+---
+
+## Traffic Splitting (Canary Deployment)
+
+### Canary Release Pattern
+
+```bash
+# Deploy new version
+kn service update my-agent --image=gcr.io/your-project/agent:v2
+
+# Split traffic: 90% v1, 10% v2
+kn service update my-agent \
+  --traffic my-agent-v1=90,@latest=10
+
+# Gradually increase
+kn service update my-agent \
+  --traffic my-agent-v1=50,@latest=50
+
+# Full rollout
+kn service update my-agent \
+  --traffic @latest=100
+```
+
+### Visualization
+
+```
+  Users
+    │
+    ▼
+┌─────────────┐
+│   Envoy     │
+└──────┬──────┘
+       │
+       ├─────90%─────▶ Agent v1 (stable)
+       │
+       └─────10%─────▶ Agent v2 (canary)
+```
+
+---
+
+## Monitor and Debug
+
+### Check Status
+
+```bash
+# List all services
+kn service list
+kubectl get ksvc -n kagent
+
+# Describe specific service
+kn service describe my-agent
+```
+
+### View Logs
+
+```bash
+# Stream logs
+kubectl logs -f -n kagent deployment/google-adk-agent
+
+# Get logs with label
+kubectl logs -n kagent -l app.kubernetes.io/name=google-adk-agent --tail=50
+
+# Previous crash logs
+kubectl logs -n kagent <pod-name> --previous
+```
+
+### Watch Scaling
+
+```bash
+# Watch pods scale
+watch 'kubectl get pods -n kagent'
+
+# Check autoscaler
+kubectl logs -n knative-serving deploy/autoscaler --tail=30
+```
+
+---
+
+## Local Development Loop
+
+```bash
+# 1. Make code changes
+vim kagent-adk-agent/app/agent.py
+
+# 2. Build locally
+cd kagent-adk-agent
+docker build -t my-agent:dev .
+
+# 3. Deploy
+kn service create my-agent --image=my-agent:dev --port=8080
+
+# 4. Test
+kubectl port-forward svc/my-agent 8080:8080 &
+curl -X POST http://localhost:8080/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "test"}'
+
+# 5. Check logs
+kubectl logs -l serving.knative.dev/service=my-agent --tail=20
+
+# 6. Iterate
+```
+
+---
+
+## Agent Development Workflow
+
+```
+┌──────────────┐
+│  1. Develop  │  Write agent code locally
+│  Locally     │  Test with docker run
+└──────┬───────┘
+       │
+┌──────▼───────┐
+│  2. Build    │  docker build -t agent:v1
+│  Container   │  
+└──────┬───────┘
+       │
+┌──────▼───────┐
+│  3. Deploy   │  kn service create agent --image=agent:v1
+│  to K8s      │  or kubectl apply -f deployment.yaml
+└──────┬───────┘
+       │
+┌──────▼───────┐
+│  4. Test     │  curl agent-url/endpoint
+│  & Monitor   │  kubectl logs, watch pods scale
+└──────┬───────┘
+       │
+┌──────▼───────┐
+│  5. Update   │  kn service update agent --image=agent:v2
+│  Version     │  Traffic split for canary
+└──────────────┘
+```
+
+---
+
+## Production Checklist
+
+### Infrastructure
+
+- [ ] metrics-server installed
+- [ ] Prometheus + Grafana for monitoring
+- [ ] cert-manager for TLS
+- [ ] Custom domain configured
+- [ ] Network policies for isolation
+- [ ] Backup strategy for persistent data
+
+### Agent Configuration
+
+- [ ] Resource limits defined:
+  ```yaml
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+  ```
+- [ ] Health checks implemented (`/health`, `/readiness`)
+- [ ] Structured logging (JSON format)
+- [ ] Secrets in Kubernetes Secrets
+
+### Autoscaling
+
+- [ ] `scale-min`: 0 (scale-to-zero) or 1+ (warm pods)
+- [ ] `scale-max`: Based on expected load
+- [ ] `concurrency-target`: 10-50 per pod
+
+### Observability
+
+- [ ] Log aggregation (ELK, Loki)
+- [ ] Alerting rules configured
+- [ ] Dashboards for metrics
+
+### Security
+
+- [ ] TLS enabled
+- [ ] API key rotation scheduled
+- [ ] RBAC configured
+- [ ] Container images scanned
+- [ ] Rate limiting enabled
+
+---
+
+## Best Practices
+
+### Agent Development
+
+| Practice | Why |
+|----------|-----|
+| Use small base images | Faster cold starts |
+| Implement health checks | Reliable deployments |
+| Stream long responses | Better UX |
+| Log structured data | Easier debugging |
+| Make agents stateless | Scalability |
+
+### Deployment
+
+| Practice | Why |
+|----------|-----|
+| Start with scale-min=0 | Verify scale-to-zero works |
+| Set resource limits | Prevent resource exhaustion |
+| Use traffic splitting | Safe rollouts |
+| Tag images properly | Reproducibility |
+
+### Example: Resource Limits
+
+```yaml
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: my-agent
+spec:
+  template:
+    spec:
+      containers:
+      - image: my-agent:v1
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+          limits:
+            cpu: 2000m
+            memory: 2Gi
+```
+
+---
+
+## Next Steps
+
+- [Troubleshooting](troubleshooting.md) - Debug common issues
+- [Building ADK Agents](building-google-adk-agents-for-kagent.md) - Custom agent development
+- [Architecture](architecture.md) - Understand the platform
+
+---
+
+[← Back to Documentation Index](README.md) • [Getting Started](getting-started.md) • [Troubleshooting](troubleshooting.md) • [Main README](../README.md)

@@ -309,3 +309,7 @@ The implementation successfully resolves the Content-Type mismatch error while m
 **Status**: COMPLETE ✅  
 **Tested**: Local & Cluster Network ✅  
 **Deployed**: Kubernetes v12 ✅
+
+---
+
+[← Back to Documentation Index](README.md) • [Architecture](architecture.md) • [Building ADK Agents](building-google-adk-agents-for-kagent.md) • [Main README](../README.md)

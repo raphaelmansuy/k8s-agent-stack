@@ -99,3 +99,7 @@ The application provides two levels of observability:
 **To enable locally:** Set `LOGS_BUCKET_NAME` and `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=NO_CONTENT`.
 
 See the [observability guide](https://googlecloudplatform.github.io/agent-starter-pack/guide/observability.html) for detailed instructions, example queries, and visualization options.
+
+---
+
+[← Back to Main README](../README.md) • [Documentation](../docs/) • [Building ADK Agents Guide](../docs/building-google-adk-agents-for-kagent.md)

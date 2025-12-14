@@ -680,3 +680,7 @@ Choose **Kagent** when: you want Kubernetes-native orchestration, multi-cloud fa
 **End of Document.**
 
 Status: Production-ready reference. Last updated: 2025-12-14.
+
+---
+
+[← Back to Documentation Index](README.md) • [Architecture](architecture.md) • [Building ADK Agents](building-google-adk-agents-for-kagent.md) • [Main README](../README.md)

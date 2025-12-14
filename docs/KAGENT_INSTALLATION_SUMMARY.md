@@ -158,3 +158,7 @@ Kagent has been successfully installed and tested. The platform is ready for:
 - Creating custom agents for specific workflows
 
 All components are running and operational! 🚀
+
+---
+
+[← Back to Documentation Index](README.md) • [Getting Started](getting-started.md) • [Architecture](architecture.md) • [Main README](../README.md)

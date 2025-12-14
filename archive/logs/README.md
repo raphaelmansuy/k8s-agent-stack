@@ -10,3 +10,7 @@ Files moved from `logs/`:
 - 2025-12-14-02-45-streaming-format-issue.md
 
 These files are preserved in git history and archived here to keep the repository root tidy. If you need the full contents, retrieve them from the commit history or check the `archive/logs/` files added earlier.
+
+---
+
+[← Back to Archive](../README.md) • [Main README](../../README.md)
