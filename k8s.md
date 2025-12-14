@@ -1044,4 +1044,4 @@ Improvements welcome! Submit issues or pull requests.
 
 ## License
 
-MIT License
+Apache License 2.0

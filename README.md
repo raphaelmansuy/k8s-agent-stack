@@ -1291,7 +1291,7 @@ Please open an issue first to discuss major changes.
 
 ## License
 
-MIT License - see LICENSE file for details
+Apache License 2.0 - see LICENSE file for details
 
 ## Acknowledgments
 
