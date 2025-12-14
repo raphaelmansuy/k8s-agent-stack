@@ -1,5 +1,11 @@
 # ✅ SSE Streaming Implementation - COMPLETE
 
+<!--
+Copyright 2025 Raphaël MANSUY
+Licensed under the Apache License, Version 2.0
+https://www.apache.org/licenses/LICENSE-2.0
+-->
+
 ## Executive Summary
 
 **Status**: ✅ Successfully implemented and tested  

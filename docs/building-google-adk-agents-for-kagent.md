@@ -1,5 +1,11 @@
 # Building Google ADK Agents for Kagent: A Complete Guide
 
+<!--
+Copyright 2025 Raphaël MANSUY
+Licensed under the Apache License, Version 2.0
+https://www.apache.org/licenses/LICENSE-2.0
+-->
+
 > **From Zero to Deployed**: How to build AI agents using Google's Agent Development Kit (ADK) and deploy them to Kagent's unified agent platform.
 
 ## Table of Contents

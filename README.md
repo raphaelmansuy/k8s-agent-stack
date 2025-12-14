@@ -175,7 +175,7 @@ See **[Production Guide](knative.md)** for complete production setup.
 
 ## 🏗️ Architecture Overview: The 5-Layer Agentic Platform
 
-k8s-agent-stack implements a comprehensive 5-layer architecture for sovereign AI agents, based on the Quantalogic Agentic Platform Reference Architecture (2025).
+k8s-agent-stack implements a comprehensive 5-layer architecture for sovereign AI agents, based on the Agentic Platform Reference Architecture (2025) published by Raphaël MANSUY in December 2025.
 
 ![Agentic Platform Architecture](images/agentic.png)
 

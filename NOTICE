@@ -1,0 +1,51 @@
+k8s-agent-stack
+Copyright 2025 Raphaël MANSUY
+
+This product includes software developed by Raphaël MANSUY
+(https://www.linkedin.com/in/raphaelmansuy/)
+
+This project builds upon and integrates with the following open source projects:
+
+---
+
+Knative Serving
+Copyright The Knative Authors
+Licensed under the Apache License, Version 2.0
+https://github.com/knative/serving
+
+---
+
+kagent
+Copyright The kagent Authors
+Licensed under the Apache License, Version 2.0
+https://github.com/kagent-dev/kagent
+
+---
+
+Contour
+Copyright Project Contour Authors
+Licensed under the Apache License, Version 2.0
+https://github.com/projectcontour/contour
+
+---
+
+Envoy Proxy
+Copyright The Envoy Authors
+Licensed under the Apache License, Version 2.0
+https://github.com/envoyproxy/envoy
+
+---
+
+This project also acknowledges:
+
+- Google Agent Developer Kit (ADK)
+  https://cloud.google.com/products/agent-developer-toolkit
+
+- Kubernetes
+  Copyright The Kubernetes Authors
+  Licensed under the Apache License, Version 2.0
+  https://github.com/kubernetes/kubernetes
+
+---
+
+For complete license information, see the LICENSE file in this repository.

@@ -1,5 +1,11 @@
 # Kagent Installation Summary
 
+<!--
+Copyright 2025 Raphaël MANSUY
+Licensed under the Apache License, Version 2.0
+https://www.apache.org/licenses/LICENSE-2.0
+-->
+
 ## Successfully Completed Installation
 
 Date: December 13, 2025

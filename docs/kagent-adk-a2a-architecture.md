@@ -1,5 +1,11 @@
 # Kagent + Google ADK + A2A: Production Architecture for Kubernetes-Native Agents
 
+<!--
+Copyright 2025 Raphaël MANSUY
+Licensed under the Apache License, Version 2.0
+https://www.apache.org/licenses/LICENSE-2.0
+-->
+
 **Assumption:** You have basic Kubernetes familiarity, understand REST APIs, and know Python or Go. This guide bridges the gap between agent development and production orchestration.
 
 ---

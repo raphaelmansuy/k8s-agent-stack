@@ -1,3 +1,7 @@
+# Copyright 2025 Raphaël MANSUY
+# Licensed under the Apache License, Version 2.0
+# https://www.apache.org/licenses/LICENSE-2.0
+
 # Agent - The "Logic" that binds brain and hands
 apiVersion: kagent.dev/v1alpha2
 kind: Agent

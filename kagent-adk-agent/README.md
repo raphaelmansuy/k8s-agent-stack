@@ -1,5 +1,11 @@
 # kagent-adk-agent
 
+<!--
+Copyright 2025 Raphaël MANSUY
+Licensed under the Apache License, Version 2.0
+https://www.apache.org/licenses/LICENSE-2.0
+-->
+
 A base ReAct agent built with Google's Agent Development Kit (ADK)
 Agent generated with [`googleCloudPlatform/agent-starter-pack`](https://github.com/GoogleCloudPlatform/agent-starter-pack) version `0.28.1`
 

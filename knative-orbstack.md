@@ -1,5 +1,11 @@
 # Cloud Run on OrbStack (macOS ARM) - 2025 Guide
 
+<!--
+Copyright 2025 Raphaël MANSUY
+Licensed under the Apache License, Version 2.0
+https://www.apache.org/licenses/LICENSE-2.0
+-->
+
 This guide is optimized for running a **True Cloud Run Equivalent** locally on macOS using **OrbStack**. OrbStack is the recommended runtime for 2025 because of its lightweight virtualization, native networking, and seamless Apple Silicon (ARM64) support.
 
 ## Architecture Overview

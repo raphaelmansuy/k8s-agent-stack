@@ -1,5 +1,11 @@
 # Cloud Run on Kubernetes: The Complete Guide (2025)
 
+<!--
+Copyright 2025 Raphaël MANSUY
+Licensed under the Apache License, Version 2.0
+https://www.apache.org/licenses/LICENSE-2.0
+-->
+
 ## Why This Exists
 
 **The Problem**: Cloud Run is brilliant — serverless containers, scale-to-zero, pay-per-request, zero ops. But you're locked to Google Cloud and proprietary APIs.
