@@ -8,13 +8,13 @@ k8s-agent-stack implements a 5-layer architecture for sovereign AI agents, based
 
 ```
 ┌────────────────────────────────────────────────────────────┐
-│  🤖 YOUR AGENTS (Google ADK │ LangGraph │ CrewAI │ Custom) │
+│  YOUR AGENTS (Google ADK │ LangGraph │ CrewAI │ Custom)    │
 ├────────────────────────────────────────────────────────────┤
-│  📡 kagent: A2A Protocol • Multi-Framework • Discovery    │
+│  kagent: A2A Protocol • Multi-Framework • Discovery        │
 ├────────────────────────────────────────────────────────────┤
-│  ⚡ Knative: Scale-to-Zero • Auto-Scaling • Traffic Mgmt  │
+│  Knative: Scale-to-Zero • Auto-Scaling • Traffic Mgmt      │
 ├────────────────────────────────────────────────────────────┤
-│  ☸️ Kubernetes: OrbStack │ GKE │ EKS │ AKS │ On-Prem      │
+│  Kubernetes: OrbStack │ GKE │ EKS │ AKS │ On-Prem          │
 └────────────────────────────────────────────────────────────┘
 ```
 
@@ -59,22 +59,22 @@ The foundation layer handles container orchestration, serverless execution, and 
 ```
 User Request
      │
-     ▼
+     v
 ┌─────────────┐
 │   Envoy     │  L7 Load Balancer
 └─────────────┘
      │
-     ▼
+     v
 ┌─────────────┐
 │  Activator  │  Buffers requests when scaling from zero
 └─────────────┘
      │
-     ▼
+     v
 ┌─────────────┐
 │ Queue-Proxy │  Sidecar in each pod, reports metrics
 └─────────────┘
      │
-     ▼
+     v
 ┌─────────────┐
 │ Your Agent  │  Container running your code
 └─────────────┘
@@ -112,12 +112,12 @@ The cognitive layer handles agent reasoning, decision-making, and LLM interactio
 │  │  ReAct   │  │Reflection│  │  CoT   ││
 │  └──────────┘  └──────────┘  └────────┘│
 │                    │                    │
-│  ┌─────────────────▼──────────────────┐│
+│  ┌─────────────────v──────────────────┐│
 │  │         Agent Framework            ││
 │  │  (Google ADK / LangGraph / CrewAI) ││
 │  └─────────────────┬──────────────────┘│
 │                    │                    │
-│  ┌─────────────────▼──────────────────┐│
+│  ┌─────────────────v──────────────────┐│
 │  │           LLM Provider             ││
 │  │  (Gemini / GPT / Claude / Local)   ││
 │  └────────────────────────────────────┘│
@@ -192,13 +192,13 @@ The interface layer enables agent-to-agent communication and external integratio
 
 ```
 ┌──────────┐    A2A Protocol    ┌──────────┐
-│ Agent A  │ ◄───────────────── │ Agent B  │
-│          │ ───────────────► │          │
+│ Agent A  │ <---------------- │ Agent B  │
+│          │ ----------------> │          │
 └──────────┘                    └──────────┘
      │                               │
      └───────────┬───────────────────┘
                  │
-         ┌───────▼───────┐
+         ┌───────v───────┐
          │    kagent     │
          │  (Discovery)  │
          └───────────────┘
@@ -238,42 +238,42 @@ The governance layer ensures security, compliance, and observability.
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                    5. GOVERNANCE (Monitoring)                   │
-│                    Observability • RBAC • Guardrails            │
+│                    Observability + RBAC + Guardrails            │
 └───────────────────┬─────────────────────────────────────────────┘
                     │ (Monitors all layers)
-                    ▼
+                    v
 ┌─────────────────────────────────────────────────────────────────┐
 │                         Internet / Users                        │
 └────────────────────────────┬────────────────────────────────────┘
                              │
-                   ┌─────────▼─────────┐
+                   ┌─────────v─────────┐
                    │  4. INTERFACE     │
-                   │  A2A • REST • SSE │
+                   │  A2A + REST + SSE │
                    └─────────┬─────────┘
                              │
          ┌───────────────────┼───────────────────┐
          │                   │                   │
-    ┌────▼─────┐      ┌─────▼──────┐     ┌─────▼──────┐
+    ┌────v─────┐      ┌─────v──────┐     ┌─────v──────┐
     │  Agent 1 │      │  Agent 2   │     │  Agent N   │
     │          │      │            │     │            │
     │  ┌───────┴──────┴────────────┴─────┴───────┐    │
     │  │  2. COGNITIVE (Reasoning)               │    │
-    │  │  Google ADK • Gemini                    │    │
+    │  │  Google ADK + Gemini                    │    │
     │  └─────────────────┬───────────────────────┘    │
     │                    │                            │
-    │  ┌─────────────────▼───────────────────────┐    │
+    │  ┌─────────────────v───────────────────────┐    │
     │  │  3. MEMORY (State)                      │    │
-    │  │  ConfigMaps • Secrets • (Redis planned) │    │
+    │  │  ConfigMaps + Secrets + (Redis planned) │    │
     │  └─────────────────────────────────────────┘    │
     └────┬─────┘      └─────┬──────┘     └─────┬──────┘
          │                  │                   │
-    ┌────▼──────────────────▼───────────────────▼─────┐
+    ┌────v──────────────────v───────────────────v─────┐
     │         1. RUNTIME (Knative Serving)            │
-    │  Scale-to-Zero • Auto-scaling • Orchestration   │
+    │  Scale-to-Zero + Auto-scaling + Orchestration   │
     └────────────────────┬────────────────────────────┘
                          │
-    ┌────────────────────▼────────────────────────────┐
-    │     Kubernetes • Contour/Envoy • Infrastructure │
+    ┌────────────────────v────────────────────────────┐
+    │     Kubernetes + Contour/Envoy + Infrastructure │
     └─────────────────────────────────────────────────┘
 ```
 

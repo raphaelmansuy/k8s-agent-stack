@@ -44,13 +44,13 @@ curl $(kn service describe hello -o url)
 
 ```text
 ┌────────────────────────────────────────────────────────────┐
-│  🤖 YOUR AGENTS (Google ADK │ LangGraph │ CrewAI │ Custom) 
+│  YOUR AGENTS (Google ADK │ LangGraph │ CrewAI │ Custom)    │
 ├────────────────────────────────────────────────────────────┤
-│  📡 kagent: A2A Protocol • Multi-Framework • Discovery    
+│  kagent: A2A Protocol • Multi-Framework • Discovery        │
 ├────────────────────────────────────────────────────────────┤
-│  ⚡ Knative: Scale-to-Zero • Auto-Scaling • Traffic Mgmt  
+│  Knative: Scale-to-Zero • Auto-Scaling • Traffic Mgmt      │
 ├────────────────────────────────────────────────────────────┤
-│  ☸️ Kubernetes: OrbStack │ GKE │ EKS │ AKS │ On-Prem      
+│  Kubernetes: OrbStack │ GKE │ EKS │ AKS │ On-Prem          │
 └────────────────────────────────────────────────────────────┘
 ```
 

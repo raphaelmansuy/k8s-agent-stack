@@ -46,34 +46,34 @@ This diagram shows the **complete data plane + control plane flow** for Knative 
          v
   ┌──────────────────────────────────────────────────────────────────────┐
   │  Envoy (Contour Data Plane)                                          │
-  │  • LoadBalancer Service (OrbStack assigns real IP)                   │
-  │  • Routes by Host header                                             │
-  │  • L7 proxy with connection pooling                                  │
+  │  - LoadBalancer Service (OrbStack assigns real IP)                   │
+  │  - Routes by Host header                                             │
+  │  - L7 proxy with connection pooling                                  │
   └────────────────┬─────────────────────────────────────────────────────┘
                    │ 2. Route lookup via HTTPProxy
                    v
   ┌──────────────────────────────────────────────────────────────────────┐
   │  Contour Controller (Control Plane)                                  │
-  │  • Watches HTTPProxy CRDs                                            │
-  │  • Programs Envoy config (xDS protocol)                              │
-  │  • Created by net-contour-controller                                 │
+  │  - Watches HTTPProxy CRDs                                            │
+  │  - Programs Envoy config (xDS protocol)                              │
+  │  - Created by net-contour-controller                                 │
   └──────────────────────────────────────────────────────────────────────┘
                    │
                    v
   ┌──────────────────────────────────────────────────────────────────────┐
   │  Knative Serverless Service (SKS)                                    │
-  │  • Intelligent routing layer                                         │
-  │  • IF replicas > 0 → route to revision pods                          │
-  │  • IF replicas = 0 → route to Activator                              │
+  │  - Intelligent routing layer                                         │
+  │  - IF replicas > 0: route to revision pods                           │
+  │  - IF replicas = 0: route to Activator                               │
   └────┬──────────────────────────────────────────────┬──────────────────┘
        │ 3a. Scale=0                                  │ 3b. Scale>0
        v                                              v
   ┌─────────────────────────┐              ┌──────────────────────────────┐
   │  Activator              │              │  Revision Pod                 │
-  │  • Buffers request      │              │  ┌────────────────────────┐   │
-  │  • Signals autoscaler   │              │  │ queue-proxy (sidecar)  │   │
-  │  • Holds ~6s max        │              │  │ • Concurrency metrics  │   │
-  │  • Forwards when ready  │──────────────┤  │ • Request queuing      │   │
+  │  - Buffers request      │              │  ┌────────────────────────┐   │
+  │  - Signals autoscaler   │              │  │ queue-proxy (sidecar)  │   │
+  │  - Holds ~6s max        │              │  │ - Concurrency metrics  │   │
+  │  - Forwards when ready  │──────────────┤  │ - Request queuing      │   │
   └─────────────────────────┘              │  └───────────┬────────────┘   │
                                            │              v                │
                                            │  ┌────────────────────────┐   │
@@ -87,22 +87,22 @@ This diagram shows the **complete data plane + control plane flow** for Knative 
 ├────────────────────────────────────────────────────────────────────────────┤
 │                                                                            │
 │  Knative Controller        Autoscaler              Webhook                │
-│  • Watches Service CRD     • Monitors metrics      • Validates/defaults   │
-│  • Creates:                • Computes desired      • Mutation on create   │
-│    - Configuration           replicas (0..N)       • Version negotiation  │
-│    - Route                 • Scales Deployment     • Resource quotas      │
-│    - Revision              • Scale-to-zero timer   │                      │
-│    - K8s Deployment        • Panic mode (burst)    │                      │
-│    - K8s Service           │                       │                      │
+│  - Watches Service CRD     - Monitors metrics      - Validates/defaults   │
+│  - Creates:                - Computes desired      - Mutation on create   │
+│    * Configuration           replicas (0..N)       - Version negotiation  │
+│    * Route                 - Scales Deployment     - Resource quotas      │
+│    * Revision              - Scale-to-zero timer   │                      │
+│    * K8s Deployment        - Panic mode (burst)    │                      │
+│    * K8s Service           │                       │                      │
 │                            │                       │                      │
 └────────────────────────────────────────────────────────────────────────────┘
 
 KEY CONCEPTS:
-• Envoy = Entry point (like Cloud Run's Google Front End)
-• Activator = Cold-start buffer (holds requests during scale-from-zero)
-• queue-proxy = Sidecar that enforces concurrency limits (Cloud Run does this internally)
-• SKS = Smart router that switches between Activator and direct-to-pod routing
-• Revision = Immutable snapshot of your code+config (like Cloud Run revision)
+- Envoy = Entry point (like Cloud Run's Google Front End)
+- Activator = Cold-start buffer (holds requests during scale-from-zero)
+- queue-proxy = Sidecar that enforces concurrency limits (Cloud Run does this internally)
+- SKS = Smart router that switches between Activator and direct-to-pod routing
+- Revision = Immutable snapshot of your code+config (like Cloud Run revision)
 ```
 
 ---
@@ -355,8 +355,8 @@ kn service update myapp --traffic myapp-00001=100
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
 │  1. queue-proxy reports metrics every 1s:                          │
-│     • concurrentRequests (in-flight)                               │
-│     • requestCount (total)                                         │
+│     - concurrentRequests (in-flight)                               │
+│     - requestCount (total)                                         │
 │                                                                     │
 │  2. Autoscaler aggregates across all pods:                         │
 │     avgConcurrency = sum(concurrentRequests) / numPods            │
@@ -399,13 +399,13 @@ kubectl patch cm config-autoscaler -n knative-serving --type merge -p '{
 
 ```ascii
 ┌────────────────────────────────────────────────────────────────────┐
-│                  COLD START SEQUENCE (scale=0 → 1)                 │
+│                  COLD START SEQUENCE (scale=0 to 1)                │
 ├────────────────────────────────────────────────────────────────────┤
 │                                                                    │
-│  t=0ms    Client → Envoy → SKS (sees scale=0) → Activator         │
+│  t=0ms    Client -> Envoy -> SKS (sees scale=0) -> Activator      │
 │           Activator accepts connection, signals autoscaler         │
 │                                                                    │
-│  t=10ms   Autoscaler → K8s API: patch Deployment replicas=1       │
+│  t=10ms   Autoscaler -> K8s API: patch Deployment replicas=1      │
 │                                                                    │
 │  t=50ms   Kubelet pulls image (if not cached)                     │
 │                                                                    │
