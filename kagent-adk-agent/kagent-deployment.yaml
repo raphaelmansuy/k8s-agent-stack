@@ -13,7 +13,7 @@ spec:
   description: "Google ADK agent with weather, time, and math calculation capabilities"
   byo:
     deployment:
-      image: kagent-adk-agent:v11
+      image: kagent-adk-agent:v29
       imagePullPolicy: IfNotPresent
       resources:
         requests:

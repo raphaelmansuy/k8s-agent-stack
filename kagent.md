@@ -83,11 +83,15 @@ Decouple your prompt logic from your wallet. This config handles the auth.
 apiVersion: kagent.dev/v1alpha2
 kind: ModelConfig
 metadata:
-  name: gpt4-turbo
+  name: gpt-4o-mini
   namespace: kagent
 spec:
   provider: OpenAI
-  model: gpt-4-turbo
+  model: gpt-4o-mini
+  credentials:
+    apiKeySecret:
+      name: openai-api-key
+      key: api-key
 ```
 
 ### Phase 3: Define the "Hands" (Tools via MCP)
