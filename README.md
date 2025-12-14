@@ -200,12 +200,12 @@ The foundation layer handles container orchestration, serverless execution, and 
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  RUNTIME LAYER: Execution Infrastructure               │
+│  RUNTIME LAYER: Execution Infrastructure                │
 ├─────────────────────────────────────────────────────────┤
-│  ✓ Kubernetes: Container orchestration                 │
-│  ✓ Knative Serving: Scale-to-zero, auto-scaling        │
-│  ✓ Contour/Envoy: L7 routing, load balancing           │
-│  ✓ metrics-server: Resource monitoring                 │
+│  ✓ Kubernetes: Container orchestration                  │
+│  ✓ Knative Serving: Scale-to-zero, auto-scaling         │
+│  ✓ Contour/Envoy: L7 routing, load balancing            │
+│  ✓ metrics-server: Resource monitoring                  │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -222,14 +222,14 @@ The cognitive layer handles agent reasoning, decision-making, and LLM interactio
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  COGNITIVE LAYER: AI Reasoning Engine                  │
+│  COGNITIVE LAYER: AI Reasoning Engine                   │
 ├─────────────────────────────────────────────────────────┤
-│  ✓ Google ADK: Structured agent development            │
-│  ✓ Gemini integration: LLM backbone                    │
-│  🚧 LangGraph: Complex workflows (Q1 2025)             │
-│  🚧 CrewAI: Multi-agent orchestration (Q1 2025)        │
-│  📋 Model routing: GPT-5, Claude, SLM (Q2 2025)        │
-│  📋 ReAct/Reflection patterns (Q2 2025)                │
+│  ✓ Google ADK: Structured agent development            
+│  ✓ Gemini integration: LLM backbone                    
+│  🚧 LangGraph: Complex workflows (Q4 2025)             
+│  🚧 CrewAI: Multi-agent orchestration (Q4 2025)        
+│  📋 Model routing: GPT-5, Claude, SLM (Q4 2025)        
+│  📋 ReAct/Reflection patterns (Q4 2025)                
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -245,18 +245,18 @@ The cognitive layer handles agent reasoning, decision-making, and LLM interactio
 - Advanced reasoning patterns (ReAct, Reflection, Chain-of-Thought)
 
 #### Layer 3: MEMORY - State & Knowledge Management
-**Status**: 📋 **Planned** (Q1-Q2 2025)
+**Status**: 📋 **Planned** (Q4 2025)
 
 The memory layer will provide agents with short-term, episodic, and semantic memory capabilities.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  MEMORY LAYER: Agent Knowledge & State                 │
+│  MEMORY LAYER: Agent Knowledge & State                  │
 ├─────────────────────────────────────────────────────────┤
-│  📋 Short-term: Redis, session management              │
-│  📋 Episodic: Conversation history, event logs         │
-│  📋 Semantic: Vector databases (Pinecone, Weaviate)    │
-│  📋 Knowledge graphs: Entity relationships             │
+│  📋 Short-term: Redis, session management               
+│  📋 Episodic: Conversation history, event logs          
+│  📋 Semantic: Vector databases (Pinecone, Weaviate)    
+│  📋 Knowledge graphs: Entity relationships             
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -273,14 +273,14 @@ The interface layer enables agent-to-agent communication, human interaction, and
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  INTERFACE LAYER: Communication Protocols              │
+│  INTERFACE LAYER: Communication Protocols               │
 ├─────────────────────────────────────────────────────────┤
-│  ✓ A2A Protocol: Agent-to-agent messaging (kagent)     │
-│  ✓ Google ADK: Structured I/O                          │
-│  ✓ REST/SSE: HTTP endpoints, streaming                 │
-│  🚧 MCP: Model Context Protocol (Q1 2025)              │
-│  📋 HITL: Human-in-the-Loop workflows (Q1 2025)        │
-│  📋 Agentic RAG: Retrieval-augmented generation        │
+│  ✓ A2A Protocol: Agent-to-agent messaging (kagent)      │
+│  ✓ Google ADK: Structured I/O                           │
+│  ✓ REST/SSE: HTTP endpoints, streaming                  │
+│  🚧 MCP: Model Context Protocol (Q1 2025)               
+│  📋 HITL: Human-in-the-Loop workflows (Q1 2025)         
+│  📋 Agentic RAG: Retrieval-augmented generation          
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -303,14 +303,14 @@ The governance layer ensures security, compliance, cost control, and system obse
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  GOVERNANCE LAYER: Security & Compliance               │
+│  GOVERNANCE LAYER: Security & Compliance                │
 ├─────────────────────────────────────────────────────────┤
-│  ✓ Basic monitoring: kubectl logs, events              │
-│  🚧 Prometheus/Grafana: Metrics & dashboards           │
-│  📋 RBAC: Role-based access control                    │
-│  📋 Guardrails: Policy enforcement, safety checks      │
-│  📋 Audit logging: Compliance tracking                 │
-│  📋 Cost tracking: LLM usage & infrastructure costs    │
+│  ✓ Basic monitoring: kubectl logs, events              
+│  🚧 Prometheus/Grafana: Metrics & dashboards           
+│  📋 RBAC: Role-based access control                    
+│  📋 Guardrails: Policy enforcement, safety checks      
+│  📋 Audit logging: Compliance tracking                 
+│  📋 Cost tracking: LLM usage & infrastructure costs    
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -350,14 +350,14 @@ The governance layer ensures security, compliance, cost control, and system obse
     │  Agent 1 │      │  Agent 2   │     │  Agent N   │
     │          │      │            │     │            │
     │  ┌───────┴──────┴────────┬───┴─────┴───────┐    │
-    │  │  2. COGNITIVE         │                  │    │
-    │  │  Reasoning • Models   │ ◄─────┐          │    │
-    │  └───────────────────────┘       │          │    │
-    │                                   │          │    │
-    │  ┌───────────────────────────────▼─────┐    │    │
-    │  │  3. MEMORY                          │    │    │
-    │  │  Short-term • Episodic • Semantic   │    │    │
-    │  └─────────────────────────────────────┘    │    │
+    │  │  2. COGNITIVE         │                  │   │
+    │  │  Reasoning • Models   │ ◄─────┐          │   │
+    │  └───────────────────────┘       │          │   │
+    │                                  │          │   │
+    │  ┌───────────────────────────────▼─────┐    │   │
+    │  │  3. MEMORY                          │    │   │
+    │  │  Short-term • Episodic • Semantic   │    │   │
+    │  └─────────────────────────────────────┘    │   │
     └────┬─────┘      └─────┬──────┘     └─────┬──────┘
          │                  │                   │
     ┌────▼──────────────────▼───────────────────▼─────┐
