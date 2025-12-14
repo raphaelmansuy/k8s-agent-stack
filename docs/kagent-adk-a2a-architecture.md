@@ -96,6 +96,17 @@
 
 ---
 
+### Kubernetes primitives (concise)
+
+| Primitive | What it is | Why it matters (for agents) |
+|-----------|------------|-----------------------------|
+| Pod | Smallest deployable unit in Kubernetes; one or more containers that share network, storage, and lifecycle. | Runs the agent container(s); Kagent schedules Pods to run agent instances. |
+| Service | Stable network endpoint (ClusterIP/LoadBalancer) that routes to one or more Pod backends. | Exposes an agent to other agents and the control plane (A2A calls use Services). |
+| ConfigMap | Key/value config store mounted into Pods as files or env vars. | Stores non-sensitive config (tool metadata, feature flags) used by agent at runtime without rebuilding images. |
+| Monitoring sidecar | A helper container running alongside the agent in the same Pod that collects metrics/logs (e.g., Prometheus exporter, filebeat). | Provides standardized observability (metrics, logs, health checks) without changing agent code. Kagent automatically injects or configures these for consistent telemetry. |
+| CRD (Custom Resource Definition) | Kubernetes API extension that defines a new resource type (e.g., `Agent`). | Declares agent intent (image, resources, replicas, tool contracts). Kagent watches CRDs and reconciles Pods/Services/ConfigMaps accordingly. |
+
+
 ## 4) The Survival Kit
 
 ### Day 0 Checklist
