@@ -20,22 +20,19 @@
 | **Scale-to-zero** | ✅ Pay for what you use | ⚠️ Varies |
 | **Multi-framework** | ✅ ADK, LangGraph, CrewAI | ❌ Limited |
 
-## Quick Start (5 min)
+## Quick Start (2 min)
 
 ```bash
-# Prerequisites: kubectl, kn CLI, docker
-# Install kn: brew install knative/client/kn
+# 1. Set your OpenAI API key
+export OPENAI_API_KEY="your-key-here"
 
-# 1. Clone & install
+# 2. Clone & run
 git clone https://github.com/raphaelmansuy/k8s-agent-stack.git
 cd k8s-agent-stack
-./knative_orbstack.sh
+make start
 
-# 2. Deploy test agent
-kn service create hello --image=gcr.io/knative-samples/helloworld-go --port=8080
-
-# 3. Verify
-curl $(kn service describe hello -o url)
+# 3. Open the UI (in a separate terminal)
+make ui   # Opens http://localhost:8080 - keep terminal open!
 ```
 
 📖 **[Full Installation Guide](docs/getting-started.md)** | **[Production Setup](docs/getting-started.md#production-deployment)**
@@ -58,19 +55,20 @@ Implements a **5-layer agentic platform**: Runtime → Cognitive → Memory → 
 
 📖 **[Architecture Deep Dive](docs/architecture.md)**
 
-## 🎯 Access Kagent Portal (Agent Management UI)
+## 🎯 Access Kagent UI
 
-Manage all your agents through a unified web dashboard:
+Manage all your agents through the official Kagent web interface:
 
 ```bash
-# One-command access to the portal
-make portal-access
-
-# Opens: http://localhost:3000 in your browser
-# Shows: Dashboard, agents list, quick commands, system status
+make ui
+# Opens: http://localhost:8080
+# Keep this terminal open while using the UI
+# Press Ctrl+C to stop
 ```
 
-📖 **[Portal Access Guide](PORTAL_ACCESS.md)** | **[Quick Reference](PORTAL_QUICK_ACCESS.md)**
+**Important:** The `make ui` command creates a port-forward that must remain running. Open http://localhost:8080 in your browser while the command is running.
+
+**Features:** Agent chat, management, tools, model configs, observability
 
 ## Deploy Your First Agent
 
