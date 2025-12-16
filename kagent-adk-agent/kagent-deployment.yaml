@@ -17,8 +17,8 @@ spec:
   description: "Google ADK agent with weather, time, and math calculation capabilities"
   byo:
     deployment:
-      image: dev.local/kagent-adk-agent:v30
-      imagePullPolicy: IfNotPresent
+      image: dev.local/kagent-adk-agent:latest
+      imagePullPolicy: Never
       resources:
         requests:
           cpu: 250m
@@ -36,6 +36,6 @@ spec:
         - name: OPENAI_API_KEY
           valueFrom:
             secretKeyRef:
-              name: openai-api-key
-              key: api-key
-              optional: true
+              name: kagent-openai
+              key: OPENAI_API_KEY
+              optional: false

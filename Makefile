@@ -29,6 +29,9 @@ help: ## Show this help
 	@echo "  make ui            Open Kagent web interface (keep terminal open)"
 	@echo "  make status        Check everything is running"
 	@echo ""
+	@echo "🤖 ADK Agent:"
+	@echo "  make adk-agent     Build and deploy Google ADK agent"
+	@echo ""
 	@echo "📋 Commands:"
 	@echo "  make install       Install kagent CLI"
 	@echo "  make setup         Install kagent to cluster"
@@ -199,6 +202,49 @@ clean-all: ## Remove everything including namespace
 	@printf '\033[0;32m✓ Complete cleanup done\033[0m\n'
 
 ##@ Advanced
+
+adk-agent: ## Build and deploy Google ADK agent
+	@echo "Building ADK agent Docker image..."
+	@cd kagent-adk-agent && docker build -t dev.local/kagent-adk-agent:latest .
+	@printf '\033[0;32m✓ Image built\033[0m\n'
+	@echo "Deploying ADK agent to kagent..."
+	@kubectl apply -f kagent-adk-agent/kagent-deployment.yaml
+	@printf '\033[0;32m✓ ADK agent deployed\033[0m\n'
+	@echo "Waiting for agent to be ready (this may take 1-2 minutes)..."
+	@sleep 5
+	@kubectl rollout status deployment/google-adk-byo-agent -n $(AGENT_NAMESPACE) --timeout=120s 2>/dev/null || echo "⚠️  Agent pod starting... Check with: make adk-agent-status"
+
+adk-agent-build: ## Build ADK agent Docker image
+	@echo "Building ADK agent Docker image..."
+	@cd kagent-adk-agent && docker build -t dev.local/kagent-adk-agent:latest .
+	@printf '\033[0;32m✓ Image built: dev.local/kagent-adk-agent:latest\033[0m\n'
+
+adk-agent-deploy: ## Deploy ADK agent to kagent
+	@echo "Deploying ADK agent to kagent..."
+	@kubectl apply -f kagent-adk-agent/kagent-deployment.yaml
+	@printf '\033[0;32m✓ ADK agent deployed\033[0m\n'
+	@echo "Check status with: make adk-agent-status"
+
+adk-agent-status: ## Check ADK agent status
+	@echo "📦 ADK Agent Status"
+	@echo "───────────────────"
+	@kubectl get agent google-adk-byo-agent -n $(AGENT_NAMESPACE) 2>/dev/null || echo "Agent not found"
+	@echo ""
+	@echo "🔧 Deployment"
+	@echo "─────────────"
+	@kubectl get deployment google-adk-byo-agent -n $(AGENT_NAMESPACE) 2>/dev/null || echo "Deployment not found"
+	@echo ""
+	@echo "📊 Pods"
+	@echo "───────"
+	@kubectl get pods -n $(AGENT_NAMESPACE) -l app.kubernetes.io/name=google-adk-byo-agent 2>/dev/null || echo "No pods found"
+
+adk-agent-logs: ## View ADK agent logs
+	@kubectl logs -n $(AGENT_NAMESPACE) -l app.kubernetes.io/name=google-adk-byo-agent --tail=100 -f
+
+adk-agent-delete: ## Delete ADK agent
+	@echo "Removing ADK agent..."
+	@kubectl delete -f kagent-adk-agent/kagent-deployment.yaml 2>/dev/null || echo "Agent not found"
+	@printf '\033[0;32m✓ ADK agent removed\033[0m\n'
 
 knative: ## Install Knative (optional, for serverless agents)
 	@echo "Installing Knative Serving..."

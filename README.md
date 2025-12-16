@@ -73,17 +73,28 @@ make ui
 ## Deploy Your First Agent
 
 ```bash
-# Deploy the included Google ADK agent
+# Build and deploy the included Google ADK agent (one command!)
+make adk-agent
+
+# Check status
+make adk-agent-status
+
+# View logs
+make adk-agent-logs
+
+# Or deploy manually:
 cd kagent-adk-agent
+docker build -t dev.local/kagent-adk-agent:latest .
 kubectl apply -f kagent-deployment.yaml
-
-# Test it
-kubectl port-forward -n kagent svc/google-adk-agent 8080:8080 &
-curl http://localhost:8080/health
-
-# Or access through portal: http://localhost:3000
-# See agent in "Active Agents" tab
 ```
+
+**Available ADK Agent Commands:**
+- `make adk-agent` - Build and deploy Google ADK agent
+- `make adk-agent-build` - Build Docker image only
+- `make adk-agent-deploy` - Deploy to kagent only
+- `make adk-agent-status` - Check agent status
+- `make adk-agent-logs` - View agent logs
+- `make adk-agent-delete` - Remove agent
 
 📖 **[Deployment Guide](docs/deployment-guide.md)** | **[Build ADK Agents](docs/building-google-adk-agents-for-kagent.md)**
 
