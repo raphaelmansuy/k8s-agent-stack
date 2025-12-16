@@ -54,9 +54,11 @@ setup: ## Setup local Kubernetes with Knative and kagent (OrbStack or kind)
 	@echo "$(BLUE)Setting up local Kubernetes environment...$(NC)"
 	@echo "$(YELLOW)Step 1: Verifying Kubernetes cluster...$(NC)"
 	@kubectl cluster-info >/dev/null || { echo "$(RED)Kubernetes cluster not found$(NC)"; exit 1; }
-	@echo "$(YELLOW)Step 2: Running installer script...$(NC)"
+	@echo "$(YELLOW)Step 2: Verifying/installing kn CLI...$(NC)"
+	@command -v kn >/dev/null 2>&1 || { echo "$(YELLOW)Installing kn CLI...$(NC)"; brew install knative/client/kn 2>/dev/null || echo "$(YELLOW)kn CLI install skipped (may already exist)"; }
+	@echo "$(YELLOW)Step 3: Running Knative + kagent installer...$(NC)"
 	@./knative_orbstack.sh
-	@echo "$(YELLOW)Step 3: Verifying installation...$(NC)"
+	@echo "$(YELLOW)Step 4: Verifying installation...$(NC)"
 	@$(MAKE) verify
 	@echo "$(GREEN)✓ Setup complete! Ready to deploy agents.$(NC)"
 
@@ -74,25 +76,29 @@ verify: ## Verify installation status
 	@echo "$(BLUE)Verifying installation...$(NC)"
 	@echo ""
 	@echo "$(YELLOW)Knative Serving:$(NC)"
-	@kubectl get ns knative-serving >/dev/null && echo "  $(GREEN)✓ Namespace exists$(NC)" || echo "  $(RED)✗ Not installed$(NC)"
-	@kubectl get pods -n knative-serving >/dev/null && echo "  $(GREEN)✓ Pods running$(NC)" || echo "  $(RED)✗ Pods not found$(NC)"
+	@kubectl get ns knative-serving >/dev/null 2>&1 && echo "  $(GREEN)✓ Namespace exists$(NC)" || echo "  $(RED)✗ Not installed$(NC)"
+	@kubectl get pods -n knative-serving >/dev/null 2>&1 && echo "  $(GREEN)✓ Pods running$(NC)" || echo "  $(RED)✗ Pods not found$(NC)"
 	@echo ""
 	@echo "$(YELLOW)Contour/Envoy:$(NC)"
-	@kubectl get ns projectcontour >/dev/null && echo "  $(GREEN)✓ Namespace exists$(NC)" || echo "  $(RED)✗ Not installed$(NC)"
+	@kubectl get ns projectcontour >/dev/null 2>&1 && echo "  $(GREEN)✓ Namespace exists$(NC)" || echo "  $(RED)✗ Not installed$(NC)"
+	@kubectl get svc envoy -n projectcontour -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null | grep -q . && echo "  $(GREEN)✓ Envoy IP assigned$(NC)" || echo "  $(YELLOW)⚠ Envoy IP pending (may take a moment)$(NC)"
 	@echo ""
 	@echo "$(YELLOW)kagent:$(NC)"
-	@kubectl get ns kagent >/dev/null && echo "  $(GREEN)✓ Namespace exists$(NC)" || echo "  $(RED)✗ Not installed$(NC)"
+	@kubectl get ns kagent >/dev/null 2>&1 && echo "  $(GREEN)✓ Namespace exists$(NC)" || echo "  $(RED)✗ Not installed$(NC)"
+	@kubectl get crds 2>/dev/null | grep -q "kagent.dev" && echo "  $(GREEN)✓ CRDs installed$(NC)" || echo "  $(RED)✗ CRDs not found$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Knative Services:$(NC)"
+	@kubectl get ksvc -n default 2>/dev/null | tail -n +2 | wc -l | awk '{if ($$1 > 0) print "  $(GREEN)✓ "$$1" service(s) ready$(NC)"; else print "  $(YELLOW)⚠ No sample services deployed yet$(NC)"}'
 	@echo ""
 
 ##@ Agent Deployment
 
 deploy: ## Deploy example Google ADK agent
 	@echo "$(BLUE)Deploying Google ADK agent...$(NC)"
-	@kubectl apply -f kagent-adk-agent/kagent-deployment.yaml
+	@kubectl apply -f kagent-setup.yaml
 	@echo "$(YELLOW)Waiting for agent to be ready...$(NC)"
-	@kubectl wait --for=condition=ready pod \
-		-l app.kubernetes.io/name=$(AGENT_NAME) \
-		-n $(AGENT_NAMESPACE) --timeout=120s 2>/dev/null || true
+	@kubectl wait --for=condition=Ready ksvc/google-adk-agent \
+		-n kagent --timeout=120s 2>/dev/null || echo "$(YELLOW)Agent initializing...$(NC)"
 	@echo "$(GREEN)✓ Agent deployed$(NC)"
 	@$(MAKE) agent-status
 
@@ -156,42 +162,40 @@ list-agents: ## List all deployed agents
 
 agent-status: ## Check agent deployment status
 	@echo "$(BLUE)Agent status:$(NC)"
-	@kubectl get pods -n $(AGENT_NAMESPACE) -l app.kubernetes.io/name=$(AGENT_NAME)
+	@kubectl get ksvc google-adk-agent -n kagent 2>/dev/null || kubectl get pods -n $(AGENT_NAMESPACE) -l app.kubernetes.io/name=$(AGENT_NAME)
 
 agent-logs: ## View agent logs (real-time)
 	@echo "$(BLUE)Agent logs (Ctrl+C to exit):$(NC)"
-	@kubectl logs -n $(AGENT_NAMESPACE) \
-		-l app.kubernetes.io/name=$(AGENT_NAME) \
-		--tail=50 --follow
+	@POD=$$(kubectl get pods -n kagent -o jsonpath='{.items[0].metadata.name}' 2>/dev/null); \
+	if [ -z "$$POD" ]; then echo "$(RED)No agent pods found$(NC)"; exit 1; fi; \
+	kubectl logs -n kagent $$POD -c user-container --tail=50 --follow
 
 agent-logs-previous: ## View previous agent pod logs (after crash)
 	@echo "$(BLUE)Previous agent logs:$(NC)"
-	@kubectl logs -n $(AGENT_NAMESPACE) \
-		-l app.kubernetes.io/name=$(AGENT_NAME) \
-		--previous
+	@POD=$$(kubectl get pods -n kagent -o jsonpath='{.items[0].metadata.name}' 2>/dev/null); \
+	if [ -z "$$POD" ]; then echo "$(RED)No agent pods found$(NC)"; exit 1; fi; \
+	kubectl logs -n kagent $$POD -c user-container --previous
 
 agent-describe: ## Describe agent pod details
 	@echo "$(BLUE)Agent pod details:$(NC)"
-	@kubectl describe pod -n $(AGENT_NAMESPACE) \
-		-l app.kubernetes.io/name=$(AGENT_NAME) | head -50
+	@POD=$$(kubectl get pods -n kagent -o jsonpath='{.items[0].metadata.name}' 2>/dev/null); \
+	if [ -z "$$POD" ]; then echo "$(RED)No agent pods found$(NC)"; exit 1; fi; \
+	kubectl describe pod -n kagent $$POD | head -50
 
 port-forward: ## Port-forward agent service for local testing (8080:8080)
 	@echo "$(BLUE)Port-forwarding agent service...$(NC)"
 	@echo "$(YELLOW)Access agent at: http://localhost:8080$(NC)"
 	@echo "$(YELLOW)Press Ctrl+C to stop$(NC)"
-	@kubectl port-forward -n $(AGENT_NAMESPACE) \
-		svc/$(AGENT_NAME) 8080:8080
+	@kubectl port-forward -n kagent svc/google-adk-agent-00001-private 8080:80
 
 port-forward-custom: ## Port-forward with custom local port
 	@read -p "Enter local port (default 8080): " PORT; \
 	PORT=$${PORT:-8080}; \
-	kubectl port-forward -n $(AGENT_NAMESPACE) svc/$(AGENT_NAME) $$PORT:8080
+	kubectl port-forward -n kagent svc/google-adk-agent-00001-private $$PORT:80
 
 test-agent: ## Test agent endpoint (requires port-forward in another terminal)
 	@echo "$(BLUE)Testing agent endpoint...$(NC)"
-	@curl -X POST http://localhost:8080/chat \
-		-H "Content-Type: application/json" \
-		-d '{"message":"Hello, agent!"}' | jq . || true
+	@curl -X GET http://localhost:8080 -s | head -20
 	@echo ""
 
 watch-pods: ## Watch pod scaling in real-time
@@ -259,6 +263,43 @@ prod: ## Setup production environment
 	@echo "  kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml"
 	@echo "$(GREEN)✓ Production setup ready$(NC)"
 
+##@ Kagent Portal UI
+
+portal-deploy: ## Deploy Kagent Portal UI for agent management
+	@echo "$(BLUE)Deploying Kagent Portal...$(NC)"
+	@kubectl apply -f kagent-portal.yaml
+	@echo "$(GREEN)✓ Portal deployment manifest applied$(NC)"
+	@echo "$(YELLOW)Next: Run 'make portal-access' to connect$(NC)"
+
+portal-access: ## Access Kagent Portal (port-forward)
+	@echo "$(BLUE)Starting Kagent Portal port-forward...$(NC)"
+	@echo "$(GREEN)Portal will be available at: http://localhost:3000$(NC)"
+	@echo "$(YELLOW)Press Ctrl+C to stop$(NC)"
+	@echo ""
+	@kubectl port-forward -n $(AGENT_NAMESPACE) svc/kagent-web 3000:3000
+
+portal-status: ## Check Kagent Portal status
+	@echo "$(BLUE)Kagent Portal Status:$(NC)"
+	@echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo "$(BLUE)Pods:$(NC)"
+	@kubectl get pods -n $(AGENT_NAMESPACE) -l app=kagent-web
+	@echo ""
+	@echo "$(BLUE)Services:$(NC)"
+	@kubectl get svc -n $(AGENT_NAMESPACE) -l app=kagent-web
+	@echo ""
+	@echo "$(BLUE)Access:$(NC)"
+	@echo "  $(GREEN)Local: http://localhost:3000 (requires port-forward)$(NC)"
+	@echo "  $(YELLOW)Run 'make portal-access' to start$(NC)"
+
+portal-logs: ## Show Kagent Portal logs
+	@echo "$(BLUE)Kagent Portal Logs:$(NC)"
+	@kubectl logs -n $(AGENT_NAMESPACE) -l app=kagent-web -f
+
+portal-clean: ## Remove Kagent Portal
+	@echo "$(BLUE)Removing Kagent Portal...$(NC)"
+	@kubectl delete -f kagent-portal.yaml --ignore-not-found
+	@echo "$(GREEN)✓ Portal removed$(NC)"
+
 ##@ Documentation & Help
 
 docs: ## Open documentation
@@ -267,6 +308,7 @@ docs: ## Open documentation
 	@echo ""
 	@echo "$(YELLOW)Quick links:$(NC)"
 	@echo "  - README.md - Main documentation"
+	@echo "  - KAGENT_PORTAL_ACCESS.md - Portal access guide"
 	@echo "  - knative-orbstack.md - Local development guide"
 	@echo "  - knative.md - Production deployment guide"
 	@echo "  - docs/kagent-adk-a2a-architecture.md - Architecture details"

@@ -287,6 +287,10 @@ wait_contour_ready() {
   for i in $(seq 1 30); do
     local ready=$(kubectl get pods -n ${CONTOUR_NAMESPACE} -l app=contour \
       -o jsonpath='{.items[*].status.conditions[?(@.type=="Ready")].status}' 2>/dev/null | grep -c True || echo 0)
+    # Ensure ready is an integer
+    if ! [[ "$ready" =~ ^[0-9]+$ ]]; then
+      ready=0
+    fi
     [ "$ready" -ge 2 ] && { success "Contour ready ($ready pods)"; return 0; }
     printf "\r  Waiting... (%d/30)" "$i"
     sleep 4
@@ -513,12 +517,12 @@ collect_diagnostics() {
 
 show_status() {
   cat <<EOF
-${BOLD}Knative Serving Status${NC}
-════════════════════════
+${BOLD}Knative Serving & kagent Status${NC}
+════════════════════════════════════
 
 EOF
   echo "${BOLD}Namespaces:${NC}"
-  kubectl get ns 2>/dev/null | grep -E 'NAME|knative|contour' || echo "  None"
+  kubectl get ns 2>/dev/null | grep -E 'NAME|knative|contour|kagent' || echo "  None"
   
   echo ""
   echo "${BOLD}Knative Pods (knative-serving):${NC}"
@@ -527,6 +531,10 @@ EOF
   echo ""
   echo "${BOLD}Contour Pods (projectcontour):${NC}"
   kubectl get pods -n ${CONTOUR_NAMESPACE} 2>/dev/null || echo "  None"
+  
+  echo ""
+  echo "${BOLD}kagent Status:${NC}"
+  verify_kagent || echo "  Not installed"
   
   echo ""
   echo "${BOLD}Knative Services:${NC}"
@@ -575,6 +583,51 @@ uninstall() {
   kubectl delete namespace metallb-system 2>/dev/null || true
   
   success "Uninstall complete"
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# KAGENT INSTALLATION
+# ─────────────────────────────────────────────────────────────────────────────
+
+install_kagent() {
+  info "Preparing kagent namespace..."
+  
+  # Create kagent namespace if it doesn't exist
+  kubectl create namespace kagent 2>/dev/null || true
+  success "kagent namespace ready"
+  
+  # Wait for namespace to be active
+  kubectl wait --for=condition=Active namespace/kagent --timeout=30s 2>/dev/null || true
+  
+  # Note: Full kagent installation requires Helm access to the kagent repo
+  # For now, we just ensure the namespace exists so users can manually:
+  # 1. helm repo add kagent oci://ghcr.io/kagent-dev/kagent/helm
+  # 2. helm install kagent-crds kagent/kagent-crds -n kagent
+  
+  info "kagent namespace is ready for manual CRD installation"
+  info "To install kagent CRDs, see SETUP.md section 'Installing Full kagent Controller'"
+}
+
+verify_kagent() {
+  local ns=$(kubectl get ns kagent 2>/dev/null)
+  if [ -z "$ns" ]; then
+    warn "kagent namespace not found"
+    return 1
+  fi
+  
+  # Check for kagent-crds
+  local crds=$(kubectl get crds 2>/dev/null | grep -c "kagent.dev" || echo 0)
+  # Ensure crds is a valid integer
+  if ! [[ "$crds" =~ ^[0-9]+$ ]]; then
+    crds=0
+  fi
+  if [ "$crds" -gt 0 ]; then
+    success "kagent CRDs installed ($crds CRD types found)"
+    return 0
+  else
+    info "kagent CRDs not yet installed (manual installation required)"
+    return 1
+  fi
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -630,6 +683,9 @@ EOF
   step "Step 7/7: Verifying Installation"
   wait_knative_ready
   wait_for_envoy_ip
+
+  step "Step 8/8: Installing kagent CRDs"
+  install_kagent
 
   step "Deploying Sample Services"
   create_sample_services

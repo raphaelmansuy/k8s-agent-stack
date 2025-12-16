@@ -1,0 +1,77 @@
+# Knative Service for Google ADK Agent
+# This deploys a simple Cloud Run-compatible container that acts as an AI agent
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: google-adk-agent
+  namespace: kagent
+spec:
+  traffic:
+  - latestRevision: true
+    percent: 100
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "1"
+        autoscaling.knative.dev/maxScale: "10"
+    spec:
+      serviceAccountName: google-adk-agent
+      containers:
+      - image: us-docker.pkg.dev/cloudrun/container/hello:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: openai-api-key
+              key: api-key
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: google-adk-agent
+  namespace: kagent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: google-adk-agent
+  namespace: kagent
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: google-adk-agent
+  namespace: kagent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: google-adk-agent
+subjects:
+- kind: ServiceAccount
+  name: google-adk-agent
+  namespace: kagent

@@ -58,6 +58,20 @@ Implements a **5-layer agentic platform**: Runtime → Cognitive → Memory → 
 
 📖 **[Architecture Deep Dive](docs/architecture.md)**
 
+## 🎯 Access Kagent Portal (Agent Management UI)
+
+Manage all your agents through a unified web dashboard:
+
+```bash
+# One-command access to the portal
+make portal-access
+
+# Opens: http://localhost:3000 in your browser
+# Shows: Dashboard, agents list, quick commands, system status
+```
+
+📖 **[Portal Access Guide](PORTAL_ACCESS.md)** | **[Quick Reference](PORTAL_QUICK_ACCESS.md)**
+
 ## Deploy Your First Agent
 
 ```bash
@@ -68,6 +82,9 @@ kubectl apply -f kagent-deployment.yaml
 # Test it
 kubectl port-forward -n kagent svc/google-adk-agent 8080:8080 &
 curl http://localhost:8080/health
+
+# Or access through portal: http://localhost:3000
+# See agent in "Active Agents" tab
 ```
 
 📖 **[Deployment Guide](docs/deployment-guide.md)** | **[Build ADK Agents](docs/building-google-adk-agents-for-kagent.md)**
