@@ -90,6 +90,18 @@ Key terms and concepts used in k8s-agent-stack.
 
 ---
 
+## kagent CRDs
+
+| Term | Definition |
+|------|------------|
+| **Agent** | Custom Resource defining an AI agent deployment. Can be BYO (bring your own) or built-in type. |
+| **ModelConfig** | Custom Resource for LLM provider configuration (OpenAI, Anthropic, Gemini, etc.). |
+| **ToolServer** | Custom Resource defining MCP tool servers that agents can use. |
+| **Memory** | Custom Resource for agent memory/state persistence. |
+| **BYO Agent** | "Bring Your Own" agent type - deploy custom container images as agents. |
+
+---
+
 ## Status Icons
 
 | Icon | Meaning |

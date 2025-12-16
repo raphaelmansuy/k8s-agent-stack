@@ -223,18 +223,34 @@ kubectl get events --all-namespaces --sort-by='.lastTimestamp' | head -20
 
 ### ImagePullBackOff
 
-1. **Verify image exists:**
+1. **For local images, use `dev.local/` prefix:**
    ```bash
-   docker pull <image>
+   docker tag my-agent:v1 dev.local/my-agent:v1
    ```
 
-2. **For private registries, check secrets:**
+2. **Verify Knative is configured to skip tag resolution:**
+   ```bash
+   kubectl get configmap config-deployment -n knative-serving -o yaml | grep registries-skipping
+   ```
+   Should include: `registries-skipping-tag-resolving: "kind.local,ko.local,dev.local,docker.io/library"`
+
+3. **Set imagePullPolicy for local images:**
+   ```yaml
+   imagePullPolicy: IfNotPresent  # or Never for local-only
+   ```
+
+4. **Verify image exists locally:**
+   ```bash
+   docker images | grep my-agent
+   ```
+
+5. **For private registries, check secrets:**
    ```bash
    kubectl get secrets -n kagent
    kubectl describe pod <pod-name> -n kagent | grep -A 5 "Image"
    ```
 
-3. **Create pull secret if needed:**
+6. **Create pull secret if needed:**
    ```bash
    kubectl create secret docker-registry regcred \
      --docker-server=<registry> \
@@ -272,6 +288,88 @@ kubectl get events --all-namespaces --sort-by='.lastTimestamp' | head -20
 2. **Test DNS from inside cluster:**
    ```bash
    kubectl run -it --rm debug --image=busybox --restart=Never -- nslookup my-agent.kagent.svc.cluster.local
+   ```
+
+3. **On macOS, use port-forwarding instead of sslip.io URLs:**
+   ```bash
+   kubectl port-forward -n kagent svc/<service-name> 8080:80
+   curl http://localhost:8080
+   ```
+
+---
+
+## kagent-Specific Issues
+
+### Agent Shows READY=False
+
+1. **Check agent status:**
+   ```bash
+   kubectl describe agent <agent-name> -n kagent
+   ```
+
+2. **Check associated pods:**
+   ```bash
+   kubectl get pods -n kagent -l app.kubernetes.io/name=<agent-name>
+   ```
+
+3. **Check agent conditions:**
+   ```bash
+   kubectl get agent <agent-name> -n kagent -o jsonpath='{.status.conditions}' | jq
+   ```
+
+### OpenAI API Authentication Fails
+
+1. **Check secret exists:**
+   ```bash
+   kubectl get secret openai-api-key -n kagent
+   ```
+
+2. **Verify secret key name:**
+   ```bash
+   kubectl get secret openai-api-key -n kagent -o jsonpath='{.data}' | jq
+   ```
+
+3. **Recreate secret:**
+   ```bash
+   kubectl delete secret openai-api-key -n kagent
+   kubectl create secret generic openai-api-key \
+     --from-literal=api-key="$OPENAI_API_KEY" \
+     -n kagent
+   ```
+
+### kagent Controller Not Working
+
+1. **Check controller logs:**
+   ```bash
+   kubectl logs -n kagent deploy/kagent-controller --tail=100
+   ```
+
+2. **Restart controller:**
+   ```bash
+   kubectl rollout restart deployment/kagent-controller -n kagent
+   ```
+
+3. **Check CRDs are installed:**
+   ```bash
+   kubectl get crd | grep kagent
+   ```
+
+### BYO Agent Not Starting
+
+1. **Verify Agent CRD:**
+   ```bash
+   kubectl get agent <agent-name> -n kagent -o yaml
+   ```
+
+2. **Check image is accessible:**
+   ```bash
+   docker images | grep <agent-name>
+   ```
+
+3. **Ensure dev.local prefix for local images:**
+   ```yaml
+   image: dev.local/my-agent:v1
+   imagePullPolicy: IfNotPresent
    ```
 
 ---

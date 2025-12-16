@@ -11,6 +11,7 @@ Complete documentation for building, deploying, and operating AI agents on Kuber
 | **[Getting Started](getting-started.md)** | Installation for local development and production |
 | **[Architecture](architecture.md)** | 5-layer agentic platform design |
 | **[Deployment Guide](deployment-guide.md)** | Deploy, update, traffic splitting, canary releases |
+| **[Quick Reference](quick-reference.md)** | Essential commands and common workflows |
 | **[Troubleshooting](troubleshooting.md)** | Common issues and solutions |
 | **[Tool Installation](tool-installation.md)** | kubectl, kn, helm, docker setup |
 | **[Glossary](glossary.md)** | Key terms and concepts |

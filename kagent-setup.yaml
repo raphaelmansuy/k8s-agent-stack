@@ -1,5 +1,5 @@
 # Knative Service for Google ADK Agent
-# This deploys a simple Cloud Run-compatible container that acts as an AI agent
+# This deploys the actual ADK agent container that acts as an AI agent
 apiVersion: serving.knative.dev/v1
 kind: Service
 metadata:
@@ -17,7 +17,8 @@ spec:
     spec:
       serviceAccountName: google-adk-agent
       containers:
-      - image: us-docker.pkg.dev/cloudrun/container/hello:latest
+      - image: dev.local/kagent-adk-agent:v30
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080
         env:
@@ -31,19 +32,19 @@ spec:
             memory: "256Mi"
             cpu: "100m"
           limits:
-            memory: "512Mi"
-            cpu: "500m"
+            memory: "1Gi"
+            cpu: "1000m"
         livenessProbe:
           httpGet:
-            path: /
+            path: /health
             port: 8080
-          initialDelaySeconds: 10
+          initialDelaySeconds: 15
           periodSeconds: 30
         readinessProbe:
           httpGet:
-            path: /
+            path: /health
             port: 8080
-          initialDelaySeconds: 5
+          initialDelaySeconds: 10
           periodSeconds: 10
 ---
 apiVersion: v1

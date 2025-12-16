@@ -6,10 +6,10 @@
 apiVersion: kagent.dev/v1alpha2
 kind: Agent
 metadata:
-  name: google-adk-agent
+  name: google-adk-byo-agent
   namespace: kagent
   labels:
-    app.kubernetes.io/name: google-adk-agent
+    app.kubernetes.io/name: google-adk-byo-agent
     app.kubernetes.io/part-of: kagent
     agent-type: byo
 spec:
@@ -17,7 +17,7 @@ spec:
   description: "Google ADK agent with weather, time, and math calculation capabilities"
   byo:
     deployment:
-      image: kagent-adk-agent:v29
+      image: dev.local/kagent-adk-agent:v30
       imagePullPolicy: IfNotPresent
       resources:
         requests:

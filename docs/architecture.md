@@ -1,322 +1,284 @@
-# Architecture
+# Architecture Overview
 
-k8s-agent-stack implements a 5-layer architecture for sovereign AI agents, based on the Agentic Platform Reference Architecture (2025).
+k8s-agent-stack is a multi-layer platform for deploying sovereign AI agents on Kubernetes.
 
-![Agentic Platform Architecture](../images/agentic.png)
-
-## Overview
+## High-Level Architecture
 
 ```
-┌────────────────────────────────────────────────────────────┐
-│  YOUR AGENTS (Google ADK │ LangGraph │ CrewAI │ Custom)    │
-├────────────────────────────────────────────────────────────┤
-│  kagent: A2A Protocol • Multi-Framework • Discovery        │
-├────────────────────────────────────────────────────────────┤
-│  Knative: Scale-to-Zero • Auto-Scaling • Traffic Mgmt      │
-├────────────────────────────────────────────────────────────┤
-│  Kubernetes: OrbStack │ GKE │ EKS │ AKS │ On-Prem          │
-└────────────────────────────────────────────────────────────┘
-```
-
----
-
-## The 5 Layers
-
-| Layer | Purpose | Status |
-|-------|---------|--------|
-| **5. GOVERNANCE** | Security, compliance, observability | 🚧 In Progress |
-| **4. INTERFACE** | Agent communication & interaction | ✅ Partial |
-| **3. MEMORY** | Agent state & knowledge management | 📋 Planned |
-| **2. COGNITIVE** | Reasoning & decision-making | 🚧 In Progress |
-| **1. RUNTIME** | Execution & orchestration | ✅ Production |
-
----
-
-## Layer 1: RUNTIME
-
-**Status**: ✅ Production Ready
-
-The foundation layer handles container orchestration, serverless execution, and infrastructure portability.
-
-### Components
-
-| Component | Purpose |
-|-----------|---------|
-| **Kubernetes** | Container orchestration |
-| **Knative Serving** | Scale-to-zero, auto-scaling, traffic management |
-| **Contour + Envoy** | L7 routing, load balancing |
-| **metrics-server** | Resource monitoring for autoscaling |
-
-### Key Features
-
-- **Scale-to-zero**: Pods scale down when idle, reducing costs
-- **Auto-scaling**: From 0 to 1000+ concurrent requests
-- **Traffic management**: Canary deployments, blue-green, A/B testing
-- **Multi-cloud**: Works on GKE, EKS, AKS, on-prem, local
-
-### How It Works
-
-```
-User Request
-     │
-     v
-┌─────────────┐
-│   Envoy     │  L7 Load Balancer
-└─────────────┘
-     │
-     v
-┌─────────────┐
-│  Activator  │  Buffers requests when scaling from zero
-└─────────────┘
-     │
-     v
-┌─────────────┐
-│ Queue-Proxy │  Sidecar in each pod, reports metrics
-└─────────────┘
-     │
-     v
-┌─────────────┐
-│ Your Agent  │  Container running your code
-└─────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                         k8s-agent-stack                             │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│   ┌─────────────────────────────────────────────────────────────┐   │
+│   │            YOUR AGENTS                                      │   │
+│   │   Google ADK  │  LangGraph  │  CrewAI  │  Custom BYO        │   │
+│   └─────────────────────────────────────────────────────────────┘   │
+│                              │                                      │
+│   ┌──────────────────────────▼──────────────────────────────────┐   │
+│   │                      kagent                                 │   │
+│   │   • Agent CRDs     • A2A Protocol    • MCP Tools           │   │
+│   │   • UI Dashboard   • Multi-LLM       • Lifecycle Mgmt      │   │
+│   └─────────────────────────────────────────────────────────────┘   │
+│                              │                                      │
+│   ┌──────────────────────────▼──────────────────────────────────┐   │
+│   │                  Knative Serving                            │   │
+│   │   • Scale-to-Zero   • Auto-Scaling   • Traffic Management   │   │
+│   │   • Revisions       • Canary Deploys • Request Buffering    │   │
+│   └─────────────────────────────────────────────────────────────┘   │
+│                              │                                      │
+│   ┌──────────────────────────▼──────────────────────────────────┐   │
+│   │                 Contour + Envoy                             │   │
+│   │   • L7 Routing     • Load Balancing   • TLS Termination    │   │
+│   └─────────────────────────────────────────────────────────────┘   │
+│                              │                                      │
+│   ┌──────────────────────────▼──────────────────────────────────┐   │
+│   │                    Kubernetes                               │   │
+│   │   OrbStack  │  GKE  │  EKS  │  AKS  │  On-Premises         │   │
+│   └─────────────────────────────────────────────────────────────┘   │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Layer 2: COGNITIVE
+## Component Overview
 
-**Status**: 🚧 In Progress
+### Layer 1: Kubernetes (Infrastructure)
 
-The cognitive layer handles agent reasoning, decision-making, and LLM interactions.
+| Component | Purpose | Status |
+|-----------|---------|--------|
+| **Kubernetes** | Container orchestration | ✅ Production |
+| **OrbStack** | Local development (macOS) | ✅ Recommended |
+| **kind/minikube** | Alternative local options | ✅ Supported |
+| **GKE/EKS/AKS** | Cloud production | ✅ Supported |
 
-### Current Components
+### Layer 2: Ingress (Contour + Envoy)
 
-| Component | Purpose |
-|-----------|---------|
-| **Google ADK** | Structured agent development |
-| **Gemini** | LLM backbone (via ADK) |
+| Component | Purpose | Status |
+|-----------|---------|--------|
+| **Contour** | Ingress controller | ✅ Production |
+| **Envoy** | L7 proxy, load balancer | ✅ Production |
+| **sslip.io** | Magic DNS for local dev | ✅ Production |
 
-### Planned Components (Q1 2025)
+### Layer 3: Serverless (Knative Serving)
 
-- **LangGraph**: Complex agent workflows
-- **CrewAI**: Multi-agent orchestration
-- **AutoGen**: Microsoft's agent framework
-- **Model routing**: GPT-4, Claude, local SLMs
+| Component | Purpose | Status |
+|-----------|---------|--------|
+| **Knative Service** | Agent deployment abstraction | ✅ Production |
+| **Activator** | Buffers requests during scale-up | ✅ Production |
+| **Autoscaler** | Scales pods based on metrics | ✅ Production |
+| **Queue-Proxy** | Sidecar for metrics collection | ✅ Production |
 
-### Agent Patterns
+### Layer 4: Agent Orchestration (kagent)
+
+| Component | Purpose | Status |
+|-----------|---------|--------|
+| **kagent Controller** | Agent lifecycle management | ✅ Production |
+| **kagent UI** | Web dashboard | ✅ Production |
+| **Agent CRD** | Declarative agent definition | ✅ Production |
+| **ModelConfig CRD** | LLM provider configuration | ✅ Production |
+| **ToolServer CRD** | MCP tool integration | ✅ Production |
+
+### Layer 5: Agent Frameworks
+
+| Framework | Purpose | Status |
+|-----------|---------|--------|
+| **Google ADK** | Agent development kit | ✅ Production |
+| **LangGraph** | Complex workflows | 📋 Planned |
+| **CrewAI** | Multi-agent orchestration | 📋 Planned |
+| **Custom BYO** | Bring your own container | ✅ Production |
+
+---
+
+## Request Flow
 
 ```
-┌─────────────────────────────────────────┐
-│           COGNITIVE LAYER               │
-├─────────────────────────────────────────┤
-│  ┌──────────┐  ┌──────────┐  ┌────────┐│
-│  │  ReAct   │  │Reflection│  │  CoT   ││
-│  └──────────┘  └──────────┘  └────────┘│
-│                    │                    │
-│  ┌─────────────────v──────────────────┐│
-│  │         Agent Framework            ││
-│  │  (Google ADK / LangGraph / CrewAI) ││
-│  └─────────────────┬──────────────────┘│
-│                    │                    │
-│  ┌─────────────────v──────────────────┐│
-│  │           LLM Provider             ││
-│  │  (Gemini / GPT / Claude / Local)   ││
-│  └────────────────────────────────────┘│
-└─────────────────────────────────────────┘
+                                User Request
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                              Envoy                                  │
+│                    (L7 Load Balancer @ :80)                         │
+└─────────────────────────────────┬───────────────────────────────────┘
+                                  │
+                    ┌─────────────┴─────────────┐
+                    │                           │
+              If pods = 0                  If pods > 0
+                    │                           │
+                    ▼                           │
+┌─────────────────────────────────┐             │
+│           Activator             │             │
+│   (Buffers & triggers scale)    │             │
+└─────────────────────────────────┘             │
+                    │                           │
+                    └─────────────┬─────────────┘
+                                  │
+                                  ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                          Queue-Proxy                                │
+│               (Sidecar in each pod, reports metrics)                │
+└─────────────────────────────────┬───────────────────────────────────┘
+                                  │
+                                  ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                          Your Agent                                 │
+│              (Google ADK / Custom Container @ :8080)                │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Layer 3: MEMORY
+## Agent Types
 
-**Status**: 📋 Planned (Q1 2025)
+### Declarative Agents
 
-The memory layer provides agents with state and knowledge management.
+Defined entirely in YAML. kagent manages the container.
 
-### Planned Components
-
-| Type | Technology | Purpose |
-|------|------------|---------|
-| **Short-term** | Redis | Session state, fast cache |
-| **Episodic** | PostgreSQL | Conversation history, event logs |
-| **Semantic** | Vector DB | Embeddings, similarity search |
-| **Knowledge** | Graph DB | Entity relationships |
-
-### Memory Architecture
-
-```
-┌─────────────────────────────────────────┐
-│           MEMORY LAYER                  │
-├─────────────────────────────────────────┤
-│  ┌──────────────────────────────────┐   │
-│  │         Short-term Memory        │   │
-│  │  (Redis: sessions, cache)        │   │
-│  └──────────────────────────────────┘   │
-│  ┌──────────────────────────────────┐   │
-│  │         Episodic Memory          │   │
-│  │  (Conversation history, logs)    │   │
-│  └──────────────────────────────────┘   │
-│  ┌──────────────────────────────────┐   │
-│  │         Semantic Memory          │   │
-│  │  (Vector DB: Pinecone, Weaviate) │   │
-│  └──────────────────────────────────┘   │
-└─────────────────────────────────────────┘
+```yaml
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: my-agent
+spec:
+  type: Declarative
+  declarative:
+    modelConfig: default-model-config
+    systemMessage: "You are a helpful assistant"
+    tools:
+      - mcpServer:
+          name: kagent-tools
 ```
 
----
+### BYO (Bring Your Own) Agents
 
-## Layer 4: INTERFACE
+You provide the container image. kagent manages deployment.
 
-**Status**: ✅ Partial
-
-The interface layer enables agent-to-agent communication and external integrations.
-
-### Current Components
-
-| Component | Purpose |
-|-----------|---------|
-| **kagent** | A2A protocol for agent-to-agent messaging |
-| **Google ADK** | Structured input/output |
-| **FastAPI** | REST/HTTP endpoints |
-| **SSE** | Server-Sent Events for streaming |
-
-### Planned Components (Q1 2025)
-
-- **MCP**: Model Context Protocol
-- **HITL**: Human-in-the-Loop workflows
-- **WebSocket**: Real-time bidirectional communication
-- **Agentic RAG**: Retrieval-augmented generation
-
-### A2A Protocol
-
-[kagent](https://github.com/kagent-dev/kagent) enables agents to discover and communicate with each other:
-
-```
-┌──────────┐    A2A Protocol    ┌──────────┐
-│ Agent A  │ <---------------- │ Agent B  │
-│          │ ----------------> │          │
-└──────────┘                    └──────────┘
-     │                               │
-     └───────────┬───────────────────┘
-                 │
-         ┌───────v───────┐
-         │    kagent     │
-         │  (Discovery)  │
-         └───────────────┘
+```yaml
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: my-custom-agent
+spec:
+  type: BYO
+  byo:
+    deployment:
+      image: dev.local/my-agent:v1
+      resources:
+        requests:
+          cpu: 250m
+          memory: 512Mi
 ```
 
 ---
 
-## Layer 5: GOVERNANCE
-
-**Status**: 🚧 In Progress
-
-The governance layer ensures security, compliance, and observability.
-
-### Current Components
-
-| Component | Purpose |
-|-----------|---------|
-| **kubectl logs** | Basic logging |
-| **Kubernetes events** | System events |
-| **metrics-server** | Resource metrics |
-
-### Planned Components
-
-| Component | Purpose | Timeline |
-|-----------|---------|----------|
-| **Prometheus** | Metrics collection | Q1 2025 |
-| **Grafana** | Dashboards | Q1 2025 |
-| **RBAC policies** | Access control | Q1 2025 |
-| **Guardrails** | Safety checks | Q2 2025 |
-| **Audit logging** | Compliance | Q2 2025 |
-| **Cost tracking** | LLM usage | Q2 2025 |
-
----
-
-## System Interaction Flow
+## kagent Components
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    5. GOVERNANCE (Monitoring)                   │
-│                    Observability + RBAC + Guardrails            │
-└───────────────────┬─────────────────────────────────────────────┘
-                    │ (Monitors all layers)
-                    v
-┌─────────────────────────────────────────────────────────────────┐
-│                         Internet / Users                        │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                   ┌─────────v─────────┐
-                   │  4. INTERFACE     │
-                   │  A2A + REST + SSE │
-                   └─────────┬─────────┘
-                             │
-         ┌───────────────────┼───────────────────┐
-         │                   │                   │
-    ┌────v─────┐      ┌─────v──────┐     ┌─────v──────┐
-    │  Agent 1 │      │  Agent 2   │     │  Agent N   │
-    │          │      │            │     │            │
-    │  ┌───────┴──────┴────────────┴─────┴───────┐    │
-    │  │  2. COGNITIVE (Reasoning)               │    │
-    │  │  Google ADK + Gemini                    │    │
-    │  └─────────────────┬───────────────────────┘    │
-    │                    │                            │
-    │  ┌─────────────────v───────────────────────┐    │
-    │  │  3. MEMORY (State)                      │    │
-    │  │  ConfigMaps + Secrets + (Redis planned) │    │
-    │  └─────────────────────────────────────────┘    │
-    └────┬─────┘      └─────┬──────┘     └─────┬──────┘
-         │                  │                   │
-    ┌────v──────────────────v───────────────────v─────┐
-    │         1. RUNTIME (Knative Serving)            │
-    │  Scale-to-Zero + Auto-scaling + Orchestration   │
-    └────────────────────┬────────────────────────────┘
-                         │
-    ┌────────────────────v────────────────────────────┐
-    │     Kubernetes + Contour/Envoy + Infrastructure │
-    └─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                         kagent Namespace                            │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────┐  │
+│  │   Controller    │  │      UI         │  │   KMCP Controller   │  │
+│  │  (Reconciles    │  │  (Web Dashboard │  │  (MCP Tool Server   │  │
+│  │   Agent CRDs)   │  │   @ :8080)      │  │    Management)      │  │
+│  └────────┬────────┘  └─────────────────┘  └─────────────────────┘  │
+│           │                                                         │
+│           ▼                                                         │
+│  ┌─────────────────────────────────────────────────────────────┐    │
+│  │                     Agent Pods                              │    │
+│  │  k8s-agent │ helm-agent │ istio-agent │ your-custom-agent   │    │
+│  └─────────────────────────────────────────────────────────────┘    │
+│                                                                     │
+│  ┌─────────────────────────────────────────────────────────────┐    │
+│  │                    Tool Servers                             │    │
+│  │  kagent-tools │ grafana-mcp │ querydoc                      │    │
+│  └─────────────────────────────────────────────────────────────┘    │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Key Technologies
+## Custom Resource Definitions (CRDs)
 
-### kagent
-
-[kagent](https://github.com/kagent-dev/kagent) is a CNCF project for Kubernetes-native AI agent orchestration:
-
-- **A2A Protocol**: Open standard for agent-to-agent communication
-- **Multi-framework**: Supports Google ADK, and planned support for LangGraph, CrewAI
-- **MCP Tools**: Integrates with Kubernetes, Istio, Helm, Prometheus
-- **Observability**: OpenTelemetry tracing support
-
-### Knative Serving
-
-[Knative Serving](https://knative.dev/docs/serving/) provides serverless execution:
-
-- **Services**: High-level abstraction managing routing and scaling
-- **Revisions**: Immutable snapshots of code and configuration
-- **Routes**: Traffic routing between revisions
-- **Configurations**: Desired state for deployments
-
-### Contour + Envoy
-
-[Contour](https://projectcontour.io/) provides L7 ingress:
-
-- **HTTPProxy**: Advanced routing rules
-- **TLS termination**: Certificate management
-- **Rate limiting**: Protect against abuse
-- **Load balancing**: Distribute traffic across pods
+| CRD | Purpose |
+|-----|---------|
+| `Agent` | Defines an AI agent (Declarative or BYO) |
+| `ModelConfig` | LLM provider configuration (OpenAI, Anthropic, etc.) |
+| `ToolServer` | MCP tool server definition |
+| `RemoteMCPServer` | External MCP server connection |
+| `Memory` | Agent memory/state configuration |
+| `MCPServer` | Managed MCP server definition |
 
 ---
 
-## Further Reading
+## Scaling Behavior
 
-- [kagent Documentation](https://kagent.dev/docs/)
-- [Knative Serving Docs](https://knative.dev/docs/serving/)
-- [Contour Documentation](https://projectcontour.io/docs/)
-- [Building ADK Agents](building-google-adk-agents-for-kagent.md)
+```
+         Requests/sec
+              │
+    10 ───────┼─────────────────────────────────── Max Scale (10)
+              │                    ████████████
+     8 ───────┼───────────────────█████████████
+              │              █████████████████
+     6 ───────┼─────────────██████████████████
+              │         ████████████████████
+     4 ───────┼────────█████████████████████
+              │    ████████████████████████
+     2 ───────┼───█████████████████████████
+              │  ██████████████████████████
+     0 ───────┼█████████████████████████████──── Min Scale (0 or 1)
+              │
+              └────────────────────────────────── Time
+               Scale from Zero  │  Under Load  │  Scale Down
+               (~100-500ms)     │  (Instant)   │  (60s delay)
+```
+
+**Key Settings:**
+- `minScale: 0` - Scale to zero when idle (cost savings)
+- `minScale: 1` - Keep warm pod (no cold starts)
+- `maxScale: 10` - Maximum concurrent pods
+- `concurrency-target: 10` - Requests per pod before scaling
 
 ---
 
-[← Back to Documentation Index](README.md) • [Getting Started](getting-started.md) • [Deployment Guide](deployment-guide.md) • [Main README](../README.md)
+## Security Model
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                      Kubernetes RBAC                         │
+├──────────────────────────────────────────────────────────────┤
+│  Namespace: kagent                                           │
+│  ├── ServiceAccount: kagent-controller                       │
+│  │   └── ClusterRole: manages Agent, ModelConfig, etc.      │
+│  ├── ServiceAccount: google-adk-agent                        │
+│  │   └── Role: limited to configmaps in kagent              │
+│  └── Secret: openai-api-key                                  │
+│      └── Referenced by ModelConfig                           │
+└──────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Network Architecture
+
+| Component | Ports | Access |
+|-----------|-------|--------|
+| **Envoy** | 80, 443 | External (LoadBalancer) |
+| **Knative Services** | 80 | Via Envoy only |
+| **kagent UI** | 8080 | Port-forward |
+| **kagent Controller** | 8083 | Cluster internal |
+| **Agent Pods** | 8080 | Via Queue-Proxy |
+
+---
+
+## Next Steps
+
+- [Getting Started](getting-started.md) - Quick installation
+- [Deployment Guide](deployment-guide.md) - Deploy custom agents
+- [Quick Reference](quick-reference.md) - Common commands
+
+---
+
+[← Getting Started](getting-started.md) | [Deployment Guide →](deployment-guide.md)

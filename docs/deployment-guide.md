@@ -4,7 +4,63 @@ This guide covers deploying, updating, and managing agents on k8s-agent-stack.
 
 ## Deploy an Agent
 
-### Method 1: Pre-built Google ADK Agent
+### Method 1: kagent Agent CRD (Recommended)
+
+Deploy agents using kagent's Agent Custom Resource:
+
+```bash
+# 1. Build your agent image with dev.local prefix
+cd kagent-adk-agent
+docker build -t dev.local/my-agent:v1 .
+
+# 2. Create Agent CRD manifest
+cat <<EOF > my-agent.yaml
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: my-agent
+  namespace: kagent
+spec:
+  type: BYO
+  description: "My custom AI agent"
+  byo:
+    deployment:
+      image: dev.local/my-agent:v1
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: openai-api-key
+              key: api-key
+      resources:
+        requests:
+          cpu: 250m
+          memory: 512Mi
+        limits:
+          cpu: 1000m
+          memory: 2Gi
+      probes:
+        liveness:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+EOF
+
+# 3. Deploy
+kubectl apply -f my-agent.yaml
+
+# 4. Wait for ready
+kubectl wait --for=condition=Ready agent/my-agent -n kagent --timeout=120s
+
+# 5. Test
+kubectl port-forward -n kagent svc/my-agent 8081:8080 &
+curl http://localhost:8081/health
+```
+
+### Method 2: Pre-built Google ADK Agent
 
 Deploy the included reference agent:
 
@@ -16,18 +72,19 @@ cd kagent-adk-agent
 kubectl apply -f kagent-deployment.yaml
 
 # Wait for ready (30-60 seconds)
-kubectl wait --for=condition=ready pod \
-  -l app.kubernetes.io/name=google-adk-agent \
+kubectl wait --for=condition=ready agent \
+  -l app.kubernetes.io/name=google-adk-byo-agent \
   -n kagent --timeout=120s
 
 # Test the agent
-kubectl port-forward -n kagent svc/google-adk-agent 8080:8080 &
+kubectl port-forward -n kagent svc/google-adk-byo-agent 8080:8080 &
 curl http://localhost:8080/health
 ```
 
-### Method 2: Knative Service (kn CLI)
+### Method 3: Knative Service (kn CLI)
 
 ```bash
+# For remote images
 kn service create my-agent \
   --image=gcr.io/your-project/my-agent:v1 \
   --port=8080 \
@@ -35,21 +92,44 @@ kn service create my-agent \
   --scale-min=0 \
   --scale-max=10 \
   --concurrency-target=10
+
+# For local images (must use dev.local prefix)
+docker tag my-agent:v1 dev.local/my-agent:v1
+kn service create my-agent \
+  --image=dev.local/my-agent:v1 \
+  --port=8080 \
+  --pull-policy=IfNotPresent
 ```
 
-### Method 3: From Local Docker Image
+### Method 4: From Local Docker Image
 
 ```bash
-# Build locally
+# Build locally with dev.local prefix
 cd my-agent
-docker build -t my-agent:dev .
+docker build -t dev.local/my-agent:dev .
 
-# Deploy
-kn service create my-agent --image=my-agent:dev --port=8080
+# Deploy via kubectl
+cat <<EOF | kubectl apply -f -
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: my-agent
+  namespace: kagent
+spec:
+  template:
+    spec:
+      containers:
+      - image: dev.local/my-agent:dev
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+EOF
 
 # Get URL
-kn service describe my-agent -o url
+kubectl get ksvc my-agent -n kagent -o jsonpath='{.status.url}'
 ```
+
+> **Important:** Local images must use the `dev.local/` prefix for Knative to skip tag resolution.
 
 ---
 
@@ -162,23 +242,35 @@ kubectl logs -n knative-serving deploy/autoscaler --tail=30
 # 1. Make code changes
 vim kagent-adk-agent/app/agent.py
 
-# 2. Build locally
+# 2. Build locally with dev.local prefix
 cd kagent-adk-agent
-docker build -t my-agent:dev .
+docker build -t dev.local/my-agent:dev .
 
-# 3. Deploy
-kn service create my-agent --image=my-agent:dev --port=8080
+# 3. Deploy via Agent CRD
+cat <<EOF | kubectl apply -f -
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: my-agent
+  namespace: kagent
+spec:
+  type: BYO
+  byo:
+    deployment:
+      image: dev.local/my-agent:dev
+      imagePullPolicy: IfNotPresent
+EOF
 
 # 4. Test
-kubectl port-forward svc/my-agent 8080:8080 &
-curl -X POST http://localhost:8080/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message": "test"}'
+kubectl port-forward svc/my-agent -n kagent 8080:8080 &
+curl http://localhost:8080/health
 
 # 5. Check logs
-kubectl logs -l serving.knative.dev/service=my-agent --tail=20
+kubectl logs -n kagent -l app.kubernetes.io/name=my-agent --tail=20
 
-# 6. Iterate
+# 6. Iterate - delete and redeploy
+kubectl delete agent my-agent -n kagent
+# repeat from step 2
 ```
 
 ---
