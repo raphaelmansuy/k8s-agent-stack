@@ -18,29 +18,29 @@ In AgentStack, a **tenant** is a **Project**. Projects provide:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                   Tenant Hierarchy                               │
+│                   Tenant Hierarchy                              │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  Organization (org_xxx)                                         │
 │  │   • Enterprise billing entity                                │
 │  │   • SSO/SAML configuration                                   │
 │  │   • Cross-team policies                                      │
-│  │                                                               │
+│  │                                                              │
 │  └── Team (team_xxx)                                            │
 │      │   • User management                                      │
 │      │   • Role assignments                                     │
 │      │   • Shared resources                                     │
-│      │                                                           │
+│      │                                                          │
 │      └── Project (prj_xxx)  ◄── TENANT BOUNDARY                 │
 │          │   • Data isolation                                   │
 │          │   • Resource quotas                                  │
 │          │   • API key scope                                    │
-│          │                                                       │
+│          │                                                      │
 │          ├── Agents                                             │
 │          ├── Tools                                              │
 │          ├── Secrets                                            │
 │          └── Webhooks                                           │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -62,17 +62,17 @@ In AgentStack, a **tenant** is a **Project**. Projects provide:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                   Data Isolation Strategy                        │
+│                   Data Isolation Strategy                       │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  LOGICAL ISOLATION (Default)                                    │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │  Shared PostgreSQL                                       │    │
+│  │  Shared PostgreSQL                                      │    │
 │  │  ├── project_id column on all tables                    │    │
 │  │  ├── Row-Level Security (RLS) policies                  │    │
 │  │  └── Indexed for performance                            │    │
 │  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
+│                                                                 │
 │  SCHEMA ISOLATION (Pro)                                         │
 │  ┌─────────────────────────────────────────────────────────┐    │
 │  │  Separate schema per project                            │    │
@@ -80,7 +80,7 @@ In AgentStack, a **tenant** is a **Project**. Projects provide:
 │  │  ├── prj_abc.sessions                                   │    │
 │  │  └── Automatic schema routing                           │    │
 │  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
+│                                                                 │
 │  DATABASE ISOLATION (Enterprise)                                │
 │  ┌─────────────────────────────────────────────────────────┐    │
 │  │  Dedicated database per organization                    │    │
@@ -88,7 +88,7 @@ In AgentStack, a **tenant** is a **Project**. Projects provide:
 │  │  ├── Custom backup schedules                            │    │
 │  │  └── Dedicated connection pool                          │    │
 │  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -285,24 +285,24 @@ X-Quota-Reset: 2025-01-15T11:00:00Z
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                   Rate Limiting Strategy                         │
+│                   Rate Limiting Strategy                        │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  Layer 1: Global (Platform Protection)                          │
-│  └── 100,000 req/s total platform capacity                     │
-│                                                                  │
+│  └── 100,000 req/s total platform capacity                      │
+│                                                                 │
 │  Layer 2: Organization                                          │
-│  └── Enterprise SLA-based limits                               │
-│                                                                  │
+│  └── Enterprise SLA-based limits                                │
+│                                                                 │
 │  Layer 3: Project (Tenant)                                      │
-│  └── Plan-based limits (60/600/6000 req/min)                   │
-│                                                                  │
+│  └── Plan-based limits (60/600/6000 req/min)                    │
+│                                                                 │
 │  Layer 4: Agent                                                 │
-│  └── Per-agent concurrency (10/100/1000)                       │
-│                                                                  │
+│  └── Per-agent concurrency (10/100/1000)                        │
+│                                                                 │
 │  Layer 5: User (optional)                                       │
-│  └── Per-user limits within tenant                             │
-│                                                                  │
+│  └── Per-user limits within tenant                              │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
