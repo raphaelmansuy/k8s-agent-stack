@@ -10,39 +10,39 @@
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Observability Stack                           │
+│                    Observability Stack                          │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │                    Collection Layer                      │    │
+│  │                    Collection Layer                     │    │
 │  │  OpenTelemetry Collector (metrics, logs, traces)        │    │
 │  └─────────────────────────────────────────────────────────┘    │
-│         │                    │                    │              │
-│         ▼                    ▼                    ▼              │
+│         │                    │                    │             │
+│         ▼                    ▼                    ▼             │
 │  ┌─────────────┐      ┌─────────────┐      ┌─────────────┐      │
 │  │ Prometheus  │      │    Loki     │      │   Tempo     │      │
 │  │  (Metrics)  │      │   (Logs)    │      │  (Traces)   │      │
 │  └──────┬──────┘      └──────┬──────┘      └──────┬──────┘      │
-│         │                    │                    │              │
-│         └────────────────────┼────────────────────┘              │
-│                              │                                   │
-│                              ▼                                   │
+│         │                    │                    │             │
+│         └────────────────────┼────────────────────┘             │
+│                              │                                  │
+│                              ▼                                  │
 │                    ┌─────────────────┐                          │
 │                    │     Grafana     │                          │
 │                    │  (Dashboards)   │                          │
 │                    └─────────────────┘                          │
-│                              │                                   │
-│                              ▼                                   │
+│                              │                                  │
+│                              ▼                                  │
 │                    ┌─────────────────┐                          │
 │                    │   Alertmanager  │                          │
 │                    │    (Alerts)     │                          │
 │                    └─────────────────┘                          │
-│                                                                  │
+│                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │                    MLflow (Evaluation Layer)             │    │
+│  │                    MLflow (Evaluation Layer)            │    │
 │  │  Agent Traces │ LLM Judges │ Quality Metrics │ Datasets │    │
 │  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -67,24 +67,24 @@
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                      Agent Metrics                               │
+│                      Agent Metrics                              │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  REQUEST METRICS                                                 │
+│                                                                 │
+│  REQUEST METRICS                                                │
 │  • agent_requests_total{agent, status, method}                  │
 │  • agent_request_duration_seconds{agent, quantile}              │
 │  • agent_request_size_bytes{agent, direction}                   │
-│                                                                  │
-│  LLM METRICS                                                     │
+│                                                                 │
+│  LLM METRICS                                                    │
 │  • agent_tokens_total{agent, model, type}  # input/output       │
 │  • agent_llm_latency_seconds{agent, model}                      │
 │  • agent_llm_errors_total{agent, model, error_type}             │
-│                                                                  │
-│  TOOL METRICS                                                    │
+│                                                                 │
+│  TOOL METRICS                                                   │
 │  • agent_tool_calls_total{agent, tool, status}                  │
 │  • agent_tool_duration_seconds{agent, tool}                     │
-│                                                                  │
-│  SCALING METRICS                                                 │
+│                                                                 │
+│  SCALING METRICS                                                │
 │  • agent_replicas{agent}                                        │
 │  • agent_cold_starts_total{agent}                               │
 │  • agent_queue_depth{agent}                                     │
@@ -198,29 +198,29 @@ labels:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                      Request Trace                               │
+│                      Request Trace                              │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  trace_id: abc123xyz                                            │
-│                                                                  │
+│                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │ Span: api-gateway                                        │    │
-│  │ Duration: 1250ms                                         │    │
-│  │ ├─────────────────────────────────────────────────────┐  │    │
-│  │ │ Span: agent-runtime                                 │  │    │
-│  │ │ Duration: 1200ms                                    │  │    │
-│  │ │ ├─────────────────────────────────────────────────┐│  │    │
-│  │ │ │ Span: llm-call (gpt-4o)                         ││  │    │
-│  │ │ │ Duration: 800ms                                 ││  │    │
-│  │ │ │ Attributes: tokens_in=150, tokens_out=342       ││  │    │
-│  │ │ └─────────────────────────────────────────────────┘│  │    │
-│  │ │ ├─────────────────────────────────────────────────┐│  │    │
-│  │ │ │ Span: tool-call (search-kb)                     ││  │    │
-│  │ │ │ Duration: 200ms                                 ││  │    │
-│  │ │ └─────────────────────────────────────────────────┘│  │    │
-│  │ └─────────────────────────────────────────────────────┘  │    │
+│  │ Span: api-gateway                                       │    │
+│  │ Duration: 1250ms                                        │    │
+│  │ ├─────────────────────────────────────────────────────┐ │    │
+│  │ │ Span: agent-runtime                                 │ │    │
+│  │ │ Duration: 1200ms                                    │ │    │
+│  │ │ ├─────────────────────────────────────────────────┐ │ │    │
+│  │ │ │ Span: llm-call (gpt-4o)                         │ │ │    │
+│  │ │ │ Duration: 800ms                                 │ │ │    │
+│  │ │ │ Attributes: tokens_in=150, tokens_out=342       │ │ │    │
+│  │ │ └─────────────────────────────────────────────────┘ │ │    │
+│  │ │ ├─────────────────────────────────────────────────┐ │ │    │
+│  │ │ │ Span: tool-call (search-kb)                     │ │ │    │
+│  │ │ │ Duration: 200ms                                 │ │ │    │
+│  │ │ └─────────────────────────────────────────────────┘ │ │    │
+│  │ └─────────────────────────────────────────────────────┘ │    │
 │  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -354,33 +354,33 @@ mlflow:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│               Traces → Evaluation Pipeline                       │
+│               Traces → Evaluation Pipeline                      │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Production Agent                                                │
-│       │                                                          │
-│       ▼                                                          │
+│                                                                 │
+│  Production Agent                                               │
+│       │                                                         │
+│       ▼                                                         │
 │  ┌─────────────────┐                                            │
 │  │  MLflow Tracing │ ───► Trace storage (async)                 │
 │  └────────┬────────┘                                            │
-│           │                                                      │
-│           ▼                                                      │
+│           │                                                     │
+│           ▼                                                     │
 │  ┌─────────────────┐                                            │
 │  │ Sample Traces   │ ◄── 10% normal, 100% errors                │
 │  └────────┬────────┘                                            │
-│           │                                                      │
-│           ▼                                                      │
+│           │                                                     │
+│           ▼                                                     │
 │  ┌─────────────────┐                                            │
 │  │  Run Scorers    │ ◄── Safety, Correctness, Custom            │
 │  │  (Offline)      │                                            │
 │  └────────┬────────┘                                            │
-│           │                                                      │
-│           ▼                                                      │
+│           │                                                     │
+│           ▼                                                     │
 │  ┌─────────────────┐                                            │
 │  │ Quality Metrics │ ───► Grafana dashboards                    │
-│  │ & Alerts        │ ───► PagerDuty (safety violations)        │
+│  │ & Alerts        │ ───► PagerDuty (safety violations)         │
 │  └─────────────────┘                                            │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -392,30 +392,30 @@ mlflow:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                      Alert Severity                              │
+│                      Alert Severity                             │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  CRITICAL (P1) - Page immediately                               │
 │  • Platform-wide outage                                         │
 │  • Data loss risk                                               │
 │  • Security breach                                              │
 │  • Agent safety score < 0.8 (SAFETY VIOLATION)                  │
-│                                                                  │
-│  HIGH (P2) - Page during business hours                        │
+│                                                                 │
+│  HIGH (P2) - Page during business hours                         │
 │  • Agent error rate > 10%                                       │
 │  • Deployment failures                                          │
 │  • Database connectivity issues                                 │
 │  • Agent correctness score < 0.85                               │
-│                                                                  │
-│  MEDIUM (P3) - Ticket, next business day                       │
+│                                                                 │
+│  MEDIUM (P3) - Ticket, next business day                        │
 │  • Elevated latency                                             │
 │  • Quota approaching limit                                      │
 │  • Certificate expiring < 7 days                                │
-│                                                                  │
-│  LOW (P4) - Ticket, within sprint                              │
+│                                                                 │
+│  LOW (P4) - Ticket, within sprint                               │
 │  • Non-critical deprecation warnings                            │
 │  • Performance optimization opportunities                       │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -547,27 +547,27 @@ alertmanager:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                   Platform Overview                              │
+│                   Platform Overview                             │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌───────────────┐ ┌───────────────┐ ┌───────────────┐         │
-│  │ Active Agents │ │ Requests/min  │ │  Error Rate   │         │
-│  │     1,234     │ │    45,678     │ │    0.02%      │         │
-│  └───────────────┘ └───────────────┘ └───────────────┘         │
-│                                                                  │
+│                                                                 │
+│  ┌───────────────┐ ┌───────────────┐ ┌───────────────┐          │
+│  │ Active Agents │ │ Requests/min  │ │  Error Rate   │          │
+│  │     1,234     │ │    45,678     │ │    0.02%      │          │
+│  └───────────────┘ └───────────────┘ └───────────────┘          │
+│                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │                Request Rate (24h)                        │    │
+│  │                Request Rate (24h)                       │    │
 │  │  ████████████████████████████████████████████           │    │
-│  │  ▁▂▃▄▅▆▇█▇▆▅▄▃▂▁▂▃▄▅▆▇█▇▆▅▄▃▂▁▂▃▄▅▆▇█▇▆▅▄             │    │
+│  │  ▁▂▃▄▅▆▇█▇▆▅▄▃▂▁▂▃▄▅▆▇█▇▆▅▄▃▂▁▂▃▄▅▆▇█▇▆▅▄               │    │
 │  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
-│  ┌───────────────────────────┐ ┌───────────────────────────┐   │
-│  │    Latency Distribution   │ │    Token Usage by Model   │   │
-│  │    P50: 450ms             │ │    gpt-4o: 45%            │   │
-│  │    P95: 1.2s              │ │    claude-3: 30%          │   │
-│  │    P99: 2.8s              │ │    gemini: 25%            │   │
-│  └───────────────────────────┘ └───────────────────────────┘   │
-│                                                                  │
+│                                                                 │
+│  ┌───────────────────────────┐ ┌───────────────────────────┐    │
+│  │    Latency Distribution   │ │    Token Usage by Model   │    │
+│  │    P50: 450ms             │ │    gpt-4o: 45%            │    │
+│  │    P95: 1.2s              │ │    claude-3: 30%          │    │
+│  │    P99: 2.8s              │ │    gemini: 25%            │    │
+│  └───────────────────────────┘ └───────────────────────────┘    │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -575,29 +575,29 @@ alertmanager:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                   Agent: customer-support                        │
+│                   Agent: customer-support                       │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  Status: ACTIVE    Replicas: 3    Revision: rev-042             │
-│                                                                  │
+│                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │                Request Rate & Errors                     │    │
+│  │                Request Rate & Errors                    │    │
 │  │  Requests ████████████████████████████                  │    │
-│  │  Errors   ▁▁▁▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁                   │    │
+│  │  Errors   ▁▁▁▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁                     │    │
 │  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
+│                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │                   Tool Usage                             │    │
+│  │                   Tool Usage                            │    │
 │  │  search-kb     ████████████████████  450 calls          │    │
 │  │  create-ticket ████████              180 calls          │    │
 │  │  lookup-order  ████                   90 calls          │    │
 │  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
-│  Recent Logs:                                                    │
+│                                                                 │
+│  Recent Logs:                                                   │
 │  10:30:01 INFO  Request completed [200] 1.2s                    │
 │  10:30:00 INFO  Tool call: search-kb 200ms                      │
 │  10:29:58 WARN  Retry: LLM timeout, attempt 2                   │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -605,35 +605,35 @@ alertmanager:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│              Agent Safety & Evaluation (MLflow)                  │
+│              Agent Safety & Evaluation (MLflow)                 │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌───────────────┐ ┌───────────────┐ ┌───────────────┐         │
-│  │ Safety Score  │ │  Correctness  │ │ Hallucination │         │
-│  │   ✅ 0.95     │ │   ✅ 0.92     │ │   ✅ 0.02%    │         │
-│  └───────────────┘ └───────────────┘ └───────────────┘         │
-│                                                                  │
+│                                                                 │
+│  ┌───────────────┐ ┌───────────────┐ ┌───────────────┐          │
+│  │ Safety Score  │ │  Correctness  │ │ Hallucination │          │
+│  │   ✅ 0.95     │ │   ✅ 0.92     │ │   ✅ 0.02%    │          │
+│  └───────────────┘ └───────────────┘ └───────────────┘          │
+│                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │            Evaluation Scores Over Time (7d)              │    │
+│  │            Evaluation Scores Over Time (7d)             │    │
 │  │  Safety      ████████████████████████████████ 0.95      │    │
 │  │  Correctness ██████████████████████████████   0.92      │    │
 │  │  Relevance   ████████████████████████████     0.90      │    │
 │  │  Grounding   █████████████████████████████    0.91      │    │
 │  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
+│                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │            Safety Incidents (Last 24h)                   │    │
+│  │            Safety Incidents (Last 24h)                  │    │
 │  │  PII Leakage Attempts:    0  ✅                         │    │
 │  │  Harmful Content:         0  ✅                         │    │
 │  │  Prompt Injection:        2  ⚠️ (blocked)               │    │
 │  │  Unauthorized Tool Use:   0  ✅                         │    │
 │  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
-│  Recent Evaluations:                                             │
+│                                                                 │
+│  Recent Evaluations:                                            │
 │  10:30:00 ✅ Batch eval: 500 traces, safety=0.96                │
 │  08:00:00 ✅ Batch eval: 480 traces, safety=0.95                │
-│  06:00:00 ⚠️ Pre-deploy eval: rev-043 blocked (safety=0.78)    │
-│                                                                  │
+│  06:00:00 ⚠️ Pre-deploy eval: rev-043 blocked (safety=0.78)     │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -663,25 +663,25 @@ cost_metrics:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                   Cost Overview (MTD)                            │
+│                   Cost Overview (MTD)                           │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  Total: $4,567.89                                               │
-│                                                                  │
+│                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │              Cost by Category                            │    │
+│  │              Cost by Category                           │    │
 │  │  LLM Tokens   ████████████████████████  $3,200 (70%)    │    │
 │  │  Compute      ████████                   $900 (20%)     │    │
 │  │  Storage      ████                       $467 (10%)     │    │
 │  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
+│                                                                 │
 │  Top 5 Agents by Cost:                                          │
 │  1. customer-support     $1,234                                 │
 │  2. code-assistant       $987                                   │
 │  3. data-analyzer        $654                                   │
 │  4. onboarding-bot       $432                                   │
 │  5. qa-agent             $321                                   │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
