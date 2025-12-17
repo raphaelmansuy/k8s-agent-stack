@@ -10,21 +10,21 @@
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                   Tool & Model Architecture                      │
+│                   Tool & Model Architecture                     │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Agent                                                           │
-│    │                                                             │
-│    ├── Model Config ──────────▶ Provider (OpenAI, Anthropic)   │
-│    │                                                             │
-│    └── Tools ─────────────────▶ Tool Registry                  │
-│              │                       │                           │
+│                                                                 │
+│  Agent                                                          │
+│    │                                                            │
+│    ├── Model Config ──────────▶ Provider (OpenAI, Anthropic)    │
+│    │                                                            │
+│    └── Tools ─────────────────▶ Tool Registry                   │
+│              │                       │                          │
 │              │                       ├── Built-in               │
 │              │                       ├── Custom (HTTP, Code)    │
 │              │                       └── MCP Servers            │
-│              │                                                   │
+│              │                                                  │
 │              └── At runtime ──▶ Tool Execution                  │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
