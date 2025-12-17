@@ -10,36 +10,36 @@
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                     Data Architecture                            │
+│                     Data Architecture                           │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │                    HOT DATA (ms latency)                 │    │
-│  │                    Redis Cluster                         │    │
+│  │                    HOT DATA (ms latency)                │    │
+│  │                    Redis Cluster                        │    │
 │  │  • Session state    • Rate limiting    • Cache          │    │
 │  │  • Pub/Sub          • Locks            • Counters       │    │
 │  └─────────────────────────────────────────────────────────┘    │
-│                              │                                   │
+│                              │                                  │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │                   WARM DATA (10-100ms)                   │    │
-│  │                   PostgreSQL                             │    │
+│  │                   WARM DATA (10-100ms)                  │    │
+│  │                   PostgreSQL                            │    │
 │  │  • Agents           • Deployments      • Users          │    │
 │  │  • Projects         • Audit logs       • Configs        │    │
 │  └─────────────────────────────────────────────────────────┘    │
-│                              │                                   │
+│                              │                                  │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │                   COLD DATA (100ms+)                     │    │
-│  │                   Object Storage (S3)                    │    │
+│  │                   COLD DATA (100ms+)                    │    │
+│  │                   Object Storage (S3)                   │    │
 │  │  • Build artifacts  • Logs archive     • Backups        │    │
 │  │  • Agent source     • Analytics data                    │    │
 │  └─────────────────────────────────────────────────────────┘    │
-│                              │                                   │
+│                              │                                  │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │                   VECTOR DATA                            │    │
-│  │                   pgvector / Qdrant                      │    │
+│  │                   VECTOR DATA                           │    │
+│  │                   pgvector / Qdrant                     │    │
 │  │  • Embeddings       • Semantic search  • Memory         │    │
 │  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -170,39 +170,39 @@ CREATE TABLE usage_events_2025_02 PARTITION OF usage_events
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                     Redis Data Patterns                          │
+│                     Redis Data Patterns                         │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  SESSION STATE                                                   │
+│                                                                 │
+│  SESSION STATE                                                  │
 │  Key:   session:{session_id}                                    │
 │  Type:  HASH                                                    │
 │  TTL:   24h                                                     │
-│  Data:  {user_id, agent_id, context, last_message_at}          │
-│                                                                  │
-│  RATE LIMITING                                                   │
-│  Key:   ratelimit:{user_id}:{minute}                           │
+│  Data:  {user_id, agent_id, context, last_message_at}           │
+│                                                                 │
+│  RATE LIMITING                                                  │
+│  Key:   ratelimit:{user_id}:{minute}                            │
 │  Type:  STRING (counter)                                        │
 │  TTL:   60s                                                     │
-│                                                                  │
-│  CACHE                                                           │
+│                                                                 │
+│  CACHE                                                          │
 │  Key:   cache:agent:{agent_id}                                  │
 │  Type:  STRING (JSON)                                           │
 │  TTL:   5m                                                      │
-│                                                                  │
-│  IDEMPOTENCY                                                     │
+│                                                                 │
+│  IDEMPOTENCY                                                    │
 │  Key:   idem:{idempotency_key}                                  │
 │  Type:  STRING (response JSON)                                  │
 │  TTL:   24h                                                     │
-│                                                                  │
-│  PUBSUB                                                          │
+│                                                                 │
+│  PUBSUB                                                         │
 │  Channel: events:{project_id}                                   │
 │  Use:     Real-time updates to connected clients                │
-│                                                                  │
-│  LOCKS                                                           │
+│                                                                 │
+│  LOCKS                                                          │
 │  Key:   lock:deploy:{agent_id}                                  │
 │  Type:  STRING                                                  │
 │  TTL:   5m (with refresh)                                       │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -355,34 +355,34 @@ qdrant:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                        Write Path                                │
+│                        Write Path                               │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  API Request                                                     │
-│       │                                                          │
-│       ▼                                                          │
+│                                                                 │
+│  API Request                                                    │
+│       │                                                         │
+│       ▼                                                         │
 │  ┌─────────────┐                                                │
 │  │  Validate   │                                                │
 │  └──────┬──────┘                                                │
-│         │                                                        │
-│         ▼                                                        │
-│  ┌─────────────┐     ┌─────────────┐                           │
-│  │  Write DB   │────►│ Invalidate  │                           │
-│  │ (Postgres)  │     │   Cache     │                           │
-│  └──────┬──────┘     └─────────────┘                           │
-│         │                                                        │
-│         ▼                                                        │
-│  ┌─────────────┐     ┌─────────────┐                           │
-│  │ Emit Event  │────►│  Pub/Sub    │                           │
-│  │  (async)    │     │  (Redis)    │                           │
-│  └─────────────┘     └─────────────┘                           │
-│                              │                                   │
-│                              ▼                                   │
+│         │                                                       │
+│         ▼                                                       │
+│  ┌─────────────┐     ┌─────────────┐                            │
+│  │  Write DB   │────►│ Invalidate  │                            │
+│  │ (Postgres)  │     │   Cache     │                            │
+│  └──────┬──────┘     └─────────────┘                            │
+│         │                                                       │
+│         ▼                                                       │
+│  ┌─────────────┐     ┌─────────────┐                            │
+│  │ Emit Event  │────►│  Pub/Sub    │                            │
+│  │  (async)    │     │  (Redis)    │                            │
+│  └─────────────┘     └─────────────┘                            │
+│                              │                                  │
+│                              ▼                                  │
 │                      ┌─────────────┐                            │
 │                      │  Webhooks   │                            │
 │                      │ SSE Clients │                            │
 │                      └─────────────┘                            │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -390,32 +390,32 @@ qdrant:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                        Read Path                                 │
+│                        Read Path                                │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  API Request                                                     │
-│       │                                                          │
-│       ▼                                                          │
+│                                                                 │
+│  API Request                                                    │
+│       │                                                         │
+│       ▼                                                         │
 │  ┌─────────────┐                                                │
 │  │ Check Cache │──── Hit ────► Return                           │
 │  │   (Redis)   │                                                │
 │  └──────┬──────┘                                                │
-│         │ Miss                                                   │
-│         ▼                                                        │
+│         │ Miss                                                  │
+│         ▼                                                       │
 │  ┌─────────────┐                                                │
 │  │  Read DB    │                                                │
 │  │ (Postgres)  │                                                │
 │  └──────┬──────┘                                                │
-│         │                                                        │
-│         ▼                                                        │
+│         │                                                       │
+│         ▼                                                       │
 │  ┌─────────────┐                                                │
 │  │ Populate    │                                                │
 │  │   Cache     │                                                │
 │  └──────┬──────┘                                                │
-│         │                                                        │
-│         ▼                                                        │
-│      Return                                                      │
-│                                                                  │
+│         │                                                       │
+│         ▼                                                       │
+│      Return                                                     │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -427,26 +427,26 @@ qdrant:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                     Multi-Tenancy Model                          │
+│                     Multi-Tenancy Model                         │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  Approach: Shared Database, Separate Schemas (Row-Level)        │
-│                                                                  │
+│                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │                    PostgreSQL                            │    │
+│  │                    PostgreSQL                           │    │
 │  │  ┌─────────────────────────────────────────────────┐    │    │
 │  │  │  All Tables                                     │    │    │
-│  │  │  • project_id column on all tenant data        │    │    │
-│  │  │  • RLS policies enforce isolation              │    │    │
-│  │  │  • Indexes include project_id                  │    │    │
+│  │  │  • project_id column on all tenant data         │    │    │
+│  │  │  • RLS policies enforce isolation               │    │    │
+│  │  │  • Indexes include project_id                   │    │    │
 │  │  └─────────────────────────────────────────────────┘    │    │
 │  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
-│  RLS Policy Example:                                             │
+│                                                                 │
+│  RLS Policy Example:                                            │
 │  ALTER TABLE agents ENABLE ROW LEVEL SECURITY;                  │
 │  CREATE POLICY tenant_isolation ON agents                       │
-│      USING (project_id = current_setting('app.project_id'));   │
-│                                                                  │
+│      USING (project_id = current_setting('app.project_id'));    │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
