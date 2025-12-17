@@ -6,7 +6,15 @@
 
 AgentStack is a Kubernetes-native Platform-as-a-Service for deploying, orchestrating, and scaling AI agents. Built on CNCF open-source components (Apache 2.0), it provides data sovereignty, vendor independence, and production-grade reliability.
 
-## Specification Documents
+## How to Navigate This Spec
+
+**New to AgentStack?** Start with [001-platform-overview.md](001-platform-overview.md) for vision and principles, then [002-architecture-layers.md](002-architecture-layers.md) for the 5-layer platform model.
+
+**Building integrations?** Jump to [api/README.md](api/README.md) for endpoint references and the [Protocol Integration](#protocol-integration) section for A2A, AG-UI, and A2UI.
+
+**Implementing features?** Check [tech_stack/README.md](tech_stack/README.md) for API, database, and OAuth layer decisions, then the relevant spec document (e.g., [004-api-design](004-api-design.md) for API patterns, [005-data-architecture](005-data-architecture.md) for storage).
+
+## Platform Specification Documents
 
 | Document | Description | Status |
 |----------|-------------|--------|
@@ -53,6 +61,17 @@ Universal content model and unified interaction interface:
 |----------|-------------|
 | [api/020-universal-content-model.md](api/020-universal-content-model.md) | UCM - Provider-agnostic multimodal content format |
 | [api/021-interactions-api.md](api/021-interactions-api.md) | Unified interface for models/agents with server-side state |
+
+## Implementation Tech Stack
+
+The platform is implemented using battle-tested, open-source technologies chosen for **production reliability**, **data sovereignty**, and **extensibility**.
+
+**See [tech_stack/README.md](tech_stack/README.md) for:**
+- **API Layer** — Huma v2: Type-safe, auto-generated OpenAPI, no doc drift
+- **Database** — pgx + sqlc + PostgreSQL RLS: Fast, multi-tenant safe, explicit SQL
+- **OAuth** — Ory Fosite/Hydra: Security-first, RFC-compliant, extensible
+
+Each layer includes working assumptions, quick-start checklists, and production patterns.
 
 ## Quick Reference
 
@@ -110,12 +129,27 @@ Universal content model and unified interaction interface:
 
 ## Official References
 
-- [Knative Documentation](https://knative.dev/docs/)
-- [kagent Documentation](https://kagent.dev/docs/)
+### Infrastructure & Orchestration
 - [Kubernetes Documentation](https://kubernetes.io/docs/)
+- [Knative Serving Documentation](https://knative.dev/docs/)
+- [kagent Documentation](https://kagent.dev/docs/)
+- [Contour Ingress Controller](https://projectcontour.io/)
+
+### Implementation Guides
+- [Huma API Framework](https://huma.rocks/)
+- [sqlc SQL Code Generator](https://docs.sqlc.dev/)
+- [pgx PostgreSQL Driver](https://github.com/jackc/pgx)
+- [Ory Fosite OAuth2 Framework](https://www.ory.sh/fosite/)
+- [Ory Hydra Identity Provider](https://www.ory.sh/hydra/)
+
+### Standards & Protocols
 - [CloudEvents Specification](https://cloudevents.io/)
 - [OpenTelemetry](https://opentelemetry.io/)
+- [OpenAPI 3.1](https://spec.openapis.org/oas/v3.1.0)
+- [JSON Schema](https://json-schema.org/)
 
 ---
 
 **Copyright © 2025 | Apache License 2.0**
+
+Built with ❤️ for European data sovereignty and open standards.
