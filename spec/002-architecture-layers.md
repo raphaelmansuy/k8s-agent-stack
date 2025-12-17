@@ -1,6 +1,6 @@
 # 002 - Architecture Layers
 
-> 5-Layer Platform Architecture for AgentStack
+> 6-Layer Platform Architecture for AgentStack
 
 **Version**: 1.0.0 | **Status**: Draft | **Last Updated**: 2025-12-17
 
@@ -305,26 +305,26 @@ spec:
        │                                  │
        │  1. Discover Agent B             │
        │─────────────────────────────────►│
-       │     GET /.well-known/agent.json  │
+       │  GET /.well-known/agent-card.json│
        │◄─────────────────────────────────│
-       │     {capabilities, endpoints}     │
+       │     {skills, capabilities}       │
        │                                  │
-       │  2. Send Task                    │
+       │  2. Send Message                 │
        │─────────────────────────────────►│
-       │     POST /a2a/tasks              │
-       │     {task_id, input, context}    │
+       │     POST /a2a/v1/message:send    │
        │◄─────────────────────────────────│
-       │     {task_id, status: accepted}  │
+       │     {task: {id, status}}         │
        │                                  │
        │  3. Stream Results (SSE)         │
        │─────────────────────────────────►│
-       │     GET /a2a/tasks/{id}/stream   │
+       │  POST /a2a/v1/message:stream     │
        │◄─────────────────────────────────│
-       │     event: progress              │
-       │     event: result                │
-       │     event: done                  │
+       │     event: statusUpdate          │
+       │     event: artifactUpdate        │
        │                                  │
 ```
+
+> **Full Protocol**: See [api/017-a2a-protocol.md](api/017-a2a-protocol.md) for complete A2A specification.
 
 ---
 

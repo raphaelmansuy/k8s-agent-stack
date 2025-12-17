@@ -22,15 +22,21 @@ Example: agt_3kLm4nOpQr
 | `dpl_` | Deployment |
 | `rev_` | Revision |
 | `ses_` | Session |
+| `int_` | Interaction |
+| `msg_` | Message |
 | `tol_` | Tool |
 | `mcp_` | MCP Server |
 | `prj_` | Project |
 | `team_` | Team |
+| `org_` | Organization |
 | `key_` | API Key |
 | `dom_` | Domain |
 | `whk_` | Webhook |
 | `evt_` | Event |
 | `del_` | Webhook Delivery |
+| `file_` | File |
+| `run_` | AG-UI Run |
+| `tc_` | Tool Call |
 
 ---
 

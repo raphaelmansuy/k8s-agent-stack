@@ -284,33 +284,38 @@ The A2A protocol enables agents to discover and communicate with each other.
 Every agent exposes a discovery endpoint:
 
 ```http
-GET /.well-known/agent.json
+GET /.well-known/agent-card.json
 ```
 
 ```json
 {
-  "id": "agent:customer-support",
-  "name": "Customer Support Agent",
+  "protocolVersion": "1.0",
+  "name": "customer-support",
+  "description": "Customer Support Agent",
   "version": "1.0.0",
-  "capabilities": [
-    "answer-questions",
-    "create-tickets",
-    "search-knowledge-base"
+  "supportedInterfaces": [
+    {
+      "url": "https://customer-support.agentstack.app/a2a/v1",
+      "protocolBinding": "HTTP+JSON"
+    }
   ],
-  "endpoints": {
-    "chat": "/a2a/chat",
-    "tasks": "/a2a/tasks",
-    "health": "/health"
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": true
   },
-  "authentication": {
-    "methods": ["bearer", "api-key"]
-  },
-  "metadata": {
-    "owner": "support-team",
-    "sla": "99.9%"
+  "skills": [
+    {"id": "answer-questions", "name": "Answer Questions"},
+    {"id": "create-tickets", "name": "Create Tickets"},
+    {"id": "search-kb", "name": "Search Knowledge Base"}
+  ],
+  "securitySchemes": {
+    "bearerAuth": {"type": "http", "scheme": "bearer"},
+    "apiKey": {"type": "apiKey", "in": "header", "name": "X-API-Key"}
   }
 }
 ```
+
+> **Note**: This is an abbreviated Agent Card. See [api/017-a2a-protocol.md](api/017-a2a-protocol.md) for the complete schema.
 
 ### 4.3 Task Lifecycle
 
@@ -319,48 +324,60 @@ GET /.well-known/agent.json
 │  Requester  │                              │   Provider  │
 └──────┬──────┘                              └──────┬──────┘
        │                                            │
-       │  POST /a2a/tasks                           │
+       │  POST /a2a/v1/message:send                 │
        │  {                                         │
-       │    "task_id": "task-123",                  │
-       │    "type": "answer-question",              │
-       │    "input": {                              │
-       │      "question": "What is your policy?"    │
+       │    "message": {                            │
+       │      "messageId": "msg-123",               │
+       │      "role": "user",                       │
+       │      "parts": [{"text": "..."}]            │
        │    },                                      │
-       │    "context": {...},                       │
-       │    "callback_url": "..."                   │
+       │    "configuration": {...}                  │
        │  }                                         │
        │───────────────────────────────────────────►│
        │                                            │
-       │  202 Accepted                              │
-       │  {"task_id": "task-123", "status": "pending"}
+       │  200 OK                                    │
+       │  {"task": {"id": "task-123", "status": ...}}
        │◄───────────────────────────────────────────│
        │                                            │
-       │  GET /a2a/tasks/task-123/stream            │
+       │  POST /a2a/v1/message:stream               │
        │───────────────────────────────────────────►│
        │                                            │
-       │  SSE: event: progress                      │
-       │       data: {"step": "searching"}          │
+       │  SSE: event: statusUpdate                  │
+       │       data: {"state": "working"}           │
        │◄───────────────────────────────────────────│
        │                                            │
-       │  SSE: event: result                        │
-       │       data: {"answer": "Our policy..."}    │
+       │  SSE: event: artifactUpdate                │
+       │       data: {"artifact": {...}}            │
        │◄───────────────────────────────────────────│
        │                                            │
-       │  SSE: event: done                          │
-       │       data: {"status": "completed"}        │
+       │  SSE: event: statusUpdate                  │
+       │       data: {"state": "completed"}         │
        │◄───────────────────────────────────────────│
        │                                            │
 ```
+
+> **Full Protocol Reference**: See [api/017-a2a-protocol.md](api/017-a2a-protocol.md) for complete endpoint documentation.
 
 ### 4.4 Task States
 
 ```text
-PENDING ──► RUNNING ──► COMPLETED
-    │           │
-    │           └──► FAILED
+SUBMITTED ──► WORKING ──► COMPLETED
+    │            │
+    │            ├──► FAILED
+    │            │
+    │            └──► INPUT-REQUIRED
     │
     └──► CANCELLED
 ```
+
+| State | Description | Terminal |
+|-------|-------------|----------|
+| `submitted` | Task created, queued | No |
+| `working` | Processing in progress | No |
+| `input-required` | Waiting for user input | No |
+| `completed` | Successfully finished | Yes |
+| `failed` | Error occurred | Yes |
+| `cancelled` | User cancelled | Yes |
 
 ---
 

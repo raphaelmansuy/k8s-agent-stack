@@ -432,20 +432,31 @@ for event := range stream.Events() {
 
 ## 10. OpenAPI Specification
 
-Full OpenAPI 3.1 specification: [api/openapi.yaml](../api/openapi.yaml)
+The OpenAPI 3.1 specification is **auto-generated** by [Huma](https://huma.rocks/) from Go handler definitions. This ensures documentation never drifts from implementation.
 
-Generate clients:
+**Access the spec at runtime:**
+```text
+Development:  http://localhost:8080/openapi.json
+Production:   https://api.agentstack.io/openapi.json
+```
+
+**Generate SDK clients:**
 
 ```bash
+# Fetch the spec from a running server
+curl -o openapi.yaml http://localhost:8080/openapi.yaml
+
 # Go
-openapi-generator generate -i api/openapi.yaml -g go -o sdk/go
+openapi-generator generate -i openapi.yaml -g go -o sdk/go
 
 # Python
-openapi-generator generate -i api/openapi.yaml -g python -o sdk/python
+openapi-generator generate -i openapi.yaml -g python -o sdk/python
 
 # TypeScript
-openapi-generator generate -i api/openapi.yaml -g typescript-fetch -o sdk/ts
+openapi-generator generate -i openapi.yaml -g typescript-fetch -o sdk/ts
 ```
+
+> **See Also**: [tech_stack/001-api-tech-stack.md](tech_stack/001-api-tech-stack.md) for Huma implementation details.
 
 ---
 
@@ -468,10 +479,13 @@ internal/api/
 
 | Library | Purpose |
 |---------|---------|
-| `chi` | HTTP router |
-| `validator` | Request validation |
+| `huma` | API framework with OpenAPI generation |
+| `pgx` | PostgreSQL driver |
+| `sqlc` | Type-safe SQL codegen |
 | `zap` | Structured logging |
 | `otel` | OpenTelemetry |
+
+> **Note**: See [tech_stack/README.md](../tech_stack/README.md) for detailed stack documentation.
 
 ---
 

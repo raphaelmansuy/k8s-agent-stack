@@ -8,7 +8,7 @@ AgentStack is a Kubernetes-native Platform-as-a-Service for deploying, orchestra
 
 ## How to Navigate This Spec
 
-**New to AgentStack?** Start with [001-platform-overview.md](001-platform-overview.md) for vision and principles, then [002-architecture-layers.md](002-architecture-layers.md) for the 5-layer platform model.
+**New to AgentStack?** Start with [001-platform-overview.md](001-platform-overview.md) for vision and principles, then [002-architecture-layers.md](002-architecture-layers.md) for the 6-layer platform model.
 
 **Building integrations?** Jump to [api/README.md](api/README.md) for endpoint references and the [Protocol Integration](#protocol-integration) section for A2A, AG-UI, and A2UI.
 

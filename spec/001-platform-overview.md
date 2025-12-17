@@ -291,4 +291,4 @@ evaluation:
 
 ---
 
-**Next**: [002-architecture-layers.md](002-architecture-layers.md) - Detailed 5-layer architecture
+**Next**: [002-architecture-layers.md](002-architecture-layers.md) - Detailed 6-layer architecture
