@@ -1,4 +1,4 @@
-````markdown
+
 # 010 - Agent Evaluation & Safety
 
 > MLflow-Powered Evaluation Framework for Agent Safety and Quality Assurance
@@ -878,4 +878,3 @@ service:
 **Previous**: [009-developer-experience.md](009-developer-experience.md)  
 **Next**: [api/README.md](api/README.md)
 
-````
