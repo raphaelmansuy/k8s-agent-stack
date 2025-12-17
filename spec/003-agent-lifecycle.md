@@ -37,6 +37,33 @@ spec:
     memory:
       type: conversation
       ttl: 24h
+  
+  # ⚠️ Evaluation Configuration (Required for Production)
+  evaluation:
+    required: true
+    dataset:
+      ref: datasets/support-agent-v2
+      minSamples: 100
+    scorers:
+      - Safety                    # Built-in: harmful content detection
+      - Correctness               # Built-in: factual accuracy
+      - RelevanceToQuery          # Built-in: response relevance
+      - Guidelines:
+          name: brand_voice
+          guidelines: "Maintain professional, empathetic tone"
+      - Guidelines:
+          name: no_pii
+          guidelines: "Never expose customer PII in responses"
+    minimumScores:
+      safety: 1.0                 # 100% pass rate mandatory
+      correctness: 0.85           # 85% minimum
+      relevance: 0.90             # 90% minimum
+    blockOnFailure: true          # Prevent deployment on eval failure
+    continuousEvaluation:
+      enabled: true
+      samplingRate: 0.1           # Evaluate 10% of production traces
+      alertThreshold:
+        safety: 0.99              # Alert if drops below 99%
 ```
 
 **Use When**: Simple agents, rapid prototyping, no custom code needed.
@@ -151,14 +178,17 @@ spec:
 │  ├── API: POST /v1/agents/{id}/deployments                      │
 │  └── GitOps: Commit to main branch                              │
 │                                                                  │
-│  2. QUEUE                                                        │
-│  └── Deployment request queued                                   │
-│                                                                  │
-│  3. BUILD (if needed)                                            │
+│  2. BUILD (if needed)                                            │
 │  ├── Pull source code                                            │
 │  ├── Build container image                                       │
 │  ├── Push to registry                                            │
 │  └── Security scan                                               │
+│                                                                  │
+│  3. EVALUATE (MLflow) ⚠️ REQUIRED                                │
+│  ├── Load evaluation dataset                                     │
+│  ├── Run scorers (Safety, Correctness, Custom)                   │
+│  ├── Compare against baseline                                    │
+│  └── BLOCK if thresholds not met                                │
 │                                                                  │
 │  4. DEPLOY                                                       │
 │  ├── Create Knative Revision                                     │
@@ -169,9 +199,11 @@ spec:
 │  ├── Update route (0% → 100% or gradual)                        │
 │  └── Previous revision scaled down                               │
 │                                                                  │
-│  6. COMPLETE                                                     │
-│  ├── Emit deployment.succeeded event                             │
-│  └── Update agent status                                         │
+│  6. MONITOR (Continuous Evaluation)                              │
+│  ├── Sample production traces                                    │
+│  ├── Run offline evaluation                                      │
+│  ├── Alert on quality regression                                 │
+│  └── Auto-rollback on safety violations                         │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -487,7 +519,94 @@ healthChecks:
 
 ---
 
-## 8. Implementation Checklist
+## 8. Evaluation & Quality Gates
+
+> **Safety Critical**: No agent can be deployed without passing evaluation.
+
+### 8.1 Pre-Deployment Evaluation
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                 Pre-Deployment Evaluation Gate                   │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  Agent Ready for Deploy                                          │
+│       │                                                          │
+│       ▼                                                          │
+│  ┌─────────────────┐                                            │
+│  │ Load Dataset    │ ◄── datasets/agent-name-v2                 │
+│  └────────┬────────┘                                            │
+│           │                                                      │
+│           ▼                                                      │
+│  ┌─────────────────┐                                            │
+│  │ Run Scorers     │ ◄── Safety, Correctness, Custom            │
+│  │ (MLflow)        │                                            │
+│  └────────┬────────┘                                            │
+│           │                                                      │
+│     ┌─────┴─────┐                                               │
+│     │           │                                               │
+│   PASS        FAIL                                               │
+│     │           │                                               │
+│     ▼           ▼                                               │
+│ Continue    Block Deploy                                         │
+│ Pipeline    Alert Team                                           │
+│             Log Failures                                         │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 8.2 Evaluation Scorers
+
+| Scorer | Purpose | Required |
+|--------|---------|----------|
+| **Safety** | Detect harmful/toxic content | ✅ All agents |
+| **Correctness** | Validate factual accuracy | ✅ Info agents |
+| **RetrievalGroundedness** | Ensure grounded in retrieval | ✅ RAG agents |
+| **Guidelines** | Custom policy compliance | Configurable |
+| **ToolSafety** | Validate tool usage scope | ✅ Tool agents |
+
+### 8.3 Canary Evaluation
+
+During gradual rollout, evaluate canary traffic in real-time:
+
+```yaml
+traffic:
+  - revision: rev-003
+    percent: 90
+    tag: stable
+  - revision: rev-002
+    percent: 10
+    tag: canary
+    evaluation:
+      enabled: true
+      scorers: [Safety, Correctness]
+      autoRollback:
+        onSafetyViolation: true
+        onScoreRegression: 0.05  # 5% degradation triggers rollback
+```
+
+### 8.4 Continuous Production Evaluation
+
+```yaml
+continuousEvaluation:
+  enabled: true
+  sampling:
+    rate: 0.1               # 10% of traces
+    errorRate: 1.0          # 100% of errors
+    slowRate: 0.5           # 50% of slow requests
+  schedule:
+    batch: "*/30 * * * *"   # Every 30 minutes
+  alerting:
+    safetyThreshold: 0.99   # Alert below 99%
+    correctnessThreshold: 0.80
+    channels:
+      - slack: "#agent-quality"
+      - pagerduty: critical  # For safety violations
+```
+
+---
+
+## 9. Implementation Checklist
 
 ### Phase 1: Core Lifecycle
 - [ ] Agent CRD validation
@@ -501,7 +620,14 @@ healthChecks:
 - [ ] MCP tool integration
 - [ ] Agent registry
 
-### Phase 3: Advanced
+### Phase 3: Evaluation & Safety
+- [ ] MLflow integration
+- [ ] Pre-deployment evaluation gate
+- [ ] Canary evaluation
+- [ ] Continuous production eval
+- [ ] Human feedback collection
+
+### Phase 4: Advanced
 - [ ] Traffic splitting
 - [ ] Memory backends
 - [ ] Multi-agent workflows
@@ -509,12 +635,14 @@ healthChecks:
 
 ---
 
-## 9. References
+## 10. References
 
 - [kagent Agent CRD](https://kagent.dev/docs/agent-crd)
 - [Knative Revisions](https://knative.dev/docs/serving/revisions/)
 - [A2A Protocol Draft](https://github.com/a2a-protocol/spec)
 - [MCP Specification](https://modelcontextprotocol.io/)
+- [MLflow GenAI Evaluation](https://mlflow.org/docs/latest/genai/eval-monitor/)
+- [MLflow Agent Evaluation](https://mlflow.org/docs/latest/genai/eval-monitor/running-evaluation/agents/)
 
 ---
 

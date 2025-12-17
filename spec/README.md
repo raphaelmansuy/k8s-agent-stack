@@ -19,7 +19,7 @@ AgentStack is a Kubernetes-native Platform-as-a-Service for deploying, orchestra
 | Document | Description | Status |
 |----------|-------------|--------|
 | [001-platform-overview](001-platform-overview.md) | Vision, principles, component stack | ✅ Complete |
-| [002-architecture-layers](002-architecture-layers.md) | 5-layer architecture, request flow | ✅ Complete |
+| [002-architecture-layers](002-architecture-layers.md) | 6-layer architecture, request flow | ✅ Complete |
 | [003-agent-lifecycle](003-agent-lifecycle.md) | Agent types, lifecycle, A2A protocol | ✅ Complete |
 | [004-api-design](004-api-design.md) | OpenAPI spec, Go implementation | ✅ Complete |
 | [005-data-architecture](005-data-architecture.md) | Storage, state, memory patterns | ✅ Complete |
@@ -27,6 +27,7 @@ AgentStack is a Kubernetes-native Platform-as-a-Service for deploying, orchestra
 | [007-observability](007-observability.md) | Metrics, logging, tracing | ✅ Complete |
 | [008-deployment-operations](008-deployment-operations.md) | CI/CD, scaling, multi-cloud | ✅ Complete |
 | [009-developer-experience](009-developer-experience.md) | CLI, SDK, local dev | ✅ Complete |
+| [010-agent-evaluation](010-agent-evaluation.md) | **MLflow safety & quality** | ✅ Complete |
 
 ### API Specification (Split)
 
@@ -79,7 +80,8 @@ Each layer includes working assumptions, quick-start checklists, and production 
 ┌─────────────────────────────────────────────────────────────────┐
 │                    AgentStack Platform                          │
 ├─────────────────────────────────────────────────────────────────┤
-│  Layer 5: Governance    │ RBAC, Quotas, Audit, Compliance       │
+│  Layer 6: Governance    │ RBAC, Quotas, Audit, Compliance       │
+│  Layer 5: Evaluation    │ MLflow Safety, Scorers, Quality Gates │
 │  Layer 4: Interface     │ API Gateway, CLI, SDK, UI             │
 │  Layer 3: Cognitive     │ kagent, A2A Protocol, MCP Tools       │
 │  Layer 2: Runtime       │ Knative Serving, Autoscaling          │
@@ -116,6 +118,7 @@ Each layer includes working assumptions, quick-start checklists, and production 
 | **Envoy** | L7 proxy | Apache 2.0 | Graduated |
 | **cert-manager** | Certificate management | Apache 2.0 | CNCF Graduated |
 | **OpenTelemetry** | Observability | Apache 2.0 | CNCF Incubating |
+| **MLflow** | Agent Evaluation & Tracing | Apache 2.0 | - |
 | **PostgreSQL** | Primary database | PostgreSQL License | - |
 | **Redis** | Cache/Queue | BSD-3 | - |
 
@@ -141,6 +144,8 @@ Each layer includes working assumptions, quick-start checklists, and production 
 - [pgx PostgreSQL Driver](https://github.com/jackc/pgx)
 - [Ory Fosite OAuth2 Framework](https://www.ory.sh/fosite/)
 - [Ory Hydra Identity Provider](https://www.ory.sh/hydra/)
+- [MLflow Evaluation](https://mlflow.org/docs/latest/llms/llm-evaluate/)
+- [MLflow Tracing](https://mlflow.org/docs/latest/llms/tracing/)
 
 ### Standards & Protocols
 - [CloudEvents Specification](https://cloudevents.io/)

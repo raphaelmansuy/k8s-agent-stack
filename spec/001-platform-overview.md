@@ -83,6 +83,8 @@ All components must satisfy:
 ├──────────────────────┼──────────────────────────────────────────┤
 │ Agent Orchestration  │ kagent (CNCF Sandbox)                    │
 ├──────────────────────┼──────────────────────────────────────────┤
+│ Evaluation & Safety  │ MLflow 3.x (Tracing, Scorers, Judges)    │
+├──────────────────────┼──────────────────────────────────────────┤
 │ Serverless Runtime   │ Knative Serving 1.20+                    │
 ├──────────────────────┼──────────────────────────────────────────┤
 │ Ingress/Gateway      │ Contour + Envoy (Gateway API)            │
@@ -129,12 +131,34 @@ Level 4: Helm chart with 100+ values    # Enterprise tuning
 ### 4.3 Observable by Default
 
 Every agent automatically gets:
-- Distributed tracing (OpenTelemetry)
+- Distributed tracing (OpenTelemetry + MLflow)
 - Metrics (Prometheus format)
 - Structured logging (JSON)
 - Cost tracking (token usage)
+- **Safety evaluation (MLflow scorers)**
 
-### 4.4 Fail-Safe Defaults
+### 4.4 Evaluation-First Safety
+
+> **Agents cannot be deployed without passing evaluation gates.**
+
+| Principle | Implementation |
+|-----------|----------------|
+| **Pre-deploy Eval** | All agents must pass safety/quality scorers |
+| **Continuous Eval** | Production traces evaluated in real-time |
+| **Quality Gates** | Configurable thresholds block unsafe deploys |
+| **Human Feedback** | Expert review loop improves scorers |
+
+```yaml
+# Every deployment requires evaluation
+evaluation:
+  required: true
+  minimumScores:
+    safety: 1.0        # 100% pass rate mandatory
+    correctness: 0.85  # 85% minimum
+  blockOnFailure: true
+```
+
+### 4.5 Fail-Safe Defaults
 
 | Setting | Default | Rationale |
 |---------|---------|-----------|
@@ -167,7 +191,18 @@ Every agent automatically gets:
 | **HTTP/REST** | External API integration |
 | **CloudEvents** | Event-driven workflows |
 
-### 5.3 Operations
+### 5.3 Agent Evaluation & Safety
+
+| Capability | Implementation |
+|------------|----------------|
+| **Tracing** | MLflow + OpenTelemetry auto-instrumentation |
+| **LLM-as-Judge** | Safety, Correctness, Hallucination scorers |
+| **Quality Gates** | Pre-deploy and canary evaluation |
+| **Datasets** | Versioned evaluation test sets |
+| **Human Feedback** | Expert annotation for scorer alignment |
+| **Continuous Eval** | Production trace monitoring |
+
+### 5.4 Operations
 
 | Capability | Implementation |
 |------------|----------------|
@@ -217,6 +252,16 @@ Every agent automatically gets:
 | **Agent Density** | 100/node | Agents per K8s node |
 | **Cost Efficiency** | < $0.001/request | For scale-to-zero agents |
 
+### Safety & Evaluation KPIs
+
+| Metric | Target | Measurement |
+|--------|--------|-------------|
+| **Safety Score** | ≥ 99.9% | % passing safety evaluation |
+| **Correctness Score** | ≥ 85% | % factually correct responses |
+| **Eval Coverage** | 100% | Agents with pre-deploy eval |
+| **Eval Latency** | < 30s | P95 evaluation pipeline time |
+| **Scorer Alignment** | ≥ 90% | Agreement with human judges |
+
 ### Developer Experience KPIs
 
 | Metric | Target |
@@ -235,6 +280,9 @@ Every agent automatically gets:
 - [Kubernetes](https://kubernetes.io/docs/)
 - [Contour](https://projectcontour.io/docs/)
 - [OpenTelemetry](https://opentelemetry.io/docs/)
+- [MLflow GenAI](https://mlflow.org/docs/latest/genai/)
+- [MLflow Evaluation](https://mlflow.org/docs/latest/genai/eval-monitor/)
+- [MLflow Tracing](https://mlflow.org/docs/latest/genai/tracing/)
 
 ### Standards
 - [CloudEvents 1.0](https://cloudevents.io/)

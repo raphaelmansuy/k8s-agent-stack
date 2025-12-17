@@ -14,8 +14,13 @@
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                      │
 │  ┌───────────────────────────────────────────────────────────────┐  │
-│  │  LAYER 5: GOVERNANCE                                          │  │
+│  │  LAYER 6: GOVERNANCE                                          │  │
 │  │  RBAC │ Quotas │ Audit │ Policy │ Compliance                  │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                               │                                      │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │  LAYER 5: EVALUATION & SAFETY (MLflow)                        │  │
+│  │  Tracing │ LLM Judges │ Scorers │ Quality Gates │ Datasets    │  │
 │  └───────────────────────────────────────────────────────────────┘  │
 │                               │                                      │
 │  ┌───────────────────────────────────────────────────────────────┐  │
@@ -368,7 +373,91 @@ spec:
 
 ---
 
-## 6. Layer 5: Governance
+## 6. Layer 5: Evaluation & Safety (MLflow)
+
+> **Critical Layer**: Evaluation is the primary mechanism for ensuring agent safety.
+
+### Evaluation Architecture
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                 Evaluation & Safety Layer (MLflow)               │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                    Tracing (MLflow + OTel)                │   │
+│  │  • Auto-instrumentation for ADK, LangGraph, CrewAI       │   │
+│  │  • Captures prompts, tool calls, responses               │   │
+│  │  • OpenTelemetry compatible                              │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                               │                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                    Scorers (LLM-as-Judge)                 │   │
+│  │  • Safety: Harmful content detection                     │   │
+│  │  • Correctness: Factual accuracy validation              │   │
+│  │  • Relevance: Response relevance to query                │   │
+│  │  • Grounding: RAG hallucination detection                │   │
+│  │  • Custom: Domain-specific criteria                      │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                               │                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                    Quality Gates                          │   │
+│  │  • Pre-deploy: Block unsafe agents                       │   │
+│  │  • Canary: Real-time eval during rollout                 │   │
+│  │  • Continuous: Production trace monitoring               │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### MLflow Components
+
+| Component | Purpose |
+|-----------|---------|
+| **MLflow Tracking Server** | Store traces, experiments, evaluation results |
+| **Tracing SDK** | Lightweight async trace collection (< 5ms overhead) |
+| **Scorers** | Built-in and custom LLM judges |
+| **Evaluation Datasets** | Versioned test cases for agents |
+| **Quality Gates** | Deployment blocking based on eval scores |
+
+### Integration with Agent Lifecycle
+
+```yaml
+# Every agent deployment requires evaluation
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: customer-support
+spec:
+  # ... agent config ...
+  
+  evaluation:
+    required: true
+    minimumScores:
+      safety: 1.0           # 100% required
+      correctness: 0.85     # 85% minimum
+    dataset:
+      ref: datasets/customer-support-v2
+    scorers:
+      - Safety
+      - Correctness
+      - Guidelines:
+          name: brand_voice
+          guidelines: "Maintain professional tone"
+    blockOnFailure: true
+```
+
+### Trade-offs
+
+| Decision | Chosen | Alternative | Rationale |
+|----------|--------|-------------|-----------|
+| Tracing | MLflow | Custom | Framework-agnostic, OTel compatible |
+| Evaluation | MLflow Scorers | Custom pipeline | Built-in LLM judges, versioning |
+| Judges | LLM-as-Judge | Rule-based | Better at semantic evaluation |
+
+---
+
+## 7. Layer 6: Governance
 
 ### RBAC Model
 
@@ -407,7 +496,7 @@ spec:
 
 ---
 
-## 7. Cross-Cutting Concerns
+## 8. Cross-Cutting Concerns
 
 ### Networking
 
@@ -439,7 +528,7 @@ config_sources:
 
 ---
 
-## 8. Deployment Topologies
+## 9. Deployment Topologies
 
 ### Single Cluster (Development/Small)
 
@@ -479,12 +568,15 @@ config_sources:
 
 ---
 
-## 9. References
+## 10. References
 
 - [Knative Architecture](https://knative.dev/docs/serving/architecture/)
 - [kagent Architecture](https://kagent.dev/docs/architecture)
 - [Envoy Proxy](https://www.envoyproxy.io/docs)
 - [Kubernetes Architecture](https://kubernetes.io/docs/concepts/architecture/)
+- [MLflow GenAI](https://mlflow.org/docs/latest/genai/)
+- [MLflow Tracing](https://mlflow.org/docs/latest/genai/tracing/)
+- [MLflow Evaluation](https://mlflow.org/docs/latest/genai/eval-monitor/)
 
 ---
 

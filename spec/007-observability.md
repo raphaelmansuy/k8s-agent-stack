@@ -38,6 +38,11 @@
 │                    │    (Alerts)     │                          │
 │                    └─────────────────┘                          │
 │                                                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │                    MLflow (Evaluation Layer)             │    │
+│  │  Agent Traces │ LLM Judges │ Quality Metrics │ Datasets │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -50,8 +55,9 @@
 | **Loki** | Logs | AGPL 3.0 | - |
 | **Tempo** | Traces | AGPL 3.0 | Jaeger (Apache 2.0) |
 | **Grafana** | Visualization | AGPL 3.0 | - |
+| **MLflow** | Agent Evaluation | Apache 2.0 | - |
 
-**Note**: Loki/Tempo/Grafana are AGPL but free to use. For pure Apache 2.0: use Jaeger for traces.
+**Note**: Loki/Tempo/Grafana are AGPL but free to use. MLflow is Apache 2.0 and provides agent-specific tracing and evaluation capabilities.
 
 ---
 
@@ -276,9 +282,113 @@ sampling:
 
 ---
 
-## 5. Alerting
+## 5. MLflow Agent Tracing
 
-### 5.1 Alert Categories
+> MLflow provides specialized tracing for GenAI agents, capturing prompts, 
+> tool calls, and reasoning steps for evaluation and debugging.
+
+### 5.1 Auto-Instrumentation
+
+```python
+import mlflow
+
+# Enable automatic tracing for your framework (one line!)
+mlflow.google_adk.autolog()    # For Google ADK agents
+# mlflow.langchain.autolog()   # For LangChain
+# mlflow.crewai.autolog()      # For CrewAI
+# mlflow.openai.autolog()      # For OpenAI directly
+
+# All agent executions are now traced automatically
+response = agent.run("What is the status of my order?")
+```
+
+### 5.2 Trace Contents
+
+MLflow traces capture:
+
+| Component | Data Captured |
+|-----------|---------------|
+| **LLM Calls** | Prompts, completions, token usage, latency |
+| **Tool Calls** | Tool name, inputs, outputs, duration |
+| **Retrieval** | Queries, retrieved documents, relevance |
+| **Agent Steps** | Reasoning, decisions, state changes |
+| **Errors** | Exception details, stack traces |
+
+### 5.3 Manual Tracing
+
+```python
+import mlflow
+from mlflow.entities import SpanType
+
+# Trace a function
+@mlflow.trace(name="process_request")
+def process_request(query: str) -> str:
+    # Function body is automatically traced
+    return result
+
+# Or trace a code block
+with mlflow.start_span(name="custom_logic", span_type=SpanType.TOOL) as span:
+    span.set_inputs({"query": query})
+    result = do_something(query)
+    span.set_outputs({"result": result})
+```
+
+### 5.4 Production Configuration
+
+```yaml
+# MLflow tracing for production
+mlflow:
+  tracing:
+    enabled: true
+    sampling_rate: 0.1          # 10% of requests
+    async_logging: true         # Non-blocking
+    
+  tracking_server:
+    uri: http://mlflow-tracking:5000
+    
+  lightweight_sdk: true         # Use mlflow-tracing package
+                                # 95% smaller than full mlflow
+```
+
+### 5.5 Integration with Evaluation
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│               Traces → Evaluation Pipeline                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  Production Agent                                                │
+│       │                                                          │
+│       ▼                                                          │
+│  ┌─────────────────┐                                            │
+│  │  MLflow Tracing │ ───► Trace storage (async)                 │
+│  └────────┬────────┘                                            │
+│           │                                                      │
+│           ▼                                                      │
+│  ┌─────────────────┐                                            │
+│  │ Sample Traces   │ ◄── 10% normal, 100% errors                │
+│  └────────┬────────┘                                            │
+│           │                                                      │
+│           ▼                                                      │
+│  ┌─────────────────┐                                            │
+│  │  Run Scorers    │ ◄── Safety, Correctness, Custom            │
+│  │  (Offline)      │                                            │
+│  └────────┬────────┘                                            │
+│           │                                                      │
+│           ▼                                                      │
+│  ┌─────────────────┐                                            │
+│  │ Quality Metrics │ ───► Grafana dashboards                    │
+│  │ & Alerts        │ ───► PagerDuty (safety violations)        │
+│  └─────────────────┘                                            │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 6. Alerting
+
+### 6.1 Alert Categories
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
@@ -289,11 +399,13 @@ sampling:
 │  • Platform-wide outage                                         │
 │  • Data loss risk                                               │
 │  • Security breach                                              │
+│  • Agent safety score < 0.8 (SAFETY VIOLATION)                  │
 │                                                                  │
 │  HIGH (P2) - Page during business hours                        │
 │  • Agent error rate > 10%                                       │
 │  • Deployment failures                                          │
 │  • Database connectivity issues                                 │
+│  • Agent correctness score < 0.85                               │
 │                                                                  │
 │  MEDIUM (P3) - Ticket, next business day                       │
 │  • Elevated latency                                             │
@@ -307,7 +419,7 @@ sampling:
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 5.2 Alert Rules
+### 6.2 Alert Rules
 
 ```yaml
 groups:
@@ -355,9 +467,51 @@ groups:
           severity: medium
         annotations:
           summary: "Token spend doubled for {{ $labels.agent }}"
+
+  - name: agent_safety_alerts
+    rules:
+      # CRITICAL: Safety score violation
+      - alert: AgentSafetyViolation
+        expr: mlflow_evaluation_safety_score < 0.8
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SAFETY VIOLATION: Agent {{ $labels.agent }} safety < 80%"
+          runbook: "https://docs.agentstack.io/runbooks/safety-violation"
+          action: "Immediate rollback required"
+      
+      # Correctness degradation
+      - alert: AgentCorrectnessLow
+        expr: mlflow_evaluation_correctness_score < 0.85
+        for: 5m
+        labels:
+          severity: high
+        annotations:
+          summary: "Agent {{ $labels.agent }} correctness score < 85%"
+      
+      # Hallucination detected
+      - alert: AgentHallucinationSpike
+        expr: |
+          increase(mlflow_evaluation_hallucination_count[1h]) > 10
+        for: 5m
+        labels:
+          severity: high
+        annotations:
+          summary: "Hallucinations detected for {{ $labels.agent }}"
+      
+      # PII leakage attempt
+      - alert: AgentPIILeakage
+        expr: mlflow_evaluation_pii_leakage_detected > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PII LEAKAGE: Agent {{ $labels.agent }} exposing sensitive data"
+          action: "Suspend agent immediately"
 ```
 
-### 5.3 Notification Channels
+### 6.3 Notification Channels
 
 ```yaml
 alertmanager:
@@ -387,9 +541,9 @@ alertmanager:
 
 ---
 
-## 6. Dashboards
+## 7. Dashboards
 
-### 6.1 Platform Overview Dashboard
+### 7.1 Platform Overview Dashboard
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
@@ -417,7 +571,7 @@ alertmanager:
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 6.2 Agent Detail Dashboard
+### 7.2 Agent Detail Dashboard
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
@@ -447,11 +601,47 @@ alertmanager:
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+### 7.3 Agent Safety & Evaluation Dashboard
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│              Agent Safety & Evaluation (MLflow)                  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌───────────────┐ ┌───────────────┐ ┌───────────────┐         │
+│  │ Safety Score  │ │  Correctness  │ │ Hallucination │         │
+│  │   ✅ 0.95     │ │   ✅ 0.92     │ │   ✅ 0.02%    │         │
+│  └───────────────┘ └───────────────┘ └───────────────┘         │
+│                                                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │            Evaluation Scores Over Time (7d)              │    │
+│  │  Safety      ████████████████████████████████ 0.95      │    │
+│  │  Correctness ██████████████████████████████   0.92      │    │
+│  │  Relevance   ████████████████████████████     0.90      │    │
+│  │  Grounding   █████████████████████████████    0.91      │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │            Safety Incidents (Last 24h)                   │    │
+│  │  PII Leakage Attempts:    0  ✅                         │    │
+│  │  Harmful Content:         0  ✅                         │    │
+│  │  Prompt Injection:        2  ⚠️ (blocked)               │    │
+│  │  Unauthorized Tool Use:   0  ✅                         │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  Recent Evaluations:                                             │
+│  10:30:00 ✅ Batch eval: 500 traces, safety=0.96                │
+│  08:00:00 ✅ Batch eval: 480 traces, safety=0.95                │
+│  06:00:00 ⚠️ Pre-deploy eval: rev-043 blocked (safety=0.78)    │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
 ---
 
-## 7. Cost Tracking
+## 8. Cost Tracking
 
-### 7.1 Cost Metrics
+### 8.1 Cost Metrics
 
 ```yaml
 # Cost tracking metrics
@@ -469,7 +659,7 @@ cost_metrics:
     dimensions: [project]
 ```
 
-### 7.2 Cost Dashboard
+### 8.2 Cost Dashboard
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
@@ -497,7 +687,7 @@ cost_metrics:
 
 ---
 
-## 8. Implementation Checklist
+## 9. Implementation Checklist
 
 ### Phase 1: Core Observability
 - [ ] Deploy OpenTelemetry Collector
@@ -511,21 +701,31 @@ cost_metrics:
 - [ ] Configure Alertmanager
 - [ ] Create runbooks
 
-### Phase 3: Advanced
+### Phase 3: MLflow Evaluation & Safety
+- [ ] Deploy MLflow tracking server
+- [ ] Configure agent auto-instrumentation
+- [ ] Implement safety scorers
+- [ ] Set up trace-to-evaluation pipeline
+- [ ] Create safety dashboards
+
+### Phase 4: Advanced
 - [ ] SLO dashboards
 - [ ] Cost tracking
 - [ ] Anomaly detection
 - [ ] Custom agent metrics
+- [ ] Continuous evaluation automation
 
 ---
 
-## 9. References
+## 10. References
 
 - [OpenTelemetry](https://opentelemetry.io/docs/)
 - [Prometheus](https://prometheus.io/docs/)
 - [Grafana Loki](https://grafana.com/docs/loki/)
 - [Grafana Tempo](https://grafana.com/docs/tempo/)
 - [Knative Metrics](https://knative.dev/docs/serving/observability/metrics/)
+- [MLflow Tracing](https://mlflow.org/docs/latest/llms/tracing/index.html)
+- [MLflow Evaluation](https://mlflow.org/docs/latest/llms/llm-evaluate/index.html)
 
 ---
 
