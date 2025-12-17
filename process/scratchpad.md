@@ -94,3 +94,132 @@
 3. **Scattered portal docs** - Need consolidation
 4. **No clear known limitations section**
 5. **Missing health check verification steps**
+
+---
+
+## Design Decisions - Universal Content Model & Interactions API
+
+### Date: 2025-12-17
+
+### Overview
+
+Incorporated Google's GenAI API concepts to create a provider-agnostic content model:
+- **Universal Content Model (UCM)** - Canonical representation for multimodal content
+- **Interactions API** - Unified interface for models and agents with server-side state
+
+### Key Design Decisions
+
+#### 1. Universal Part Schema
+
+Adopted a normalized Part structure supporting all content types:
+
+```yaml
+Part:
+  type: string  # text, image, audio, video, document, file, function_call, function_result, data
+  text: string  # For text type
+  data: string  # Base64 for binary types
+  uri: string   # External references
+  file_id: string  # Internal file references
+  mime_type: string  # Content type
+  call_id: string  # For function calls/results
+  arguments: object  # Function call args
+  result: any  # Function result
+  json_data: object  # Structured data
+```
+
+#### 2. Provider Translation Architecture
+
+```text
+AgentStack UCM → ProviderAdapter → Provider-Specific Format
+```
+
+Each provider has an adapter that translates:
+- **OpenAI**: image → image_url, function_call → function with id
+- **Anthropic**: image → source.base64, function_call → tool_use
+- **Gemini**: image → inlineData/fileData, function_call → functionCall
+- **Ollama**: Multi-part → base64 images[] array
+
+#### 3. Interactions API vs Chat API
+
+| Aspect | Chat API | Interactions API |
+|--------|----------|------------------|
+| State | Client-managed | Server-managed |
+| Multi-turn | Session ID | previous_interaction_id |
+| Background | ❌ | ✅ |
+| Use case | Simple chat | Complex workflows |
+
+#### 4. Server-Side State with `previous_interaction_id`
+
+Instead of resending conversation history, reference previous turns:
+
+```yaml
+# Turn 1
+POST /v1/interactions → returns {id: "int_001", ...}
+
+# Turn 2 (references turn 1)
+POST /v1/interactions
+{
+  "previous_interaction_id": "int_001",
+  "input": "follow-up question"
+}
+```
+
+Benefits:
+- Reduced payload size
+- Server manages context window
+- Enables background task continuity
+
+#### 5. Background Execution Mode
+
+For long-running tasks (research, complex reasoning):
+
+```yaml
+POST /v1/interactions
+{
+  "background": true,
+  "webhook_url": "https://myapp.com/webhook"
+}
+
+Response: 202 Accepted
+{id: "int_xxx", status: "in_progress"}
+```
+
+#### 6. Backward Compatibility
+
+Simple string messages auto-convert to UCM:
+
+```yaml
+# Input
+"Hello world"
+
+# Converts to
+{
+  "role": "user",
+  "parts": [{"type": "text", "text": "Hello world"}]
+}
+```
+
+### New Specifications Created
+
+1. **spec/api/020-universal-content-model.md**
+   - Part type definitions
+   - Content structure
+   - Provider translation rules
+   - A2A protocol alignment
+   - Provider capability matrix
+
+2. **spec/api/021-interactions-api.md**
+   - Interaction object schema
+   - Status flow (pending → in_progress → completed/requires_action/failed)
+   - Stateful conversations
+   - Background execution
+   - Function calling (auto and manual)
+   - Streaming events
+   - Multimodal support
+
+### Integration Points
+
+- Aligns with A2A Part types (spec 017)
+- Extends Chat Sessions API (spec 013)
+- Supports AG-UI streaming (spec 018)
+- Enables A2UI declarative rendering (spec 019)
