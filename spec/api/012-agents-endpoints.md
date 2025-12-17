@@ -10,25 +10,25 @@
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                   Agent Resource Hierarchy                       │
+│                   Agent Resource Hierarchy                      │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  Agent (agt_xxx)                                                │
 │  │   • Configuration definition                                 │
-│  │   • Current deployment reference                            │
-│  │                                                               │
+│  │   • Current deployment reference                             │
+│  │                                                              │
 │  ├── Deployment (dpl_xxx)                                       │
-│  │   │   • Build + deploy operation                            │
-│  │   │   • Status tracking                                     │
+│  │   │   • Build + deploy operation                             │
+│  │   │   • Status tracking                                      │
 │  │   │                                                          │
-│  │   └── Revision (rev_xxx)                                    │
+│  │   └── Revision (rev_xxx)                                     │
 │  │       • Immutable snapshot                                   │
 │  │       • Addressable version                                  │
-│  │                                                               │
+│  │                                                              │
 │  └── Traffic                                                    │
 │      • Route distribution                                       │
 │      • Canary configuration                                     │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
