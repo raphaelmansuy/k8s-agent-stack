@@ -10,39 +10,39 @@
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         AgentStack Platform                          │
+│                         AgentStack Platform                         │
 ├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
+│                                                                     │
 │  ┌───────────────────────────────────────────────────────────────┐  │
 │  │  LAYER 6: GOVERNANCE                                          │  │
 │  │  RBAC │ Quotas │ Audit │ Policy │ Compliance                  │  │
 │  └───────────────────────────────────────────────────────────────┘  │
-│                               │                                      │
+│                               │                                     │
 │  ┌───────────────────────────────────────────────────────────────┐  │
 │  │  LAYER 5: EVALUATION & SAFETY (MLflow)                        │  │
 │  │  Tracing │ LLM Judges │ Scorers │ Quality Gates │ Datasets    │  │
 │  └───────────────────────────────────────────────────────────────┘  │
-│                               │                                      │
+│                               │                                     │
 │  ┌───────────────────────────────────────────────────────────────┐  │
 │  │  LAYER 4: INTERFACE                                           │  │
 │  │  API Gateway │ CLI │ SDK │ UI │ Webhooks                      │  │
 │  └───────────────────────────────────────────────────────────────┘  │
-│                               │                                      │
+│                               │                                     │
 │  ┌───────────────────────────────────────────────────────────────┐  │
 │  │  LAYER 3: COGNITIVE                                           │  │
 │  │  kagent │ A2A Protocol │ MCP Tools │ Memory │ Multi-Agent     │  │
 │  └───────────────────────────────────────────────────────────────┘  │
-│                               │                                      │
+│                               │                                     │
 │  ┌───────────────────────────────────────────────────────────────┐  │
 │  │  LAYER 2: RUNTIME                                             │  │
 │  │  Knative Serving │ Autoscaler │ Activator │ Queue-Proxy       │  │
 │  └───────────────────────────────────────────────────────────────┘  │
-│                               │                                      │
+│                               │                                     │
 │  ┌───────────────────────────────────────────────────────────────┐  │
 │  │  LAYER 1: INFRASTRUCTURE                                      │  │
 │  │  Kubernetes │ Contour/Envoy │ Storage │ Networking            │  │
 │  └───────────────────────────────────────────────────────────────┘  │
-│                                                                      │
+│                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -86,21 +86,21 @@ kubernetes:
                         │
                         ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                    Cloud Load Balancer                       │
+│                    Cloud Load Balancer                      │
 │                    (L4: TCP/UDP)                            │
 └─────────────────────────────────────────────────────────────┘
                         │
                         ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                    Envoy Proxy                               │
+│                    Envoy Proxy                              │
 │                    (L7: HTTP/gRPC)                          │
 │  ┌─────────────────────────────────────────────────────┐    │
-│  │ Features:                                            │    │
-│  │ • TLS termination (cert-manager)                     │    │
-│  │ • Rate limiting                                      │    │
-│  │ • Header-based routing                               │    │
-│  │ • Circuit breaking                                   │    │
-│  │ • Request mirroring                                  │    │
+│  │ Features:                                           │    │
+│  │ • TLS termination (cert-manager)                    │    │
+│  │ • Rate limiting                                     │    │
+│  │ • Header-based routing                              │    │
+│  │ • Circuit breaking                                  │    │
+│  │ • Request mirroring                                 │    │
 │  └─────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
                         │
@@ -124,25 +124,25 @@ kubernetes:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                     Knative Serving                              │
+│                     Knative Serving                             │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐   │
 │  │   Service    │  │   Route      │  │   Configuration      │   │
 │  │  (ksvc)      │──│  (Traffic)   │──│   (Desired State)    │   │
 │  └──────────────┘  └──────────────┘  └──────────────────────┘   │
-│         │                                        │               │
-│         ▼                                        ▼               │
+│         │                                        │              │
+│         ▼                                        ▼              │
 │  ┌──────────────────────────────────────────────────────────┐   │
-│  │                    Revisions (Immutable)                  │   │
+│  │                    Revisions (Immutable)                 │   │
 │  │   rev-001 (10%)    rev-002 (90%)    rev-003 (0%)         │   │
 │  └──────────────────────────────────────────────────────────┘   │
-│                                                                  │
+│                                                                 │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐   │
 │  │  Activator   │  │  Autoscaler  │  │   Queue-Proxy        │   │
 │  │  (Cold start)│  │  (KPA/HPA)   │  │   (Sidecar)          │   │
 │  └──────────────┘  └──────────────┘  └──────────────────────┘   │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -153,7 +153,7 @@ kubernetes:
                             │
                             ▼
 ┌────────────────────────────────────────────────────────────────┐
-│                         Envoy                                   │
+│                         Envoy                                  │
 │                    (L7 Load Balancer)                          │
 └────────────────────────────────────────────────────────────────┘
                             │
@@ -173,15 +173,15 @@ kubernetes:
                             │
                             ▼
 ┌────────────────────────────────────────────────────────────────┐
-│                      Queue-Proxy                                │
-│  • Concurrency enforcement                                      │
-│  • Request metrics collection                                   │
+│                      Queue-Proxy                               │
+│  • Concurrency enforcement                                     │
+│  • Request metrics collection                                  │
 │  • Health check proxy                                          │
 └────────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌────────────────────────────────────────────────────────────────┐
-│                     Agent Container                             │
+│                     Agent Container                            │
 │               (Your code @ port 8080)                          │
 └────────────────────────────────────────────────────────────────┘
 ```
@@ -226,9 +226,9 @@ metadata:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                       kagent Namespace                           │
+│                       kagent Namespace                          │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  ┌─────────────────┐  ┌──────────────┐  ┌──────────────────┐    │
 │  │   Controller    │  │     UI       │  │  KMCP Controller │    │
 │  │                 │  │  (Web App)   │  │  (Tool Server)   │    │
@@ -236,21 +236,21 @@ metadata:
 │  │  • Reconcile    │  │  • Chat      │  │  • MCP Protocol  │    │
 │  │  • Manage pods  │  │  • Manage    │  │  • Tool registry │    │
 │  └────────┬────────┘  └──────────────┘  └──────────────────┘    │
-│           │                                                      │
-│           ▼                                                      │
+│           │                                                     │
+│           ▼                                                     │
 │  ┌──────────────────────────────────────────────────────────┐   │
-│  │                     Custom Resources                      │   │
-│  │  Agent │ ModelConfig │ ToolServer │ Conversation          │   │
+│  │                     Custom Resources                     │   │
+│  │  Agent │ ModelConfig │ ToolServer │ Conversation         │   │
 │  └──────────────────────────────────────────────────────────┘   │
-│                                                                  │
+│                                                                 │
 │  ┌──────────────────────────────────────────────────────────┐   │
-│  │                     Agent Pods                            │   │
+│  │                     Agent Pods                           │   │
 │  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────────────┐ │   │
 │  │  │ Agent-1 │ │ Agent-2 │ │ Agent-3 │ │ Your BYO Agent  │ │   │
 │  │  │ (ADK)   │ │ (ADK)   │ │ (Custom)│ │                 │ │   │
 │  │  └─────────┘ └─────────┘ └─────────┘ └─────────────────┘ │   │
 │  └──────────────────────────────────────────────────────────┘   │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -334,30 +334,30 @@ spec:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                        API Gateway                               │
+│                        API Gateway                              │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  ┌──────────────────────────────────────────────────────────┐   │
-│  │                    Public Endpoints                       │   │
-│  │                                                           │   │
+│  │                    Public Endpoints                      │   │
+│  │                                                          │   │
 │  │  /v1/agents/*        → Agent CRUD, deployments           │   │
 │  │  /v1/chat/*          → Chat interactions                 │   │
 │  │  /v1/tools/*         → Tool management                   │   │
 │  │  /v1/projects/*      → Project management                │   │
 │  │  /v1/analytics/*     → Usage metrics                     │   │
 │  └──────────────────────────────────────────────────────────┘   │
-│                                                                  │
+│                                                                 │
 │  ┌──────────────────────────────────────────────────────────┐   │
-│  │                    Middleware Stack                       │   │
-│  │                                                           │   │
-│  │  1. Request ID injection                                  │   │
-│  │  2. Authentication (JWT / API Key)                        │   │
-│  │  3. Rate limiting                                         │   │
-│  │  4. Project context resolution                            │   │
-│  │  5. Request logging                                       │   │
-│  │  6. CORS handling                                         │   │
+│  │                    Middleware Stack                      │   │
+│  │                                                          │   │
+│  │  1. Request ID injection                                 │   │
+│  │  2. Authentication (JWT / API Key)                       │   │
+│  │  3. Rate limiting                                        │   │
+│  │  4. Project context resolution                           │   │
+│  │  5. Request logging                                      │   │
+│  │  6. CORS handling                                        │   │
 │  └──────────────────────────────────────────────────────────┘   │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -381,32 +381,32 @@ spec:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                 Evaluation & Safety Layer (MLflow)               │
+│                 Evaluation & Safety Layer (MLflow)              │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  ┌──────────────────────────────────────────────────────────┐   │
-│  │                    Tracing (MLflow + OTel)                │   │
+│  │                    Tracing (MLflow + OTel)               │   │
 │  │  • Auto-instrumentation for ADK, LangGraph, CrewAI       │   │
 │  │  • Captures prompts, tool calls, responses               │   │
 │  │  • OpenTelemetry compatible                              │   │
 │  └──────────────────────────────────────────────────────────┘   │
-│                               │                                  │
+│                               │                                 │
 │  ┌──────────────────────────────────────────────────────────┐   │
-│  │                    Scorers (LLM-as-Judge)                 │   │
+│  │                    Scorers (LLM-as-Judge)                │   │
 │  │  • Safety: Harmful content detection                     │   │
 │  │  • Correctness: Factual accuracy validation              │   │
 │  │  • Relevance: Response relevance to query                │   │
 │  │  • Grounding: RAG hallucination detection                │   │
 │  │  • Custom: Domain-specific criteria                      │   │
 │  └──────────────────────────────────────────────────────────┘   │
-│                               │                                  │
+│                               │                                 │
 │  ┌──────────────────────────────────────────────────────────┐   │
-│  │                    Quality Gates                          │   │
+│  │                    Quality Gates                         │   │
 │  │  • Pre-deploy: Block unsafe agents                       │   │
 │  │  • Canary: Real-time eval during rollout                 │   │
 │  │  • Continuous: Production trace monitoring               │   │
 │  └──────────────────────────────────────────────────────────┘   │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -463,25 +463,25 @@ spec:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                      RBAC Hierarchy                              │
+│                      RBAC Hierarchy                             │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  Organization (Tenant)                                          │
 │  └── Team                                                       │
 │      ├── Owner   → Full control                                 │
 │      ├── Admin   → Manage members, settings                     │
 │      ├── Member  → Deploy, manage agents                        │
 │      └── Viewer  → Read-only access                             │
-│                                                                  │
+│                                                                 │
 │  Project (within Team)                                          │
 │  └── Agents, Secrets, Tools, Deployments                        │
-│                                                                  │
-│  Resource-level permissions:                                     │
+│                                                                 │
+│  Resource-level permissions:                                    │
 │  ├── agents:read, agents:write, agents:delete                   │
 │  ├── secrets:read, secrets:write                                │
 │  ├── deployments:create, deployments:rollback                   │
 │  └── analytics:read                                             │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -535,12 +535,12 @@ config_sources:
 ```text
 ┌─────────────────────────────────────────┐
 │           Single K8s Cluster            │
-│  ┌─────────────────────────────────┐   │
-│  │  kagent + Knative + Agents      │   │
-│  └─────────────────────────────────┘   │
-│  ┌─────────────────────────────────┐   │
-│  │  PostgreSQL + Redis             │   │
-│  └─────────────────────────────────┘   │
+│  ┌─────────────────────────────────┐    │
+│  │  kagent + Knative + Agents      │    │
+│  └─────────────────────────────────┘    │
+│  ┌─────────────────────────────────┐    │
+│  │  PostgreSQL + Redis             │    │
+│  └─────────────────────────────────┘    │
 └─────────────────────────────────────────┘
 ```
 
