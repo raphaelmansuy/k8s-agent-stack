@@ -10,39 +10,39 @@
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Security Architecture                         │
+│                    Security Architecture                        │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │                    PERIMETER                             │    │
+│  │                    PERIMETER                            │    │
 │  │  WAF │ DDoS Protection │ TLS 1.3 │ Rate Limiting        │    │
 │  └─────────────────────────────────────────────────────────┘    │
-│                              │                                   │
+│                              │                                  │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │                    AGENT SAFETY (MLflow)                 │    │
+│  │                    AGENT SAFETY (MLflow)                │    │
 │  │  Pre-Deploy Eval │ Safety Scorers │ Quality Gates       │    │
 │  └─────────────────────────────────────────────────────────┘    │
-│                              │                                   │
+│                              │                                  │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │                    AUTHENTICATION                        │    │
+│  │                    AUTHENTICATION                       │    │
 │  │  JWT │ API Keys │ OAuth 2.0 │ OIDC │ SAML (Enterprise)  │    │
 │  └─────────────────────────────────────────────────────────┘    │
-│                              │                                   │
+│                              │                                  │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │                    AUTHORIZATION                         │    │
+│  │                    AUTHORIZATION                        │    │
 │  │  RBAC │ Project Scoping │ Resource Policies │ OPA       │    │
 │  └─────────────────────────────────────────────────────────┘    │
-│                              │                                   │
+│                              │                                  │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │                    DATA PROTECTION                       │    │
+│  │                    DATA PROTECTION                      │    │
 │  │  Encryption at Rest │ Encryption in Transit │ Secrets   │    │
 │  └─────────────────────────────────────────────────────────┘    │
-│                              │                                   │
+│                              │                                  │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │                    AUDIT & COMPLIANCE                    │    │
-│  │  Audit Logs │ GDPR │ SOC 2 │ Data Residency            │    │
+│  │                    AUDIT & COMPLIANCE                   │    │
+│  │  Audit Logs │ GDPR │ SOC 2 │ Data Residency             │    │
 │  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -269,12 +269,12 @@ Storage: SHA-256 hash in database (never store plaintext)
     │  2. Redirect to IdP                     │
     │◄────────────────────────────────────────│
     │                                         │
-    │         ┌─────────────┐                │
-    │         │     IdP     │                │
-    │         │ (Google/    │                │
-    │         │  GitHub/    │                │
-    │         │  Okta)      │                │
-    │         └──────┬──────┘                │
+    │         ┌─────────────┐                 │
+    │         │     IdP     │                 │
+    │         │ (Google/    │                 │
+    │         │  GitHub/    │                 │
+    │         │  Okta)      │                 │
+    │         └──────┬──────┘                 │
     │                │                        │
     │  3. Authenticate                        │
     │───────────────►│                        │
@@ -297,23 +297,23 @@ Storage: SHA-256 hash in database (never store plaintext)
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                      RBAC Hierarchy                              │
+│                      RBAC Hierarchy                             │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Platform Level                                                  │
+│                                                                 │
+│  Platform Level                                                 │
 │  └── platform:admin    → Full platform access                   │
-│                                                                  │
-│  Team Level                                                      │
+│                                                                 │
+│  Team Level                                                     │
 │  ├── team:owner        → Full team control, billing             │
 │  ├── team:admin        → Manage members, all projects           │
 │  ├── team:member       → Access granted projects                │
 │  └── team:viewer       → Read-only access                       │
-│                                                                  │
-│  Project Level                                                   │
+│                                                                 │
+│  Project Level                                                  │
 │  ├── project:admin     → Full project control                   │
 │  ├── project:developer → Deploy, manage agents                  │
 │  └── project:viewer    → Read-only                              │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -360,30 +360,30 @@ func Authorize(permission string) func(http.Handler) http.Handler {
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Secrets Management                            │
+│                    Secrets Management                           │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │                    API / CLI                             │    │
+│  │                    API / CLI                            │    │
 │  │  agentstack secrets set OPENAI_KEY=sk-...               │    │
 │  └─────────────────────────────────────────────────────────┘    │
-│                              │                                   │
-│                              ▼                                   │
+│                              │                                  │
+│                              ▼                                  │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │                 Secrets Controller                       │    │
-│  │  • Encrypt with KMS                                      │    │
-│  │  • Store encrypted blob                                  │    │
-│  │  • Create K8s Secret                                     │    │
+│  │                 Secrets Controller                      │    │
+│  │  • Encrypt with KMS                                     │    │
+│  │  • Store encrypted blob                                 │    │
+│  │  • Create K8s Secret                                    │    │
 │  └─────────────────────────────────────────────────────────┘    │
-│                              │                                   │
+│                              │                                  │
 │           ┌──────────────────┼──────────────────┐               │
 │           ▼                  ▼                  ▼               │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐         │
-│  │  Database   │    │    KMS      │    │ K8s Secret  │         │
-│  │ (encrypted  │    │ (key mgmt)  │    │ (runtime)   │         │
-│  │   blob)     │    │             │    │             │         │
-│  └─────────────┘    └─────────────┘    └─────────────┘         │
-│                                                                  │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐          │
+│  │  Database   │    │    KMS      │    │ K8s Secret  │          │
+│  │ (encrypted  │    │ (key mgmt)  │    │ (runtime)   │          │
+│  │   blob)     │    │             │    │             │          │
+│  └─────────────┘    └─────────────┘    └─────────────┘          │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -644,22 +644,22 @@ quotas:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                     Rate Limiting                                │
+│                     Rate Limiting                               │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  Algorithm: Token Bucket (via Redis)                            │
-│                                                                  │
+│                                                                 │
 │  Key Format: ratelimit:{project_id}:{endpoint}:{window}         │
-│                                                                  │
-│  Layers:                                                         │
+│                                                                 │
+│  Layers:                                                        │
 │  1. Global    → Protect infrastructure (10K/min)                │
 │  2. Per-User  → Fair usage (varies by plan)                     │
 │  3. Per-Agent → Prevent runaway costs                           │
-│                                                                  │
-│  Bypass:                                                         │
+│                                                                 │
+│  Bypass:                                                        │
 │  • Internal services (service tokens)                           │
-│  • Health checks                                                 │
-│                                                                  │
+│  • Health checks                                                │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
