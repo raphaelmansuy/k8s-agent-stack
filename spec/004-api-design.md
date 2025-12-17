@@ -26,21 +26,21 @@
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                     Authentication Methods                       │
+│                     Authentication Methods                      │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  1. Bearer Token (JWT)                                          │
 │     Authorization: Bearer eyJhbG...                             │
 │     → User sessions, UI, OAuth flows                            │
-│                                                                  │
+│                                                                 │
 │  2. API Key                                                     │
 │     X-API-Key: ask_1234567890abcdef                             │
 │     → Server-to-server, CI/CD, automation                       │
-│                                                                  │
+│                                                                 │
 │  3. Service Account (internal)                                  │
 │     X-Service-Token: svc_...                                    │
 │     → Internal services, cluster-local                          │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
