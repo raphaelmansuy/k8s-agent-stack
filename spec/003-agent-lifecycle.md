@@ -117,19 +117,19 @@ spec:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                     Agent State Machine                          │
+│                     Agent State Machine                         │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │                      ┌──────────────┐                           │
 │                      │   CREATING   │                           │
 │                      └──────┬───────┘                           │
-│                             │                                    │
+│                             │                                   │
 │              ┌──────────────┼──────────────┐                    │
 │              │              │              │                    │
 │              ▼              ▼              ▼                    │
-│       ┌──────────┐   ┌──────────┐   ┌──────────┐               │
-│       │  FAILED  │   │ INACTIVE │   │  ACTIVE  │◄──┐           │
-│       └──────────┘   └────┬─────┘   └────┬─────┘   │           │
+│       ┌──────────┐   ┌──────────┐   ┌──────────┐                │
+│       │  FAILED  │   │ INACTIVE │   │  ACTIVE  │◄───┐           │
+│       └──────────┘   └────┬─────┘   └────┬─────┘    │           │
 │                           │              │          │           │
 │                           │  deploy      │          │           │
 │                           ▼              │          │           │
@@ -142,11 +142,11 @@ spec:
 │                    └──────┬───────┘                 │           │
 │                           │ resume                  │ suspend   │
 │                           └─────────────────────────┘           │
-│                                                                  │
-│                    ┌──────────────┐                              │
+│                                                                 │
+│                    ┌──────────────┐                             │
 │                    │   DELETING   │ ──► (removed)               │
-│                    └──────────────┘                              │
-│                                                                  │
+│                    └──────────────┘                             │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -170,41 +170,41 @@ spec:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                     Deployment Pipeline                          │
+│                     Deployment Pipeline                         │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  1. TRIGGER                                                      │
+│                                                                 │
+│  1. TRIGGER                                                     │
 │  ├── CLI: agentstack deploy                                     │
 │  ├── API: POST /v1/agents/{id}/deployments                      │
 │  └── GitOps: Commit to main branch                              │
-│                                                                  │
-│  2. BUILD (if needed)                                            │
-│  ├── Pull source code                                            │
-│  ├── Build container image                                       │
-│  ├── Push to registry                                            │
-│  └── Security scan                                               │
-│                                                                  │
-│  3. EVALUATE (MLflow) ⚠️ REQUIRED                                │
-│  ├── Load evaluation dataset                                     │
-│  ├── Run scorers (Safety, Correctness, Custom)                   │
-│  ├── Compare against baseline                                    │
+│                                                                 │
+│  2. BUILD (if needed)                                           │
+│  ├── Pull source code                                           │
+│  ├── Build container image                                      │
+│  ├── Push to registry                                           │
+│  └── Security scan                                              │
+│                                                                 │
+│  3. EVALUATE (MLflow) ⚠️ REQUIRED                               │
+│  ├── Load evaluation dataset                                    │
+│  ├── Run scorers (Safety, Correctness, Custom)                  │
+│  ├── Compare against baseline                                   │
 │  └── BLOCK if thresholds not met                                │
-│                                                                  │
-│  4. DEPLOY                                                       │
-│  ├── Create Knative Revision                                     │
-│  ├── Wait for pod ready                                          │
-│  └── Run health checks                                           │
-│                                                                  │
-│  5. TRAFFIC                                                      │
+│                                                                 │
+│  4. DEPLOY                                                      │
+│  ├── Create Knative Revision                                    │
+│  ├── Wait for pod ready                                         │
+│  └── Run health checks                                          │
+│                                                                 │
+│  5. TRAFFIC                                                     │
 │  ├── Update route (0% → 100% or gradual)                        │
-│  └── Previous revision scaled down                               │
-│                                                                  │
-│  6. MONITOR (Continuous Evaluation)                              │
-│  ├── Sample production traces                                    │
-│  ├── Run offline evaluation                                      │
-│  ├── Alert on quality regression                                 │
+│  └── Previous revision scaled down                              │
+│                                                                 │
+│  6. MONITOR (Continuous Evaluation)                             │
+│  ├── Sample production traces                                   │
+│  ├── Run offline evaluation                                     │
+│  ├── Alert on quality regression                                │
 │  └── Auto-rollback on safety violations                         │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -265,17 +265,17 @@ The A2A protocol enables agents to discover and communicate with each other.
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                      A2A Protocol Stack                          │
+│                      A2A Protocol Stack                         │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  Application   │  Task messages, context, results               │
-│  ──────────────┼────────────────────────────────────────────── │
+│  ──────────────┼─────────────────────────────────────────────── │
 │  A2A Protocol  │  Discovery, task lifecycle, streaming          │
-│  ──────────────┼────────────────────────────────────────────── │
+│  ──────────────┼─────────────────────────────────────────────── │
 │  Transport     │  HTTP/1.1, HTTP/2, SSE                         │
-│  ──────────────┼────────────────────────────────────────────── │
+│  ──────────────┼─────────────────────────────────────────────── │
 │  Security      │  mTLS, JWT, API Keys                           │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -387,9 +387,9 @@ SUBMITTED ──► WORKING ──► COMPLETED
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                     MCP Tool Servers                             │
+│                     MCP Tool Servers                            │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌────────────────┐   │
 │  │  kagent-tools   │  │  grafana-mcp    │  │  custom-tools  │   │
 │  │                 │  │                 │  │                │   │
@@ -398,21 +398,21 @@ SUBMITTED ──► WORKING ──► COMPLETED
 │  │  • prometheus   │  │  • alerts       │  │                │   │
 │  │  • istio        │  │                 │  │                │   │
 │  └────────┬────────┘  └────────┬────────┘  └───────┬────────┘   │
-│           │                    │                   │             │
-│           └────────────────────┼───────────────────┘             │
-│                                │                                 │
-│                                ▼                                 │
-│                    ┌──────────────────────┐                      │
-│                    │   KMCP Controller    │                      │
-│                    │   (Tool Registry)    │                      │
-│                    └──────────────────────┘                      │
-│                                │                                 │
-│                                ▼                                 │
-│                    ┌──────────────────────┐                      │
-│                    │      Agents          │                      │
-│                    │  (Tool Consumers)    │                      │
-│                    └──────────────────────┘                      │
-│                                                                  │
+│           │                    │                   │            │
+│           └────────────────────┼───────────────────┘            │
+│                                │                                │
+│                                ▼                                │
+│                    ┌──────────────────────┐                     │
+│                    │   KMCP Controller    │                     │
+│                    │   (Tool Registry)    │                     │
+│                    └──────────────────────┘                     │
+│                                │                                │
+│                                ▼                                │
+│                    ┌──────────────────────┐                     │
+│                    │      Agents          │                     │
+│                    │  (Tool Consumers)    │                     │
+│                    └──────────────────────┘                     │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -459,37 +459,37 @@ spec:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                     Memory Architecture                          │
+│                     Memory Architecture                         │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │                    Short-Term Memory                     │    │
-│  │                    (Redis / In-Process)                  │    │
-│  │  • Conversation context                                  │    │
-│  │  • Tool call results                                     │    │
-│  │  • Session state                                         │    │
-│  │  TTL: minutes to hours                                   │    │
+│  │                    Short-Term Memory                    │    │
+│  │                    (Redis / In-Process)                 │    │
+│  │  • Conversation context                                 │    │
+│  │  • Tool call results                                    │    │
+│  │  • Session state                                        │    │
+│  │  TTL: minutes to hours                                  │    │
 │  └─────────────────────────────────────────────────────────┘    │
-│                              │                                   │
-│                              ▼                                   │
+│                              │                                  │
+│                              ▼                                  │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │                    Long-Term Memory                      │    │
-│  │                    (PostgreSQL + pgvector)               │    │
-│  │  • Conversation summaries                                │    │
-│  │  • User preferences                                      │    │
-│  │  • Learned patterns                                      │    │
-│  │  TTL: permanent                                          │    │
+│  │                    Long-Term Memory                     │    │
+│  │                    (PostgreSQL + pgvector)              │    │
+│  │  • Conversation summaries                               │    │
+│  │  • User preferences                                     │    │
+│  │  • Learned patterns                                     │    │
+│  │  TTL: permanent                                         │    │
 │  └─────────────────────────────────────────────────────────┘    │
-│                              │                                   │
-│                              ▼                                   │
+│                              │                                  │
+│                              ▼                                  │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │                    Vector Store                          │    │
-│  │                    (pgvector / Qdrant)                   │    │
-│  │  • Semantic search                                       │    │
-│  │  • Similar conversation retrieval                        │    │
-│  │  • Knowledge base embeddings                             │    │
+│  │                    Vector Store                         │    │
+│  │                    (pgvector / Qdrant)                  │    │
+│  │  • Semantic search                                      │    │
+│  │  • Similar conversation retrieval                       │    │
+│  │  • Knowledge base embeddings                            │    │
 │  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -544,31 +544,31 @@ healthChecks:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                 Pre-Deployment Evaluation Gate                   │
+│                 Pre-Deployment Evaluation Gate                  │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Agent Ready for Deploy                                          │
-│       │                                                          │
-│       ▼                                                          │
+│                                                                 │
+│  Agent Ready for Deploy                                         │
+│       │                                                         │
+│       ▼                                                         │
 │  ┌─────────────────┐                                            │
 │  │ Load Dataset    │ ◄── datasets/agent-name-v2                 │
 │  └────────┬────────┘                                            │
-│           │                                                      │
-│           ▼                                                      │
+│           │                                                     │
+│           ▼                                                     │
 │  ┌─────────────────┐                                            │
 │  │ Run Scorers     │ ◄── Safety, Correctness, Custom            │
 │  │ (MLflow)        │                                            │
 │  └────────┬────────┘                                            │
-│           │                                                      │
+│           │                                                     │
 │     ┌─────┴─────┐                                               │
 │     │           │                                               │
-│   PASS        FAIL                                               │
+│   PASS        FAIL                                              │
 │     │           │                                               │
 │     ▼           ▼                                               │
-│ Continue    Block Deploy                                         │
-│ Pipeline    Alert Team                                           │
-│             Log Failures                                         │
-│                                                                  │
+│ Continue    Block Deploy                                        │
+│ Pipeline    Alert Team                                          │
+│             Log Failures                                        │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
