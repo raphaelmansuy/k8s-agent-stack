@@ -1,0 +1,132 @@
+services:
+  # AgentStack API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      AGENTSTACK_ENVIRONMENT: development
+      AGENTSTACK_DATABASE_URL: postgres://agentstack:agentstack@postgres:5432/agentstack?sslmode=disable
+      AGENTSTACK_REDIS_URL: redis://redis:6379
+      AGENTSTACK_TELEMETRY_ENABLED: "true"
+      AGENTSTACK_TELEMETRY_ENDPOINT: otel-collector:4318
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: agentstack
+      POSTGRES_PASSWORD: agentstack
+      POSTGRES_DB: agentstack
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agentstack"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # MLflow for agent evaluation (Phase 3)
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.17.0
+    ports:
+      - "5000:5000"
+    environment:
+      MLFLOW_TRACKING_URI: postgresql://agentstack:agentstack@postgres:5432/mlflow
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri postgresql://agentstack:agentstack@postgres:5432/mlflow
+      --default-artifact-root /mlflow/artifacts
+    volumes:
+      - mlflow_artifacts:/mlflow/artifacts
+    restart: unless-stopped
+
+  # OpenTelemetry Collector (optional, for observability)
+  otel-collector:
+    image: otel/opentelemetry-collector:latest
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "8888:8888"   # Prometheus metrics
+    volumes:
+      - ./config/otel-collector.yaml:/etc/otel-collector/config.yaml:ro
+    command: ["--config", "/etc/otel-collector/config.yaml"]
+    restart: unless-stopped
+    profiles:
+      - observability
+
+  # Prometheus (optional, for metrics)
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus.yaml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    restart: unless-stopped
+    profiles:
+      - observability
+
+  # Grafana (optional, for dashboards)
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    profiles:
+      - observability
+
+volumes:
+  postgres_data:
+  redis_data:
+  mlflow_artifacts:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  default:
+    name: agentstack-network
