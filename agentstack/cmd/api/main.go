@@ -22,6 +22,7 @@ import (
 	"github.com/raphaelmansuy/agentstack/internal/config"
 	"github.com/raphaelmansuy/agentstack/internal/domain/a2a"
 	"github.com/raphaelmansuy/agentstack/internal/domain/audit"
+	"github.com/raphaelmansuy/agentstack/internal/domain/auth"
 	"github.com/raphaelmansuy/agentstack/internal/domain/deployment"
 	"github.com/raphaelmansuy/agentstack/internal/domain/evaluation"
 	"github.com/raphaelmansuy/agentstack/internal/domain/quota"
@@ -99,6 +100,7 @@ func main() {
 	router.Use(chiMiddleware.RealIP)
 	router.Use(chiMiddleware.Recoverer)
 	router.Use(chiMiddleware.Timeout(60 * time.Second))
+	router.Use(telemetry.MetricsMiddleware)
 
 	// Initialize Database Queries
 	queries := db.New(dbPool.NewTenantDB())
@@ -108,6 +110,7 @@ func main() {
 	quotaRepo := database.NewQuotaRepository(queries)
 	rbacRepo := database.NewRBACRepository(queries)
 	evalRepo := database.NewEvaluationRepository(queries)
+	apiKeyRepo := database.NewAPIKeyRepository(dbPool)
 
 	// Initialize Caches/Queues
 	var quotaCache *cache.QuotaCache
@@ -123,16 +126,17 @@ func main() {
 	auditService := audit.NewService(auditRepo)
 	quotaService := quota.NewService(quotaRepo, quotaCache)
 	rbacService := rbac.NewService(rbacRepo, rbacCache)
+	authService := auth.NewService(apiKeyRepo)
 
 	// Initialize API Key lookup
 	apiKeyLookup := func(ctx context.Context, keyHash string) (*middleware.APIKeyInfo, error) {
-		key, err := queries.GetAPIKey(ctx, keyHash)
+		key, err := authService.VerifyKey(ctx, keyHash)
 		if err != nil {
 			return nil, err
 		}
 		return &middleware.APIKeyInfo{
 			TeamID:    key.TeamID,
-			ProjectID: key.ProjectID.String,
+			ProjectID: key.ProjectID,
 			Scopes:    key.Scopes,
 		}, nil
 	}
@@ -187,6 +191,7 @@ func main() {
 	quotaMiddleware := middleware.NewQuotaMiddleware(api, quotaService)
 
 	// Register routes
+	router.Handle("/metrics", telemetry.MetricsHandler())
 	handlers.RegisterHealthRoutes(api)
 	handlers.RegisterHealthRoutesWithDeps(api, dbPool, redisClient)
 	handlers.RegisterAgentRoutes(api, dbPool, rbacMiddleware, quotaMiddleware, auditMiddleware)
@@ -204,6 +209,7 @@ func main() {
 	handlers.RegisterQuotaRoutes(api, quotaService, rbacMiddleware)
 	handlers.RegisterRBACRoutes(api, rbacService, rbacMiddleware, auditMiddleware)
 	handlers.RegisterEvaluationRoutes(api, evaluationService, rbacMiddleware, auditMiddleware)
+	handlers.RegisterAPIKeyRoutes(api, authService, rbacMiddleware, auditMiddleware)
 
 	// Start Evaluation Worker if Redis is available
 	if redisClient != nil {

@@ -3,6 +3,8 @@ package middleware
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"net/http"
 	"strings"
 
@@ -26,8 +28,8 @@ type APIKeyInfo struct {
 func Auth(config AuthConfig) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Skip auth for health checks
-			if r.URL.Path == "/health" || r.URL.Path == "/health/detailed" || r.URL.Path == "/healthz" || r.URL.Path == "/readyz" || r.URL.Path == "/livez" {
+			// Skip auth for health checks and metrics
+			if r.URL.Path == "/health" || r.URL.Path == "/health/detailed" || r.URL.Path == "/healthz" || r.URL.Path == "/readyz" || r.URL.Path == "/livez" || r.URL.Path == "/metrics" {
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -109,9 +111,8 @@ func setAPIKeyInfoToContext(ctx context.Context, info *APIKeyInfo) context.Conte
 }
 
 func hashAPIKey(key string) string {
-	// In production, use SHA-256 or similar
-	// For now, return as-is for development
-	return key
+	hash := sha256.Sum256([]byte(key))
+	return hex.EncodeToString(hash[:])
 }
 
 // GetTeamID extracts team ID from context.

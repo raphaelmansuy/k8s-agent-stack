@@ -5,6 +5,7 @@ GO := go
 GOFLAGS := -v
 BINARY := agentstack-api
 WORKER_BINARY := agentstack-worker
+CLI_BINARY := agentctl
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 BUILD_TIME := $(shell date -u '+%Y-%m-%d_%H:%M:%S')
@@ -30,7 +31,11 @@ build-worker: ## Build the worker binary
 	@echo "Building $(WORKER_BINARY)..."
 	@$(GO) build $(GOFLAGS) $(LDFLAGS) -o bin/$(WORKER_BINARY) ./cmd/worker
 
-build-all: build build-worker ## Build all binaries
+build-cli: ## Build the CLI binary
+	@echo "Building $(CLI_BINARY)..."
+	@$(GO) build $(GOFLAGS) $(LDFLAGS) -o bin/$(CLI_BINARY) ./cli/cmd/agentctl
+
+build-all: build build-worker build-cli ## Build all binaries
 
 # Test targets
 test: ## Run tests

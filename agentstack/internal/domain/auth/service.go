@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"strings"
 )
 
 // Repository defines the interface for API key data access.
@@ -36,7 +35,7 @@ func (s *Service) CreateKey(ctx context.Context, input *APIKeyCreate) (*APIKeyGe
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate key: %w", err)
 	}
-	
+
 	fullKey := fmt.Sprintf("sk_live_%s", rawKey)
 	prefix := fullKey[:8] // sk_live_
 	hash := s.HashKey(fullKey)
@@ -83,6 +82,6 @@ func (s *Service) DeleteKey(ctx context.Context, id string) error {
 	return s.repo.DeleteAPIKey(ctx, id)
 }
 
-func (s *Service) GetKeyByHash(ctx context.Context, hash string) (*APIKey, error) {
+func (s *Service) VerifyKey(ctx context.Context, hash string) (*APIKey, error) {
 	return s.repo.GetAPIKeyByHash(ctx, hash)
 }

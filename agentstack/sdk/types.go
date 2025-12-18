@@ -247,23 +247,27 @@ type User struct {
 
 // APIKeyRequest represents a request to create an API key.
 type APIKeyRequest struct {
-	Name      string    `json:"name"`
-	ExpiresAt time.Time `json:"expires_at,omitempty"`
+	Name      string     `json:"name"`
+	ProjectID string     `json:"project_id,omitempty"`
+	Scopes    []string   `json:"scopes,omitempty"`
+	ExpiresAt *time.Time `json:"expires_at,omitempty"`
 }
 
 // APIKey represents an API key.
 type APIKey struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	Key       string    `json:"key,omitempty"`
-	Prefix    string    `json:"prefix"`
-	ExpiresAt time.Time `json:"expires_at,omitempty"`
-	CreatedAt time.Time `json:"created_at"`
+	ID         string     `json:"id"`
+	Name       string     `json:"name"`
+	Key        string     `json:"api_key,omitempty"` // Only present on creation
+	Prefix     string     `json:"key_prefix"`
+	Scopes     []string   `json:"scopes,omitempty"`
+	LastUsedAt *time.Time `json:"last_used_at,omitempty"`
+	ExpiresAt  *time.Time `json:"expires_at,omitempty"`
+	CreatedAt  time.Time  `json:"created_at"`
 }
 
 // ListAPIKeysResponse represents a list of API keys.
 type ListAPIKeysResponse struct {
-	APIKeys []APIKey `json:"api_keys"`
+	Keys []APIKey `json:"keys"`
 }
 
 // LogEntry represents a log entry.
