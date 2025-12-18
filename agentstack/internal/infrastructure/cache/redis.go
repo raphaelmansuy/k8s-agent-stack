@@ -52,12 +52,49 @@ func (c *Client) Close() error {
 	return nil
 }
 
+// GetRDB returns the underlying redis client.
+func (c *Client) GetRDB() *redis.Client {
+	return c.rdb
+}
+
 // Get retrieves a value from cache.
 func (c *Client) Get(ctx context.Context, key string) (string, error) {
 	if c.rdb == nil {
 		return "", errors.New("redis client not initialized")
 	}
 	return c.rdb.Get(ctx, key).Result()
+}
+
+// GetInt64 retrieves an int64 value from cache.
+func (c *Client) GetInt64(ctx context.Context, key string) (int64, error) {
+	if c.rdb == nil {
+		return 0, errors.New("redis client not initialized")
+	}
+	return c.rdb.Get(ctx, key).Int64()
+}
+
+// IncrBy increments a value in cache.
+func (c *Client) IncrBy(ctx context.Context, key string, value int64) (int64, error) {
+	if c.rdb == nil {
+		return 0, errors.New("redis client not initialized")
+	}
+	return c.rdb.IncrBy(ctx, key, value).Result()
+}
+
+// Expire sets expiration for a key.
+func (c *Client) Expire(ctx context.Context, key string, expiration time.Duration) error {
+	if c.rdb == nil {
+		return errors.New("redis client not initialized")
+	}
+	return c.rdb.Expire(ctx, key, expiration).Err()
+}
+
+// TTL returns the time to live for a key.
+func (c *Client) TTL(ctx context.Context, key string) (time.Duration, error) {
+	if c.rdb == nil {
+		return 0, errors.New("redis client not initialized")
+	}
+	return c.rdb.TTL(ctx, key).Result()
 }
 
 // Set stores a value in cache with expiration.

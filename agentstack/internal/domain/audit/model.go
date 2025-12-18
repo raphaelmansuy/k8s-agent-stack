@@ -36,13 +36,17 @@ const (
 	// Access events
 	EventMemberInvited    EventType = "member.invited"
 	EventMemberRemoved    EventType = "member.removed"
+	EventRoleCreated      EventType = "role.created"
+	EventRoleUpdated      EventType = "role.updated"
+	EventRoleDeleted      EventType = "role.deleted"
 	EventRoleAssigned     EventType = "role.assigned"
 	EventRoleRevoked      EventType = "role.revoked"
 	EventPermissionDenied EventType = "permission.denied"
 
 	// System events
-	EventQuotaExceeded EventType = "quota.exceeded"
-	EventRateLimited   EventType = "rate.limited"
+	EventQuotaExceeded     EventType = "quota.exceeded"
+	EventRateLimited       EventType = "rate.limited"
+	EventFeedbackSubmitted EventType = "evaluation.feedback_submitted"
 )
 
 // Event represents an audit log entry.

@@ -40,6 +40,12 @@ type APIKeyInfo struct {
 func Auth(config AuthConfig) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Skip auth for health checks
+			if r.URL.Path == "/healthz" || r.URL.Path == "/readyz" || r.URL.Path == "/livez" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			// Extract authorization header
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" {
@@ -98,18 +104,22 @@ func validateJWT(tokenString, secret string) (*Claims, error) {
 }
 
 func setClaimsToContext(ctx context.Context, claims *Claims) context.Context {
-	ctx = context.WithValue(ctx, ContextKeyTeamID, claims.TeamID)
-	ctx = context.WithValue(ctx, ContextKeyProjectID, claims.ProjectID)
-	ctx = context.WithValue(ctx, ContextKeyUserID, claims.UserID)
-	ctx = context.WithValue(ctx, ContextKeyScopes, claims.Scopes)
-	return ctx
+	auth := &AuthInfo{
+		UserID:    claims.UserID,
+		TeamID:    claims.TeamID,
+		ProjectID: claims.ProjectID,
+		Scopes:    claims.Scopes,
+	}
+	return SetAuthInContext(ctx, auth)
 }
 
 func setAPIKeyInfoToContext(ctx context.Context, info *APIKeyInfo) context.Context {
-	ctx = context.WithValue(ctx, ContextKeyTeamID, info.TeamID)
-	ctx = context.WithValue(ctx, ContextKeyProjectID, info.ProjectID)
-	ctx = context.WithValue(ctx, ContextKeyScopes, info.Scopes)
-	return ctx
+	auth := &AuthInfo{
+		TeamID:    info.TeamID,
+		ProjectID: info.ProjectID,
+		Scopes:    info.Scopes,
+	}
+	return SetAuthInContext(ctx, auth)
 }
 
 func hashAPIKey(key string) string {

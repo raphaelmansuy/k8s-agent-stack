@@ -5,11 +5,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 
+	"github.com/raphaelmansuy/agentstack/internal/api/middleware"
 	"github.com/raphaelmansuy/agentstack/internal/domain/a2a"
+	"github.com/raphaelmansuy/agentstack/internal/domain/audit"
+	"github.com/raphaelmansuy/agentstack/internal/domain/evaluation"
+	"github.com/raphaelmansuy/agentstack/internal/domain/quota"
+	"github.com/raphaelmansuy/agentstack/internal/domain/rbac"
 	"github.com/raphaelmansuy/agentstack/internal/infrastructure/cache"
 	"github.com/raphaelmansuy/agentstack/internal/infrastructure/database"
 	"github.com/raphaelmansuy/agentstack/internal/infrastructure/database/db"
@@ -85,8 +91,8 @@ type ListChatMessagesOutput struct {
 	}
 }
 
-// SendMessageInput is the input for sending a message.
-type SendMessageInput struct {
+// ChatSendMessageInput is the input for sending a message.
+type ChatSendMessageInput struct {
 	SessionID string `path:"session_id" doc:"Session ID"`
 	Body      struct {
 		Content  string         `json:"content" required:"true" minLength:"1" doc:"Message content"`
@@ -94,8 +100,8 @@ type SendMessageInput struct {
 	}
 }
 
-// SendMessageOutput is the output for sending a message.
-type SendMessageOutput struct {
+// ChatSendMessageOutput is the output for sending a message.
+type ChatSendMessageOutput struct {
 	Body struct {
 		UserMessage      ChatMessage `json:"user_message" doc:"The user's message"`
 		AssistantMessage ChatMessage `json:"assistant_message" doc:"The assistant's response"`
@@ -103,11 +109,20 @@ type SendMessageOutput struct {
 }
 
 // RegisterChatRoutes registers chat routes.
-func RegisterChatRoutes(api huma.API, pool *database.Pool, redis *cache.Client, a2aService *a2a.Service) {
+func RegisterChatRoutes(api huma.API, pool *database.Pool, redis *cache.Client, a2aService *a2a.Service, evalService *evaluation.Service, rbacM *middleware.RBACMiddleware, quotaM *middleware.QuotaMiddleware, auditM *middleware.AuditMiddleware) {
 	queries := db.New(pool.Pool)
 
 	// Create chat session
-	huma.Post(api, "/v1/chat/sessions", func(ctx context.Context, input *CreateChatSessionInput) (*CreateChatSessionOutput, error) {
+	huma.Register(api, huma.Operation{
+		OperationID: "create-chat-session",
+		Method:      http.MethodPost,
+		Path:        "/v1/chat/sessions",
+		Summary:     "Create chat session",
+		Tags:        []string{"Chat"},
+		Middlewares: huma.Middlewares{
+			rbacM.HumaRequirePermission(rbac.ResourceAgent, rbac.ActionInvoke),
+		},
+	}, func(ctx context.Context, input *CreateChatSessionInput) (*CreateChatSessionOutput, error) {
 		metadata, _ := json.Marshal(input.Body.Metadata)
 
 		session, err := queries.CreateChatSession(ctx, db.CreateChatSessionParams{
@@ -132,7 +147,16 @@ func RegisterChatRoutes(api huma.API, pool *database.Pool, redis *cache.Client, 
 	})
 
 	// Get chat session
-	huma.Get(api, "/v1/chat/sessions/{id}", func(ctx context.Context, input *GetChatSessionInput) (*GetChatSessionOutput, error) {
+	huma.Register(api, huma.Operation{
+		OperationID: "get-chat-session",
+		Method:      http.MethodGet,
+		Path:        "/v1/chat/sessions/{id}",
+		Summary:     "Get chat session",
+		Tags:        []string{"Chat"},
+		Middlewares: huma.Middlewares{
+			rbacM.HumaRequirePermission(rbac.ResourceAgent, rbac.ActionRead),
+		},
+	}, func(ctx context.Context, input *GetChatSessionInput) (*GetChatSessionOutput, error) {
 		session, err := queries.GetChatSession(ctx, input.ID)
 		if err != nil {
 			return nil, huma.Error404NotFound("Chat session not found")
@@ -156,7 +180,16 @@ func RegisterChatRoutes(api huma.API, pool *database.Pool, redis *cache.Client, 
 	})
 
 	// List messages in session
-	huma.Get(api, "/v1/chat/sessions/{session_id}/messages", func(ctx context.Context, input *ListChatMessagesInput) (*ListChatMessagesOutput, error) {
+	huma.Register(api, huma.Operation{
+		OperationID: "list-chat-messages",
+		Method:      http.MethodGet,
+		Path:        "/v1/chat/sessions/{session_id}/messages",
+		Summary:     "List chat messages",
+		Tags:        []string{"Chat"},
+		Middlewares: huma.Middlewares{
+			rbacM.HumaRequirePermission(rbac.ResourceAgent, rbac.ActionRead),
+		},
+	}, func(ctx context.Context, input *ListChatMessagesInput) (*ListChatMessagesOutput, error) {
 		messages, err := queries.ListChatMessages(ctx, input.SessionID)
 		if err != nil {
 			return nil, huma.Error500InternalServerError("Failed to list messages", err)
@@ -196,7 +229,19 @@ func RegisterChatRoutes(api huma.API, pool *database.Pool, redis *cache.Client, 
 	})
 
 	// Send message (synchronous)
-	huma.Post(api, "/v1/chat/sessions/{session_id}/messages", func(ctx context.Context, input *SendMessageInput) (*SendMessageOutput, error) {
+	huma.Register(api, huma.Operation{
+		OperationID: "send-chat-message",
+		Method:      http.MethodPost,
+		Path:        "/v1/chat/sessions/{session_id}/messages",
+		Summary:     "Send chat message",
+		Tags:        []string{"Chat"},
+		Middlewares: huma.Middlewares{
+			rbacM.HumaRequirePermission(rbac.ResourceAgent, rbac.ActionInvoke),
+			quotaM.HumaCheckQuota(quota.QuotaChatMessages),
+			quotaM.HumaIncrementAfter(quota.QuotaChatMessages),
+			auditM.HumaLogAction(audit.EventAgentInvoked, string(rbac.ResourceAgent)),
+		},
+	}, func(ctx context.Context, input *ChatSendMessageInput) (*ChatSendMessageOutput, error) {
 		// 1. Get session to find agent ID
 		session, err := queries.GetChatSession(ctx, input.SessionID)
 		if err != nil {
@@ -216,6 +261,7 @@ func RegisterChatRoutes(api huma.API, pool *database.Pool, redis *cache.Client, 
 		}
 
 		// 3. Call agent via A2A
+		startTime := time.Now()
 		// For now, we use a convention for the agent endpoint
 		// In a real system, this would be looked up in the agent registry/database
 		agentEndpoint := fmt.Sprintf("http://%s.kagent.svc.cluster.local:8080", session.AgentID)
@@ -233,6 +279,7 @@ func RegisterChatRoutes(api huma.API, pool *database.Pool, redis *cache.Client, 
 				},
 			},
 		})
+		latency := time.Since(startTime)
 		if err != nil {
 			return nil, huma.Error500InternalServerError(fmt.Sprintf("Failed to call agent at %s", agentEndpoint), err)
 		}
@@ -245,6 +292,20 @@ func RegisterChatRoutes(api huma.API, pool *database.Pool, redis *cache.Client, 
 					assistantContent += part.Text
 				}
 			}
+		}
+
+		// Trace interaction for evaluation
+		if evalService != nil {
+			go func() {
+				_, _ = evalService.TraceInteraction(context.Background(), &evaluation.Interaction{
+					AgentID:   session.AgentID,
+					SessionID: input.SessionID,
+					Input:     input.Body.Content,
+					Output:    assistantContent,
+					Latency:   latency,
+					Metadata:  input.Body.Metadata,
+				})
+			}()
 		}
 
 		// If no content in message, check artifacts (common in some ADK agents)
@@ -270,7 +331,7 @@ func RegisterChatRoutes(api huma.API, pool *database.Pool, redis *cache.Client, 
 			return nil, huma.Error500InternalServerError("Failed to save assistant message", err)
 		}
 
-		return &SendMessageOutput{
+		return &ChatSendMessageOutput{
 			Body: struct {
 				UserMessage      ChatMessage `json:"user_message" doc:"The user's message"`
 				AssistantMessage ChatMessage `json:"assistant_message" doc:"The assistant's response"`

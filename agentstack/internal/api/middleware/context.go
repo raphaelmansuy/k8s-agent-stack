@@ -27,6 +27,7 @@ type AuthInfo struct {
 	ProjectID string
 	Email     string
 	Name      string
+	Scopes    []string
 	IsAdmin   bool
 }
 

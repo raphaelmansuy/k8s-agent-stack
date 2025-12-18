@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/google/uuid"
 	"github.com/raphaelmansuy/agentstack/internal/domain/audit"
 )
@@ -144,6 +145,50 @@ func (m *AuditMiddleware) LogAction(eventType audit.EventType, resourceType stri
 				RequestID:  GetRequestIDFromContext(r.Context()),
 				Details:    details,
 			})
+		})
+	}
+}
+
+// HumaLogAction creates a Huma-compatible middleware that logs a specific action.
+func (m *AuditMiddleware) HumaLogAction(eventType audit.EventType, resourceType string) func(huma.Context, func(huma.Context)) {
+	return func(ctx huma.Context, next func(huma.Context)) {
+		next(ctx)
+
+		// Log after completion
+		auth := GetAuthFromContext(ctx.Context())
+		if auth == nil {
+			return
+		}
+
+		// Try to get resource ID from path
+		resourceID := GetRequestIDFromContext(ctx.Context())
+
+		status := ctx.Status()
+		result := audit.ResultSuccess
+		if status >= 400 {
+			result = audit.ResultFailure
+		}
+
+		details := map[string]any{
+			"operation": ctx.Operation().OperationID,
+			"method":    ctx.Operation().Method,
+			"path":      ctx.Operation().Path,
+			"status":    status,
+		}
+
+		_ = m.auditSvc.LogAction(ctx.Context(), audit.LogParams{
+			Type:       eventType,
+			TeamID:     auth.TeamID,
+			ProjectID:  auth.ProjectID,
+			ActorID:    auth.UserID,
+			ActorType:  audit.ActorUser,
+			ActorEmail: auth.Email,
+			Resource:   resourceType,
+			ResourceID: resourceID,
+			Action:     ctx.Operation().Method,
+			Result:     result,
+			RequestID:  resourceID,
+			Details:    details,
 		})
 	}
 }

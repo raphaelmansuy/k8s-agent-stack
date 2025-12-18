@@ -67,10 +67,11 @@ CREATE TABLE IF NOT EXISTS quotas (
     limit_value BIGINT NOT NULL,
     period TEXT, -- NULL for absolute, 'hour'/'day'/'month' for rate limits
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(team_id, project_id, quota_type) WHERE project_id IS NOT NULL,
-    UNIQUE(team_id, quota_type) WHERE project_id IS NULL
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE UNIQUE INDEX idx_quotas_team_project_type ON quotas(team_id, project_id, quota_type) WHERE project_id IS NOT NULL;
+CREATE UNIQUE INDEX idx_quotas_team_type ON quotas(team_id, quota_type) WHERE project_id IS NULL;
 
 CREATE INDEX idx_quotas_team_id ON quotas(team_id);
 CREATE INDEX idx_quotas_project_id ON quotas(project_id);

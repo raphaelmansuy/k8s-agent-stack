@@ -197,3 +197,129 @@ SELECT * FROM audit_logs
 WHERE team_id = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3;
+
+-- name: GetQuota :one
+SELECT q.*, COALESCE(qu.current_value, 0) as current_value
+FROM quotas q
+LEFT JOIN quota_usage qu ON q.id = qu.quota_id
+WHERE q.team_id = $1 AND q.quota_type = $2 AND (q.project_id = $3 OR q.project_id IS NULL)
+ORDER BY q.project_id NULLS LAST
+LIMIT 1;
+
+-- name: ListQuotas :many
+SELECT q.*, COALESCE(qu.current_value, 0) as current_value
+FROM quotas q
+LEFT JOIN quota_usage qu ON q.id = qu.quota_id
+WHERE q.team_id = $1;
+
+-- name: SetQuota :one
+INSERT INTO quotas (team_id, project_id, quota_type, limit_value, period)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (team_id, project_id, quota_type) WHERE project_id IS NOT NULL DO UPDATE
+SET limit_value = EXCLUDED.limit_value,
+    period = EXCLUDED.period,
+    updated_at = NOW()
+RETURNING *;
+
+-- name: SetTeamQuota :one
+INSERT INTO quotas (team_id, quota_type, limit_value, period)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (team_id, quota_type) WHERE project_id IS NULL DO UPDATE
+SET limit_value = EXCLUDED.limit_value,
+    period = EXCLUDED.period,
+    updated_at = NOW()
+RETURNING *;
+
+-- name: GetQuotaUsage :one
+SELECT * FROM quota_usage
+WHERE quota_id = $1;
+
+-- name: IncrementQuotaUsageByID :exec
+INSERT INTO quota_usage (quota_id, current_value, updated_at)
+VALUES (sqlc.arg(quota_id), GREATEST(0, sqlc.arg(amount)), NOW())
+ON CONFLICT (quota_id) DO UPDATE
+SET current_value = GREATEST(0, quota_usage.current_value + sqlc.arg(amount)),
+    updated_at = NOW();
+
+-- name: IncrementQuotaUsage :exec
+SELECT increment_quota_usage($1, $2, $3, $4);
+
+-- name: GetRole :one
+SELECT * FROM roles
+WHERE id = $1 LIMIT 1;
+
+-- name: ListRoles :many
+SELECT * FROM roles
+WHERE team_id = $1 OR team_id IS NULL
+ORDER BY is_system DESC, name ASC;
+
+-- name: CreateRole :one
+INSERT INTO roles (team_id, name, description, permissions, is_system)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING *;
+
+-- name: UpdateRole :one
+UPDATE roles
+SET name = COALESCE($2, name),
+    description = COALESCE($3, description),
+    permissions = COALESCE($4, permissions),
+    updated_at = NOW()
+WHERE id = $1
+RETURNING *;
+
+-- name: DeleteRole :exec
+DELETE FROM roles
+WHERE id = $1;
+
+-- name: GetRoleBinding :one
+SELECT * FROM role_bindings
+WHERE id = $1 LIMIT 1;
+
+-- name: ListRoleBindingsByUser :many
+SELECT rb.*, r.name as role_name, r.permissions
+FROM role_bindings rb
+LEFT JOIN roles r ON rb.role_id = r.id
+WHERE rb.user_id = $1;
+
+-- name: ListRoleBindingsByScope :many
+SELECT rb.*, r.name as role_name, r.permissions
+FROM role_bindings rb
+LEFT JOIN roles r ON rb.role_id = r.id
+WHERE rb.scope_type = $1 AND (rb.scope_team_id = $2 OR rb.scope_project_id = $3);
+
+-- name: CreateRoleBinding :one
+INSERT INTO role_bindings (user_id, role_id, scope_type, scope_team_id, scope_project_id, granted_by, expires_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+RETURNING *;
+
+-- name: DeleteRoleBinding :exec
+DELETE FROM role_bindings
+WHERE id = $1;
+
+-- name: CreateTrace :one
+INSERT INTO traces (agent_id, session_id, input, output, latency_ms, tokens_in, tokens_out, steps, metadata)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+RETURNING *;
+
+-- name: GetTrace :one
+SELECT * FROM traces
+WHERE id = $1 LIMIT 1;
+
+-- name: ListTraces :many
+SELECT * FROM traces
+WHERE (agent_id = $1 OR $1 = '')
+  AND (session_id = $2 OR $2 = '')
+  AND (created_at >= $3 OR $3 = '0001-01-01 00:00:00+00')
+  AND (created_at <= $4 OR $4 = '0001-01-01 00:00:00+00')
+ORDER BY created_at DESC
+LIMIT $5;
+
+-- name: CreateFeedback :one
+INSERT INTO feedback (trace_id, rating, comment, tags)
+VALUES ($1, $2, $3, $4)
+RETURNING *;
+
+-- name: ListFeedbackByTrace :many
+SELECT * FROM feedback
+WHERE trace_id = $1
+ORDER BY created_at DESC;

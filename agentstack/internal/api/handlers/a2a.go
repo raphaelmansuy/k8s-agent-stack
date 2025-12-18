@@ -2,276 +2,297 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"time"
 
+	"github.com/danielgtaylor/huma/v2"
+	"github.com/raphaelmansuy/agentstack/internal/api/middleware"
 	"github.com/raphaelmansuy/agentstack/internal/domain/a2a"
+	"github.com/raphaelmansuy/agentstack/internal/domain/audit"
+	"github.com/raphaelmansuy/agentstack/internal/domain/rbac"
 )
 
-// A2AHandler handles A2A protocol HTTP requests.
-type A2AHandler struct {
-	service *a2a.Service
-	logger  *slog.Logger
-}
-
-// NewA2AHandler creates a new A2A handler.
-func NewA2AHandler(service *a2a.Service, logger *slog.Logger) *A2AHandler {
-	return &A2AHandler{
-		service: service,
-		logger:  logger,
+// A2ASendMessageInput is the input for sending a message.
+type A2ASendMessageInput struct {
+	Body struct {
+		AgentURL  string                 `json:"agentUrl" required:"true" doc:"Agent URL"`
+		ContextID string                 `json:"contextId,omitempty" doc:"Context ID"`
+		Content   string                 `json:"content" required:"true" doc:"Message content"`
+		Metadata  map[string]interface{} `json:"metadata,omitempty" doc:"Custom metadata"`
 	}
 }
 
-// RegisterRoutes registers A2A routes on the given mux.
-func (h *A2AHandler) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("POST /a2a/send", h.SendMessage)
-	mux.HandleFunc("POST /a2a/stream", h.StreamMessage)
-	mux.HandleFunc("POST /a2a/task/{taskID}", h.GetTask)
-	mux.HandleFunc("DELETE /a2a/task/{taskID}", h.CancelTask)
-	mux.HandleFunc("GET /a2a/session/{contextID}", h.GetSession)
-	mux.HandleFunc("DELETE /a2a/session/{contextID}", h.DeleteSession)
+// A2ASendMessageOutput is the output for sending a message.
+type A2ASendMessageOutput struct {
+	Body struct {
+		TaskID    string          `json:"taskId" doc:"Task ID"`
+		ContextID string          `json:"contextId" doc:"Context ID"`
+		Status    *a2a.TaskStatus `json:"status" doc:"Task status"`
+	}
 }
 
-// SendMessageRequest is the request body for sending a message.
-type SendMessageRequest struct {
-	AgentURL  string                 `json:"agentUrl"`
-	ContextID string                 `json:"contextId,omitempty"`
-	Content   string                 `json:"content"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+// StreamMessageInput is the input for streaming messages.
+type StreamMessageInput struct {
+	Body struct {
+		AgentURL  string                 `json:"agentUrl" required:"true" doc:"Agent URL"`
+		ContextID string                 `json:"contextId,omitempty" doc:"Context ID"`
+		Content   string                 `json:"content" required:"true" doc:"Message content"`
+		Metadata  map[string]interface{} `json:"metadata,omitempty" doc:"Custom metadata"`
+	}
 }
 
-// SendMessageResponse is the response for sending a message.
-type SendMessageResponse struct {
-	TaskID    string          `json:"taskId"`
-	ContextID string          `json:"contextId"`
-	Status    *a2a.TaskStatus `json:"status"`
+// GetTaskInput is the input for getting a task.
+type GetTaskInput struct {
+	TaskID   string `path:"taskID" doc:"Task ID"`
+	AgentURL string `query:"agentUrl" required:"true" doc:"Agent URL"`
 }
 
-// SendMessage handles synchronous message sending to an agent.
-func (h *A2AHandler) SendMessage(w http.ResponseWriter, r *http.Request) {
-	var req SendMessageRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.writeError(w, http.StatusBadRequest, "invalid request body")
-		return
-	}
+// GetTaskOutput is the output for getting a task.
+type GetTaskOutput struct {
+	Body *a2a.Task
+}
 
-	if req.AgentURL == "" {
-		h.writeError(w, http.StatusBadRequest, "agentUrl is required")
-		return
-	}
+// CancelTaskInput is the input for cancelling a task.
+type CancelTaskInput struct {
+	TaskID   string `path:"taskID" doc:"Task ID"`
+	AgentURL string `query:"agentUrl" required:"true" doc:"Agent URL"`
+}
 
-	if req.Content == "" {
-		h.writeError(w, http.StatusBadRequest, "content is required")
-		return
+// CancelTaskOutput is the output for cancelling a task.
+type CancelTaskOutput struct {
+	Body struct {
+		Status string `json:"status" doc:"Cancellation status"`
 	}
+}
 
-	params := &a2a.SendMessageParams{
-		Message: a2a.MessageInput{
-			ContextID: req.ContextID,
-			Parts:     []a2a.Part{a2a.TextPart(req.Content)},
+// GetSessionInput is the input for getting a session.
+type GetSessionInput struct {
+	ContextID string `path:"contextID" doc:"Context ID"`
+}
+
+// GetSessionOutput is the output for getting a session.
+type GetSessionOutput struct {
+	Body struct {
+		ContextID   string    `json:"contextId" doc:"Context ID"`
+		AgentURL    string    `json:"agentUrl" doc:"Agent URL"`
+		TaskCount   int       `json:"taskCount" doc:"Number of tasks"`
+		CreatedAt   time.Time `json:"createdAt" doc:"Creation timestamp"`
+		LastUpdated time.Time `json:"lastUpdated" doc:"Last update timestamp"`
+	}
+}
+
+// DeleteSessionInput is the input for deleting a session.
+type DeleteSessionInput struct {
+	ContextID string `path:"contextID" doc:"Context ID"`
+}
+
+// DeleteSessionOutput is the output for deleting a session.
+type DeleteSessionOutput struct {
+	Body struct {
+		Status string `json:"status" doc:"Deletion status"`
+	}
+}
+
+// RegisterA2ARoutes registers A2A routes.
+func RegisterA2ARoutes(api huma.API, service *a2a.Service, rbacM *middleware.RBACMiddleware, auditM *middleware.AuditMiddleware) {
+	// Send message
+	huma.Register(api, huma.Operation{
+		OperationID: "a2a-send-message",
+		Method:      http.MethodPost,
+		Path:        "/v1/a2a/send",
+		Summary:     "Send A2A message",
+		Tags:        []string{"A2A"},
+		Middlewares: huma.Middlewares{
+			rbacM.HumaRequirePermission(rbac.ResourceAgent, rbac.ActionInvoke),
+			auditM.HumaLogAction(audit.EventAgentInvoked, string(rbac.ResourceAgent)),
 		},
-	}
+	}, func(ctx context.Context, input *A2ASendMessageInput) (*A2ASendMessageOutput, error) {
+		params := &a2a.SendMessageParams{
+			Message: a2a.MessageInput{
+				ContextID: input.Body.ContextID,
+				Parts:     []a2a.Part{a2a.TextPart(input.Body.Content)},
+			},
+		}
 
-	task, err := h.service.SendMessage(r.Context(), req.AgentURL, params)
-	if err != nil {
-		h.logger.Error("failed to send message", "error", err)
-		h.writeError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	resp := SendMessageResponse{
-		TaskID:    task.TaskID,
-		ContextID: task.ContextID,
-		Status:    task.Status,
-	}
-
-	h.writeJSON(w, http.StatusOK, resp)
-}
-
-// StreamMessageRequest is the request body for streaming messages.
-type StreamMessageRequest struct {
-	AgentURL  string                 `json:"agentUrl"`
-	ContextID string                 `json:"contextId,omitempty"`
-	Content   string                 `json:"content"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
-}
-
-// StreamMessage handles streaming message responses via SSE.
-func (h *A2AHandler) StreamMessage(w http.ResponseWriter, r *http.Request) {
-	var req StreamMessageRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.writeError(w, http.StatusBadRequest, "invalid request body")
-		return
-	}
-
-	if req.AgentURL == "" {
-		h.writeError(w, http.StatusBadRequest, "agentUrl is required")
-		return
-	}
-
-	if req.Content == "" {
-		h.writeError(w, http.StatusBadRequest, "content is required")
-		return
-	}
-
-	// Set SSE headers
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		h.writeError(w, http.StatusInternalServerError, "streaming not supported")
-		return
-	}
-
-	params := &a2a.SendMessageParams{
-		Message: a2a.MessageInput{
-			ContextID: req.ContextID,
-			Parts:     []a2a.Part{a2a.TextPart(req.Content)},
-		},
-	}
-
-	// Stream events to client
-	handler := func(event interface{}) error {
-		data, err := json.Marshal(event)
+		task, err := service.SendMessage(ctx, input.Body.AgentURL, params)
 		if err != nil {
-			return err
+			return nil, huma.Error500InternalServerError("Failed to send message", err)
 		}
 
-		fmt.Fprintf(w, "data: %s\n\n", data)
-		flusher.Flush()
-		return nil
-	}
+		return &A2ASendMessageOutput{
+			Body: struct {
+				TaskID    string          `json:"taskId" doc:"Task ID"`
+				ContextID string          `json:"contextId" doc:"Context ID"`
+				Status    *a2a.TaskStatus `json:"status" doc:"Task status"`
+			}{
+				TaskID:    task.TaskID,
+				ContextID: task.ContextID,
+				Status:    task.Status,
+			},
+		}, nil
+	})
 
-	if err := h.service.StreamMessage(r.Context(), req.AgentURL, params, handler); err != nil {
-		// Log error but don't write response since headers already sent
-		h.logger.Error("stream error", "error", err)
-		// Send error event
-		errEvent := map[string]interface{}{
-			"kind":  "error",
-			"error": err.Error(),
+	// Stream message
+	huma.Register(api, huma.Operation{
+		OperationID: "a2a-stream-message",
+		Method:      http.MethodPost,
+		Path:        "/v1/a2a/stream",
+		Summary:     "Stream A2A message",
+		Tags:        []string{"A2A"},
+		Middlewares: huma.Middlewares{
+			rbacM.HumaRequirePermission(rbac.ResourceAgent, rbac.ActionInvoke),
+		},
+	}, func(ctx context.Context, input *StreamMessageInput) (*huma.StreamResponse, error) {
+		return &huma.StreamResponse{
+			Body: func(w huma.Context) {
+				rw := w.BodyWriter()
+
+				// Set SSE headers
+				w.SetHeader("Content-Type", "text/event-stream")
+				w.SetHeader("Cache-Control", "no-cache")
+				w.SetHeader("Connection", "keep-alive")
+				w.SetHeader("X-Accel-Buffering", "no")
+
+				flusher, ok := rw.(http.Flusher)
+				if !ok {
+					return
+				}
+
+				params := &a2a.SendMessageParams{
+					Message: a2a.MessageInput{
+						ContextID: input.Body.ContextID,
+						Parts:     []a2a.Part{a2a.TextPart(input.Body.Content)},
+					},
+				}
+
+				handler := func(event interface{}) error {
+					data, err := json.Marshal(event)
+					if err != nil {
+						return err
+					}
+
+					fmt.Fprintf(rw, "data: %s\n\n", data)
+					flusher.Flush()
+					return nil
+				}
+
+				if err := service.StreamMessage(ctx, input.Body.AgentURL, params, handler); err != nil {
+					errEvent := map[string]interface{}{
+						"kind":  "error",
+						"error": err.Error(),
+					}
+					data, _ := json.Marshal(errEvent)
+					fmt.Fprintf(rw, "data: %s\n\n", data)
+					flusher.Flush()
+				}
+			},
+		}, nil
+	})
+
+	// Get task
+	huma.Register(api, huma.Operation{
+		OperationID: "a2a-get-task",
+		Method:      http.MethodGet,
+		Path:        "/v1/a2a/task/{taskID}",
+		Summary:     "Get A2A task",
+		Tags:        []string{"A2A"},
+		Middlewares: huma.Middlewares{
+			rbacM.HumaRequirePermission(rbac.ResourceAgent, rbac.ActionRead),
+		},
+	}, func(ctx context.Context, input *GetTaskInput) (*GetTaskOutput, error) {
+		task, err := service.GetTask(ctx, input.AgentURL, input.TaskID)
+		if err != nil {
+			return nil, huma.Error500InternalServerError("Failed to get task", err)
 		}
-		data, _ := json.Marshal(errEvent)
-		fmt.Fprintf(w, "data: %s\n\n", data)
-		flusher.Flush()
-	}
-}
 
-// GetTask retrieves a task status.
-func (h *A2AHandler) GetTask(w http.ResponseWriter, r *http.Request) {
-	taskID := r.PathValue("taskID")
-	if taskID == "" {
-		h.writeError(w, http.StatusBadRequest, "taskID is required")
-		return
-	}
+		return &GetTaskOutput{
+			Body: task,
+		}, nil
+	})
 
-	agentURL := r.URL.Query().Get("agentUrl")
-	if agentURL == "" {
-		h.writeError(w, http.StatusBadRequest, "agentUrl query param is required")
-		return
-	}
+	// Cancel task
+	huma.Register(api, huma.Operation{
+		OperationID: "a2a-cancel-task",
+		Method:      http.MethodDelete,
+		Path:        "/v1/a2a/task/{taskID}",
+		Summary:     "Cancel A2A task",
+		Tags:        []string{"A2A"},
+		Middlewares: huma.Middlewares{
+			rbacM.HumaRequirePermission(rbac.ResourceAgent, rbac.ActionUpdate),
+		},
+	}, func(ctx context.Context, input *CancelTaskInput) (*CancelTaskOutput, error) {
+		if err := service.CancelTask(ctx, input.AgentURL, input.TaskID); err != nil {
+			return nil, huma.Error500InternalServerError("Failed to cancel task", err)
+		}
 
-	task, err := h.service.GetTask(r.Context(), agentURL, taskID)
-	if err != nil {
-		h.logger.Error("failed to get task", "error", err, "taskID", taskID)
-		h.writeError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
+		return &CancelTaskOutput{
+			Body: struct {
+				Status string `json:"status" doc:"Cancellation status"`
+			}{
+				Status: "cancelled",
+			},
+		}, nil
+	})
 
-	h.writeJSON(w, http.StatusOK, task)
-}
+	// Get session
+	huma.Register(api, huma.Operation{
+		OperationID: "a2a-get-session",
+		Method:      http.MethodGet,
+		Path:        "/v1/a2a/session/{contextID}",
+		Summary:     "Get A2A session",
+		Tags:        []string{"A2A"},
+		Middlewares: huma.Middlewares{
+			rbacM.HumaRequirePermission(rbac.ResourceAgent, rbac.ActionRead),
+		},
+	}, func(ctx context.Context, input *GetSessionInput) (*GetSessionOutput, error) {
+		session, ok := service.GetSession(input.ContextID)
+		if !ok {
+			return nil, huma.Error404NotFound("Session not found")
+		}
 
-// CancelTask cancels a running task.
-func (h *A2AHandler) CancelTask(w http.ResponseWriter, r *http.Request) {
-	taskID := r.PathValue("taskID")
-	if taskID == "" {
-		h.writeError(w, http.StatusBadRequest, "taskID is required")
-		return
-	}
+		return &GetSessionOutput{
+			Body: struct {
+				ContextID   string    `json:"contextId" doc:"Context ID"`
+				AgentURL    string    `json:"agentUrl" doc:"Agent URL"`
+				TaskCount   int       `json:"taskCount" doc:"Number of tasks"`
+				CreatedAt   time.Time `json:"createdAt" doc:"Creation timestamp"`
+				LastUpdated time.Time `json:"lastUpdated" doc:"Last update timestamp"`
+			}{
+				ContextID:   session.ContextID,
+				AgentURL:    session.AgentURL,
+				TaskCount:   len(session.Tasks),
+				CreatedAt:   session.CreatedAt,
+				LastUpdated: session.LastUpdated,
+			},
+		}, nil
+	})
 
-	agentURL := r.URL.Query().Get("agentUrl")
-	if agentURL == "" {
-		h.writeError(w, http.StatusBadRequest, "agentUrl query param is required")
-		return
-	}
+	// Delete session
+	huma.Register(api, huma.Operation{
+		OperationID: "a2a-delete-session",
+		Method:      http.MethodDelete,
+		Path:        "/v1/a2a/session/{contextID}",
+		Summary:     "Delete A2A session",
+		Tags:        []string{"A2A"},
+		Middlewares: huma.Middlewares{
+			rbacM.HumaRequirePermission(rbac.ResourceAgent, rbac.ActionDelete),
+		},
+	}, func(ctx context.Context, input *DeleteSessionInput) (*DeleteSessionOutput, error) {
+		if _, ok := service.GetSession(input.ContextID); !ok {
+			return nil, huma.Error404NotFound("Session not found")
+		}
 
-	if err := h.service.CancelTask(r.Context(), agentURL, taskID); err != nil {
-		h.logger.Error("failed to cancel task", "error", err, "taskID", taskID)
-		h.writeError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
+		service.DeleteSession(input.ContextID)
 
-	h.writeJSON(w, http.StatusOK, map[string]string{"status": "cancelled"})
-}
-
-// SessionResponse is the response for session operations.
-type SessionResponse struct {
-	ContextID   string    `json:"contextId"`
-	AgentURL    string    `json:"agentUrl"`
-	TaskCount   int       `json:"taskCount"`
-	CreatedAt   time.Time `json:"createdAt"`
-	LastUpdated time.Time `json:"lastUpdated"`
-}
-
-// GetSession retrieves session information.
-func (h *A2AHandler) GetSession(w http.ResponseWriter, r *http.Request) {
-	contextID := r.PathValue("contextID")
-	if contextID == "" {
-		h.writeError(w, http.StatusBadRequest, "contextID is required")
-		return
-	}
-
-	session, ok := h.service.GetSession(contextID)
-	if !ok {
-		h.writeError(w, http.StatusNotFound, "session not found")
-		return
-	}
-
-	resp := SessionResponse{
-		ContextID:   session.ContextID,
-		AgentURL:    session.AgentURL,
-		TaskCount:   len(session.Tasks),
-		CreatedAt:   session.CreatedAt,
-		LastUpdated: session.LastUpdated,
-	}
-
-	h.writeJSON(w, http.StatusOK, resp)
-}
-
-// DeleteSession removes a session.
-func (h *A2AHandler) DeleteSession(w http.ResponseWriter, r *http.Request) {
-	contextID := r.PathValue("contextID")
-	if contextID == "" {
-		h.writeError(w, http.StatusBadRequest, "contextID is required")
-		return
-	}
-
-	_, ok := h.service.GetSession(contextID)
-	if !ok {
-		h.writeError(w, http.StatusNotFound, "session not found")
-		return
-	}
-
-	h.service.DeleteSession(contextID)
-
-	h.writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
-}
-
-// writeJSON writes a JSON response.
-func (h *A2AHandler) writeJSON(w http.ResponseWriter, status int, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(data)
-}
-
-// writeError writes a JSON error response.
-func (h *A2AHandler) writeError(w http.ResponseWriter, status int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(map[string]string{"error": message})
+		return &DeleteSessionOutput{
+			Body: struct {
+				Status string `json:"status" doc:"Deletion status"`
+			}{
+				Status: "deleted",
+			},
+		}, nil
+	})
 }

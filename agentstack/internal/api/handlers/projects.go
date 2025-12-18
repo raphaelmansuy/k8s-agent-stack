@@ -3,12 +3,17 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
-	"github.com/google/uuid"
 
+	"github.com/raphaelmansuy/agentstack/internal/api/middleware"
+	"github.com/raphaelmansuy/agentstack/internal/domain/audit"
+	"github.com/raphaelmansuy/agentstack/internal/domain/rbac"
 	"github.com/raphaelmansuy/agentstack/internal/infrastructure/database"
+	"github.com/raphaelmansuy/agentstack/internal/infrastructure/database/db"
 )
 
 // Project represents a project that contains agents.
@@ -93,80 +98,210 @@ type DeleteProjectOutput struct {
 }
 
 // RegisterProjectRoutes registers project routes.
-func RegisterProjectRoutes(api huma.API, db *database.Pool) {
+func RegisterProjectRoutes(api huma.API, pool *database.Pool, rbacM *middleware.RBACMiddleware, auditM *middleware.AuditMiddleware) {
+	queries := db.New(pool.Pool)
+
 	// List projects
-	huma.Get(api, "/v1/projects", func(ctx context.Context, input *ListProjectsInput) (*ListProjectsOutput, error) {
-		// TODO: Implement database query
+	huma.Register(api, huma.Operation{
+		OperationID: "list-projects",
+		Method:      http.MethodGet,
+		Path:        "/v1/projects",
+		Summary:     "List projects",
+		Tags:        []string{"Projects"},
+		Middlewares: huma.Middlewares{
+			rbacM.HumaRequirePermission(rbac.ResourceProject, rbac.ActionList),
+		},
+	}, func(ctx context.Context, input *ListProjectsInput) (*ListProjectsOutput, error) {
+		auth := middleware.GetAuthFromContext(ctx)
+		teamID := "default-team"
+		if auth != nil {
+			teamID = auth.TeamID
+		}
+
+		projects, err := queries.ListProjects(ctx, db.ListProjectsParams{
+			TeamID: teamID,
+			Limit:  int32(input.Limit),
+			Offset: int32(input.Offset),
+		})
+		if err != nil {
+			return nil, huma.Error500InternalServerError("Failed to list projects", err)
+		}
+
+		res := make([]Project, len(projects))
+		for i, p := range projects {
+			var settings map[string]any
+			if len(p.Settings) > 0 {
+				json.Unmarshal(p.Settings, &settings)
+			}
+			res[i] = Project{
+				ID:        p.ID,
+				TeamID:    p.TeamID,
+				Name:      p.Name,
+				Slug:      p.Slug,
+				Settings:  settings,
+				CreatedAt: p.CreatedAt,
+				UpdatedAt: p.UpdatedAt,
+			}
+		}
+
 		return &ListProjectsOutput{
 			Body: struct {
 				Projects []Project `json:"projects" doc:"List of projects"`
 				Total    int       `json:"total" doc:"Total count"`
 			}{
-				Projects: []Project{},
-				Total:    0,
+				Projects: res,
+				Total:    len(res),
 			},
 		}, nil
 	})
 
 	// Get project by ID
-	huma.Get(api, "/v1/projects/{id}", func(ctx context.Context, input *GetProjectInput) (*GetProjectOutput, error) {
-		// TODO: Implement database query
-		now := time.Now()
+	huma.Register(api, huma.Operation{
+		OperationID: "get-project",
+		Method:      http.MethodGet,
+		Path:        "/v1/projects/{id}",
+		Summary:     "Get project",
+		Tags:        []string{"Projects"},
+		Middlewares: huma.Middlewares{
+			rbacM.HumaRequirePermission(rbac.ResourceProject, rbac.ActionRead),
+		},
+	}, func(ctx context.Context, input *GetProjectInput) (*GetProjectOutput, error) {
+		p, err := queries.GetProject(ctx, input.ID)
+		if err != nil {
+			return nil, huma.Error404NotFound("Project not found")
+		}
+
+		var settings map[string]any
+		if len(p.Settings) > 0 {
+			json.Unmarshal(p.Settings, &settings)
+		}
+
 		return &GetProjectOutput{
 			Body: Project{
-				ID:        input.ID,
-				TeamID:    "team-1",
-				Name:      "Sample Project",
-				Slug:      "sample-project",
-				CreatedAt: now,
-				UpdatedAt: now,
+				ID:        p.ID,
+				TeamID:    p.TeamID,
+				Name:      p.Name,
+				Slug:      p.Slug,
+				Settings:  settings,
+				CreatedAt: p.CreatedAt,
+				UpdatedAt: p.UpdatedAt,
 			},
 		}, nil
 	})
 
 	// Create project
-	huma.Post(api, "/v1/projects", func(ctx context.Context, input *CreateProjectInput) (*CreateProjectOutput, error) {
-		now := time.Now()
-		project := Project{
-			ID:          uuid.New().String(),
-			TeamID:      "team-1", // TODO: Get from auth context
-			Name:        input.Body.Name,
-			Description: input.Body.Description,
-			Slug:        input.Body.Slug,
-			Settings:    input.Body.Settings,
-			Metadata:    input.Body.Metadata,
-			CreatedAt:   now,
-			UpdatedAt:   now,
+	huma.Register(api, huma.Operation{
+		OperationID: "create-project",
+		Method:      http.MethodPost,
+		Path:        "/v1/projects",
+		Summary:     "Create project",
+		Tags:        []string{"Projects"},
+		Middlewares: huma.Middlewares{
+			rbacM.HumaRequirePermission(rbac.ResourceProject, rbac.ActionCreate),
+			auditM.HumaLogAction(audit.EventProjectCreated, string(rbac.ResourceProject)),
+		},
+	}, func(ctx context.Context, input *CreateProjectInput) (*CreateProjectOutput, error) {
+		auth := middleware.GetAuthFromContext(ctx)
+		teamID := "default-team"
+		if auth != nil {
+			teamID = auth.TeamID
 		}
 
-		// TODO: Save to database
+		settings, _ := json.Marshal(input.Body.Settings)
 
-		return &CreateProjectOutput{Body: project}, nil
+		p, err := queries.CreateProject(ctx, db.CreateProjectParams{
+			TeamID:   teamID,
+			Name:     input.Body.Name,
+			Slug:     input.Body.Slug,
+			Settings: settings,
+		})
+		if err != nil {
+			return nil, huma.Error500InternalServerError("Failed to create project", err)
+		}
+
+		var resSettings map[string]any
+		if len(p.Settings) > 0 {
+			json.Unmarshal(p.Settings, &resSettings)
+		}
+
+		return &CreateProjectOutput{
+			Body: Project{
+				ID:        p.ID,
+				TeamID:    p.TeamID,
+				Name:      p.Name,
+				Slug:      p.Slug,
+				Settings:  resSettings,
+				CreatedAt: p.CreatedAt,
+				UpdatedAt: p.UpdatedAt,
+			},
+		}, nil
 	})
 
 	// Update project
-	huma.Patch(api, "/v1/projects/{id}", func(ctx context.Context, input *UpdateProjectInput) (*UpdateProjectOutput, error) {
-		now := time.Now()
-		// TODO: Fetch and update in database
-		project := Project{
-			ID:        input.ID,
-			TeamID:    "team-1",
-			Name:      "Updated Project",
-			Slug:      "updated-project",
-			CreatedAt: now.Add(-24 * time.Hour),
-			UpdatedAt: now,
+	huma.Register(api, huma.Operation{
+		OperationID: "update-project",
+		Method:      http.MethodPatch,
+		Path:        "/v1/projects/{id}",
+		Summary:     "Update project",
+		Tags:        []string{"Projects"},
+		Middlewares: huma.Middlewares{
+			rbacM.HumaRequirePermission(rbac.ResourceProject, rbac.ActionUpdate),
+		},
+	}, func(ctx context.Context, input *UpdateProjectInput) (*UpdateProjectOutput, error) {
+		var settings []byte
+		if input.Body.Settings != nil {
+			settings, _ = json.Marshal(input.Body.Settings)
 		}
 
+		var name string
 		if input.Body.Name != nil {
-			project.Name = *input.Body.Name
+			name = *input.Body.Name
 		}
 
-		return &UpdateProjectOutput{Body: project}, nil
+		p, err := queries.UpdateProject(ctx, db.UpdateProjectParams{
+			ID:       input.ID,
+			Name:     name,
+			Settings: settings,
+		})
+		if err != nil {
+			return nil, huma.Error500InternalServerError("Failed to update project", err)
+		}
+
+		var resSettings map[string]any
+		if len(p.Settings) > 0 {
+			json.Unmarshal(p.Settings, &resSettings)
+		}
+
+		return &UpdateProjectOutput{
+			Body: Project{
+				ID:        p.ID,
+				TeamID:    p.TeamID,
+				Name:      p.Name,
+				Slug:      p.Slug,
+				Settings:  resSettings,
+				CreatedAt: p.CreatedAt,
+				UpdatedAt: p.UpdatedAt,
+			},
+		}, nil
 	})
 
 	// Delete project
-	huma.Delete(api, "/v1/projects/{id}", func(ctx context.Context, input *DeleteProjectInput) (*DeleteProjectOutput, error) {
-		// TODO: Delete from database
+	huma.Register(api, huma.Operation{
+		OperationID: "delete-project",
+		Method:      http.MethodDelete,
+		Path:        "/v1/projects/{id}",
+		Summary:     "Delete project",
+		Tags:        []string{"Projects"},
+		Middlewares: huma.Middlewares{
+			rbacM.HumaRequirePermission(rbac.ResourceProject, rbac.ActionDelete),
+			auditM.HumaLogAction(audit.EventProjectDeleted, string(rbac.ResourceProject)),
+		},
+	}, func(ctx context.Context, input *DeleteProjectInput) (*DeleteProjectOutput, error) {
+		err := queries.DeleteProject(ctx, input.ID)
+		if err != nil {
+			return nil, huma.Error500InternalServerError("Failed to delete project", err)
+		}
+
 		return &DeleteProjectOutput{
 			Body: struct {
 				Message string `json:"message" doc:"Confirmation message"`

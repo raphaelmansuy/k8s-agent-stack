@@ -16,6 +16,12 @@ type Config struct {
 	Redis       RedisConfig  `mapstructure:"redis"`
 	Telemetry   OTelConfig   `mapstructure:"telemetry"`
 	Auth        AuthConfig   `mapstructure:"auth"`
+	MLflow      MLflowConfig `mapstructure:"mlflow"`
+}
+
+// MLflowConfig holds MLflow connection settings.
+type MLflowConfig struct {
+	URL string `mapstructure:"url"`
 }
 
 // ServerConfig holds HTTP server settings.
@@ -127,4 +133,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("auth.jwt_secret", "change-me-in-production")
 	v.SetDefault("auth.jwt_expiration", 24*time.Hour)
 	v.SetDefault("auth.api_key_prefix", "ask_")
+
+	// MLflow
+	v.SetDefault("mlflow.url", "http://mlflow:5000")
 }

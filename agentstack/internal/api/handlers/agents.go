@@ -3,12 +3,18 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
-	"github.com/google/uuid"
 
+	"github.com/raphaelmansuy/agentstack/internal/api/middleware"
+	"github.com/raphaelmansuy/agentstack/internal/domain/audit"
+	"github.com/raphaelmansuy/agentstack/internal/domain/quota"
+	"github.com/raphaelmansuy/agentstack/internal/domain/rbac"
 	"github.com/raphaelmansuy/agentstack/internal/infrastructure/database"
+	"github.com/raphaelmansuy/agentstack/internal/infrastructure/database/db"
 )
 
 // Agent represents an AI agent.
@@ -18,7 +24,6 @@ type Agent struct {
 	Name        string            `json:"name" doc:"Agent name"`
 	Description string            `json:"description,omitempty" doc:"Agent description"`
 	Slug        string            `json:"slug" doc:"URL-friendly identifier"`
-	ModelID     string            `json:"model_id" doc:"LLM model identifier"`
 	Config      map[string]any    `json:"config,omitempty" doc:"Agent configuration"`
 	Metadata    map[string]string `json:"metadata,omitempty" doc:"Custom metadata"`
 	Status      string            `json:"status" doc:"Agent status" enum:"draft,active,archived"`
@@ -59,7 +64,6 @@ type CreateAgentInput struct {
 		Name        string            `json:"name" required:"true" minLength:"1" maxLength:"255" doc:"Agent name"`
 		Description string            `json:"description,omitempty" maxLength:"1000" doc:"Agent description"`
 		Slug        string            `json:"slug" required:"true" pattern:"^[a-z0-9-]+$" doc:"URL-friendly identifier"`
-		ModelID     string            `json:"model_id" required:"true" doc:"LLM model identifier"`
 		Config      map[string]any    `json:"config,omitempty" doc:"Agent configuration"`
 		Metadata    map[string]string `json:"metadata,omitempty" doc:"Custom metadata"`
 	}
@@ -76,7 +80,6 @@ type UpdateAgentInput struct {
 	Body struct {
 		Name        *string           `json:"name,omitempty" minLength:"1" maxLength:"255" doc:"Agent name"`
 		Description *string           `json:"description,omitempty" maxLength:"1000" doc:"Agent description"`
-		ModelID     *string           `json:"model_id,omitempty" doc:"LLM model identifier"`
 		Config      map[string]any    `json:"config,omitempty" doc:"Agent configuration"`
 		Metadata    map[string]string `json:"metadata,omitempty" doc:"Custom metadata"`
 		Status      *string           `json:"status,omitempty" enum:"draft,active,archived" doc:"Agent status"`
@@ -101,89 +104,206 @@ type DeleteAgentOutput struct {
 }
 
 // RegisterAgentRoutes registers agent routes.
-func RegisterAgentRoutes(api huma.API, db *database.Pool) {
+func RegisterAgentRoutes(api huma.API, pool *database.Pool, rbacM *middleware.RBACMiddleware, quotaM *middleware.QuotaMiddleware, auditM *middleware.AuditMiddleware) {
+	queries := db.New(pool.Pool)
+
 	// List agents
-	huma.Get(api, "/v1/agents", func(ctx context.Context, input *ListAgentsInput) (*ListAgentsOutput, error) {
-		// TODO: Implement database query
+	huma.Register(api, huma.Operation{
+		OperationID: "list-agents",
+		Method:      http.MethodGet,
+		Path:        "/v1/agents",
+		Summary:     "List agents",
+		Tags:        []string{"Agents"},
+		Middlewares: huma.Middlewares{
+			rbacM.HumaRequirePermission(rbac.ResourceAgent, rbac.ActionList),
+		},
+	}, func(ctx context.Context, input *ListAgentsInput) (*ListAgentsOutput, error) {
+		agents, err := queries.ListAgents(ctx, db.ListAgentsParams{
+			ProjectID: input.ProjectID,
+			Limit:     int32(input.Limit),
+			Offset:    int32(input.Offset),
+		})
+		if err != nil {
+			return nil, huma.Error500InternalServerError("Failed to list agents", err)
+		}
+
+		res := make([]Agent, len(agents))
+		for i, a := range agents {
+			var config map[string]any
+			if len(a.Config) > 0 {
+				json.Unmarshal(a.Config, &config)
+			}
+			res[i] = Agent{
+				ID:        a.ID,
+				ProjectID: a.ProjectID,
+				Name:      a.Name,
+				Slug:      a.Slug,
+
+				Config:    config,
+				Status:    a.Status,
+				CreatedAt: a.CreatedAt,
+				UpdatedAt: a.UpdatedAt,
+			}
+		}
+
 		return &ListAgentsOutput{
 			Body: struct {
 				Agents []Agent `json:"agents" doc:"List of agents"`
 				Total  int     `json:"total" doc:"Total count"`
 			}{
-				Agents: []Agent{},
-				Total:  0,
+				Agents: res,
+				Total:  len(res),
 			},
 		}, nil
 	})
 
 	// Get agent by ID
-	huma.Get(api, "/v1/agents/{id}", func(ctx context.Context, input *GetAgentInput) (*GetAgentOutput, error) {
-		// TODO: Implement database query
-		now := time.Now()
+	huma.Register(api, huma.Operation{
+		OperationID: "get-agent",
+		Method:      http.MethodGet,
+		Path:        "/v1/agents/{id}",
+		Summary:     "Get agent",
+		Tags:        []string{"Agents"},
+		Middlewares: huma.Middlewares{
+			rbacM.HumaRequirePermission(rbac.ResourceAgent, rbac.ActionRead),
+		},
+	}, func(ctx context.Context, input *GetAgentInput) (*GetAgentOutput, error) {
+		a, err := queries.GetAgent(ctx, input.ID)
+		if err != nil {
+			return nil, huma.Error404NotFound("Agent not found")
+		}
+
+		var config map[string]any
+		if len(a.Config) > 0 {
+			json.Unmarshal(a.Config, &config)
+		}
+
 		return &GetAgentOutput{
 			Body: Agent{
-				ID:        input.ID,
-				ProjectID: "project-1",
-				Name:      "Sample Agent",
-				Slug:      "sample-agent",
-				ModelID:   "gpt-4",
-				Status:    "active",
-				CreatedAt: now,
-				UpdatedAt: now,
+				ID:        a.ID,
+				ProjectID: a.ProjectID,
+				Name:      a.Name,
+				Slug:      a.Slug,
+
+				Config:    config,
+				Status:    a.Status,
+				CreatedAt: a.CreatedAt,
+				UpdatedAt: a.UpdatedAt,
 			},
 		}, nil
 	})
 
 	// Create agent
-	huma.Post(api, "/v1/agents", func(ctx context.Context, input *CreateAgentInput) (*CreateAgentOutput, error) {
-		now := time.Now()
-		agent := Agent{
-			ID:          uuid.New().String(),
-			ProjectID:   input.Body.ProjectID,
-			Name:        input.Body.Name,
-			Description: input.Body.Description,
-			Slug:        input.Body.Slug,
-			ModelID:     input.Body.ModelID,
-			Config:      input.Body.Config,
-			Metadata:    input.Body.Metadata,
-			Status:      "draft",
-			CreatedAt:   now,
-			UpdatedAt:   now,
+	huma.Register(api, huma.Operation{
+		OperationID: "create-agent",
+		Method:      http.MethodPost,
+		Path:        "/v1/agents",
+		Summary:     "Create agent",
+		Tags:        []string{"Agents"},
+		Middlewares: huma.Middlewares{
+			rbacM.HumaRequirePermission(rbac.ResourceAgent, rbac.ActionCreate),
+			quotaM.HumaCheckQuota(quota.QuotaAgents),
+			quotaM.HumaIncrementAfter(quota.QuotaAgents),
+			auditM.HumaLogAction(audit.EventAgentCreated, string(rbac.ResourceAgent)),
+		},
+	}, func(ctx context.Context, input *CreateAgentInput) (*CreateAgentOutput, error) {
+		config, _ := json.Marshal(input.Body.Config)
+
+		a, err := queries.CreateAgent(ctx, db.CreateAgentParams{
+			ProjectID: input.Body.ProjectID,
+			Name:      input.Body.Name,
+			Slug:      input.Body.Slug,
+			Config:    config,
+		})
+		if err != nil {
+			return nil, huma.Error500InternalServerError("Failed to create agent", err)
 		}
 
-		// TODO: Save to database
+		var resConfig map[string]any
+		if len(a.Config) > 0 {
+			json.Unmarshal(a.Config, &resConfig)
+		}
 
-		return &CreateAgentOutput{Body: agent}, nil
+		return &CreateAgentOutput{
+			Body: Agent{
+				ID:        a.ID,
+				ProjectID: a.ProjectID,
+				Name:      a.Name,
+				Slug:      a.Slug,
+				Config:    resConfig,
+				Status:    a.Status,
+				CreatedAt: a.CreatedAt,
+				UpdatedAt: a.UpdatedAt,
+			},
+		}, nil
 	})
 
 	// Update agent
-	huma.Patch(api, "/v1/agents/{id}", func(ctx context.Context, input *UpdateAgentInput) (*UpdateAgentOutput, error) {
-		now := time.Now()
-		// TODO: Fetch and update in database
-		agent := Agent{
-			ID:        input.ID,
-			ProjectID: "project-1",
-			Name:      "Updated Agent",
-			Slug:      "updated-agent",
-			ModelID:   "gpt-4",
-			Status:    "active",
-			CreatedAt: now.Add(-24 * time.Hour),
-			UpdatedAt: now,
+	huma.Register(api, huma.Operation{
+		OperationID: "update-agent",
+		Method:      http.MethodPatch,
+		Path:        "/v1/agents/{id}",
+		Summary:     "Update agent",
+		Tags:        []string{"Agents"},
+		Middlewares: huma.Middlewares{
+			rbacM.HumaRequirePermission(rbac.ResourceAgent, rbac.ActionUpdate),
+		},
+	}, func(ctx context.Context, input *UpdateAgentInput) (*UpdateAgentOutput, error) {
+		var config []byte
+		if input.Body.Config != nil {
+			config, _ = json.Marshal(input.Body.Config)
 		}
 
+		var name string
 		if input.Body.Name != nil {
-			agent.Name = *input.Body.Name
-		}
-		if input.Body.Status != nil {
-			agent.Status = *input.Body.Status
+			name = *input.Body.Name
 		}
 
-		return &UpdateAgentOutput{Body: agent}, nil
+		a, err := queries.UpdateAgent(ctx, db.UpdateAgentParams{
+			ID:     input.ID,
+			Name:   name,
+			Config: config,
+		})
+		if err != nil {
+			return nil, huma.Error500InternalServerError("Failed to update agent", err)
+		}
+
+		var resConfig map[string]any
+		if len(a.Config) > 0 {
+			json.Unmarshal(a.Config, &resConfig)
+		}
+
+		return &UpdateAgentOutput{
+			Body: Agent{
+				ID:        a.ID,
+				ProjectID: a.ProjectID,
+				Name:      a.Name,
+				Slug:      a.Slug,
+				Config:    resConfig,
+				Status:    a.Status,
+				CreatedAt: a.CreatedAt,
+				UpdatedAt: a.UpdatedAt,
+			},
+		}, nil
 	})
 
 	// Delete agent
-	huma.Delete(api, "/v1/agents/{id}", func(ctx context.Context, input *DeleteAgentInput) (*DeleteAgentOutput, error) {
-		// TODO: Delete from database
+	huma.Register(api, huma.Operation{
+		OperationID: "delete-agent",
+		Method:      http.MethodDelete,
+		Path:        "/v1/agents/{id}",
+		Summary:     "Delete agent",
+		Tags:        []string{"Agents"},
+		Middlewares: huma.Middlewares{
+			rbacM.HumaRequirePermission(rbac.ResourceAgent, rbac.ActionDelete),
+			auditM.HumaLogAction(audit.EventAgentDeleted, string(rbac.ResourceAgent)),
+		},
+	}, func(ctx context.Context, input *DeleteAgentInput) (*DeleteAgentOutput, error) {
+		err := queries.DeleteAgent(ctx, input.ID)
+		if err != nil {
+			return nil, huma.Error500InternalServerError("Failed to delete agent", err)
+		}
+
 		return &DeleteAgentOutput{
 			Body: struct {
 				Message string `json:"message" doc:"Confirmation message"`

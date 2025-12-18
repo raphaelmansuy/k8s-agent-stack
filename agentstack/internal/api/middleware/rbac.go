@@ -4,17 +4,19 @@ package middleware
 import (
 	"net/http"
 
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/raphaelmansuy/agentstack/internal/domain/rbac"
 )
 
 // RBACMiddleware provides RBAC checking middleware.
 type RBACMiddleware struct {
+	api     huma.API
 	rbacSvc *rbac.Service
 }
 
 // NewRBACMiddleware creates a new RBAC middleware.
-func NewRBACMiddleware(rbacSvc *rbac.Service) *RBACMiddleware {
-	return &RBACMiddleware{rbacSvc: rbacSvc}
+func NewRBACMiddleware(api huma.API, rbacSvc *rbac.Service) *RBACMiddleware {
+	return &RBACMiddleware{api: api, rbacSvc: rbacSvc}
 }
 
 // RequirePermission creates middleware that checks for a specific permission.
@@ -69,6 +71,53 @@ func (m *RBACMiddleware) RequirePermission(resource rbac.Resource, action rbac.A
 			ctx := SetRBACResultInContext(r.Context(), result)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
+	}
+}
+
+// HumaRequirePermission creates a Huma-compatible middleware that checks for a specific permission.
+func (m *RBACMiddleware) HumaRequirePermission(resource rbac.Resource, action rbac.Action) func(huma.Context, func(huma.Context)) {
+	return func(ctx huma.Context, next func(huma.Context)) {
+		auth := GetAuthFromContext(ctx.Context())
+		if auth == nil {
+			huma.WriteErr(m.api, ctx, http.StatusUnauthorized, "authentication required")
+			return
+		}
+
+		// For Huma, we use global scope for now as extracting from path is complex without the router context
+		scopeType := rbac.ScopeGlobal
+		scopeID := ""
+
+		conditions := map[string]string{
+			"user_id": auth.UserID,
+		}
+
+		if auth.TeamID != "" {
+			conditions["team_id"] = auth.TeamID
+		}
+		if auth.ProjectID != "" {
+			conditions["project_id"] = auth.ProjectID
+		}
+
+		result, err := m.rbacSvc.CheckPermission(ctx.Context(), rbac.PermissionRequest{
+			UserID:     auth.UserID,
+			Resource:   resource,
+			Action:     action,
+			ScopeType:  scopeType,
+			ScopeID:    scopeID,
+			Conditions: conditions,
+		})
+
+		if err != nil {
+			huma.WriteErr(m.api, ctx, http.StatusInternalServerError, "permission check failed", err)
+			return
+		}
+
+		if !result.Allowed {
+			huma.WriteErr(m.api, ctx, http.StatusForbidden, "insufficient permissions")
+			return
+		}
+
+		next(ctx)
 	}
 }
 

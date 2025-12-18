@@ -2,196 +2,241 @@
 package handlers
 
 import (
-	"encoding/json"
+	"context"
 	"net/http"
 
+	"github.com/danielgtaylor/huma/v2"
+	"github.com/raphaelmansuy/agentstack/internal/api/middleware"
 	"github.com/raphaelmansuy/agentstack/internal/domain/quota"
+	"github.com/raphaelmansuy/agentstack/internal/domain/rbac"
 )
 
-// QuotaHandler handles quota-related HTTP requests.
-type QuotaHandler struct {
-	quotaSvc *quota.Service
+// GetUsageSummaryInput is the input for getting usage summary.
+type GetUsageSummaryInput struct {
+	TeamID string `path:"id" doc:"Team ID"`
 }
 
-// NewQuotaHandler creates a new quota handler.
-func NewQuotaHandler(quotaSvc *quota.Service) *QuotaHandler {
-	return &QuotaHandler{quotaSvc: quotaSvc}
+// GetUsageSummaryOutput is the output for getting usage summary.
+type GetUsageSummaryOutput struct {
+	Body *quota.UsageSummary
 }
 
-// GetUsageSummary returns usage summary for a team.
-// GET /api/v1/teams/{id}/usage
-func (h *QuotaHandler) GetUsageSummary(w http.ResponseWriter, r *http.Request) {
-	teamID := r.PathValue("id")
-	if teamID == "" {
-		writeError(w, http.StatusBadRequest, "team ID is required", nil)
-		return
-	}
-
-	summary, err := h.quotaSvc.GetUsageSummary(r.Context(), teamID)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to get usage summary", err)
-		return
-	}
-
-	writeJSON(w, http.StatusOK, summary)
+// GetQuotasInput is the input for getting quotas.
+type GetQuotasInput struct {
+	TeamID string `path:"id" doc:"Team ID"`
 }
 
-// GetQuotas returns all quotas for a team.
-// GET /api/v1/teams/{id}/quotas
-func (h *QuotaHandler) GetQuotas(w http.ResponseWriter, r *http.Request) {
-	teamID := r.PathValue("id")
-	if teamID == "" {
-		writeError(w, http.StatusBadRequest, "team ID is required", nil)
-		return
+// GetQuotasOutput is the output for getting quotas.
+type GetQuotasOutput struct {
+	Body struct {
+		Quotas []quota.UsageItem `json:"quotas" doc:"List of quotas"`
 	}
+}
 
-	// Get usage summary which includes all quotas
-	summary, err := h.quotaSvc.GetUsageSummary(r.Context(), teamID)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to get quotas", err)
-		return
+// SetQuotaInput is the input for setting a quota.
+type SetQuotaInput struct {
+	TeamID string `path:"id" doc:"Team ID"`
+	Body   struct {
+		Type      quota.QuotaType `json:"type" required:"true" doc:"Quota type"`
+		Limit     int64           `json:"limit" required:"true" doc:"Quota limit"`
+		Period    string          `json:"period,omitempty" doc:"Quota period"`
+		ProjectID string          `json:"project_id,omitempty" doc:"Project ID"`
 	}
+}
 
-	writeJSON(w, http.StatusOK, map[string]any{
-		"quotas": summary.Items,
+// SetQuotaOutput is the output for setting a quota.
+type SetQuotaOutput struct {
+	Body *quota.Quota
+}
+
+// CheckQuotaInput is the input for checking a quota.
+type CheckQuotaInput struct {
+	TeamID string `path:"id" doc:"Team ID"`
+	Body   struct {
+		Type      quota.QuotaType `json:"type" required:"true" doc:"Quota type"`
+		Amount    int64           `json:"amount" default:"1" doc:"Amount to check"`
+		ProjectID string          `json:"project_id,omitempty" doc:"Project ID"`
+	}
+}
+
+// CheckQuotaOutput is the output for checking a quota.
+type CheckQuotaOutput struct {
+	Body *quota.CheckQuotaResult
+}
+
+// ApplyPlanInput is the input for applying a plan.
+type ApplyPlanInput struct {
+	TeamID string `path:"id" doc:"Team ID"`
+	Body   struct {
+		PlanID string `json:"plan_id" required:"true" doc:"Plan ID"`
+	}
+}
+
+// ApplyPlanOutput is the output for applying a plan.
+type ApplyPlanOutput struct {
+	Body struct {
+		Message string      `json:"message" doc:"Confirmation message"`
+		Plan    *quota.Plan `json:"plan" doc:"Applied plan"`
+	}
+}
+
+// ListPlansOutput is the output for listing plans.
+type ListPlansOutput struct {
+	Body struct {
+		Plans []quota.Plan `json:"plans" doc:"List of available plans"`
+	}
+}
+
+// RegisterQuotaRoutes registers quota routes.
+func RegisterQuotaRoutes(api huma.API, service *quota.Service, rbacM *middleware.RBACMiddleware) {
+	// Get usage summary
+	huma.Register(api, huma.Operation{
+		OperationID: "get-usage-summary",
+		Method:      http.MethodGet,
+		Path:        "/v1/teams/{id}/usage",
+		Summary:     "Get usage summary",
+		Tags:        []string{"Quota"},
+		Middlewares: huma.Middlewares{
+			rbacM.HumaRequirePermission(rbac.ResourceQuota, rbac.ActionRead),
+		},
+	}, func(ctx context.Context, input *GetUsageSummaryInput) (*GetUsageSummaryOutput, error) {
+		summary, err := service.GetUsageSummary(ctx, input.TeamID)
+		if err != nil {
+			return nil, huma.Error500InternalServerError("Failed to get usage summary", err)
+		}
+
+		return &GetUsageSummaryOutput{
+			Body: summary,
+		}, nil
 	})
-}
 
-// SetQuotaRequest represents a request to set a quota.
-type SetQuotaRequest struct {
-	Type      quota.QuotaType `json:"type"`
-	Limit     int64           `json:"limit"`
-	Period    string          `json:"period,omitempty"`
-	ProjectID string          `json:"project_id,omitempty"`
-}
+	// Get quotas
+	huma.Register(api, huma.Operation{
+		OperationID: "get-quotas",
+		Method:      http.MethodGet,
+		Path:        "/v1/teams/{id}/quotas",
+		Summary:     "Get quotas",
+		Tags:        []string{"Quota"},
+		Middlewares: huma.Middlewares{
+			rbacM.HumaRequirePermission(rbac.ResourceQuota, rbac.ActionRead),
+		},
+	}, func(ctx context.Context, input *GetQuotasInput) (*GetQuotasOutput, error) {
+		summary, err := service.GetUsageSummary(ctx, input.TeamID)
+		if err != nil {
+			return nil, huma.Error500InternalServerError("Failed to get quotas", err)
+		}
 
-// SetQuota sets a quota for a team.
-// POST /api/v1/teams/{id}/quotas
-func (h *QuotaHandler) SetQuota(w http.ResponseWriter, r *http.Request) {
-	teamID := r.PathValue("id")
-	if teamID == "" {
-		writeError(w, http.StatusBadRequest, "team ID is required", nil)
-		return
-	}
-
-	var req SetQuotaRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body", err)
-		return
-	}
-
-	if req.Type == "" {
-		writeError(w, http.StatusBadRequest, "quota type is required", nil)
-		return
-	}
-
-	q := &quota.Quota{
-		TeamID:    teamID,
-		ProjectID: req.ProjectID,
-		Type:      req.Type,
-		Limit:     req.Limit,
-		Period:    req.Period,
-	}
-
-	if err := h.quotaSvc.SetQuota(r.Context(), q); err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to set quota", err)
-		return
-	}
-
-	writeJSON(w, http.StatusOK, q)
-}
-
-// CheckQuotaRequest represents a request to check a quota.
-type CheckQuotaRequest struct {
-	Type      quota.QuotaType `json:"type"`
-	Amount    int64           `json:"amount"`
-	ProjectID string          `json:"project_id,omitempty"`
-}
-
-// CheckQuota checks if a quota allows an operation.
-// POST /api/v1/teams/{id}/quotas/check
-func (h *QuotaHandler) CheckQuota(w http.ResponseWriter, r *http.Request) {
-	teamID := r.PathValue("id")
-	if teamID == "" {
-		writeError(w, http.StatusBadRequest, "team ID is required", nil)
-		return
-	}
-
-	var req CheckQuotaRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body", err)
-		return
-	}
-
-	if req.Type == "" {
-		writeError(w, http.StatusBadRequest, "quota type is required", nil)
-		return
-	}
-
-	if req.Amount == 0 {
-		req.Amount = 1
-	}
-
-	result, err := h.quotaSvc.CheckQuota(r.Context(), quota.CheckQuotaRequest{
-		TeamID:    teamID,
-		ProjectID: req.ProjectID,
-		Type:      req.Type,
-		Amount:    req.Amount,
+		return &GetQuotasOutput{
+			Body: struct {
+				Quotas []quota.UsageItem `json:"quotas" doc:"List of quotas"`
+			}{
+				Quotas: summary.Items,
+			},
+		}, nil
 	})
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to check quota", err)
-		return
-	}
 
-	writeJSON(w, http.StatusOK, result)
-}
+	// Set quota
+	huma.Register(api, huma.Operation{
+		OperationID: "set-quota",
+		Method:      http.MethodPost,
+		Path:        "/v1/teams/{id}/quotas",
+		Summary:     "Set quota",
+		Tags:        []string{"Quota"},
+		Middlewares: huma.Middlewares{
+			rbacM.HumaRequirePermission(rbac.ResourceQuota, rbac.ActionManage),
+		},
+	}, func(ctx context.Context, input *SetQuotaInput) (*SetQuotaOutput, error) {
+		q := &quota.Quota{
+			TeamID:    input.TeamID,
+			ProjectID: input.Body.ProjectID,
+			Type:      input.Body.Type,
+			Limit:     input.Body.Limit,
+			Period:    input.Body.Period,
+		}
 
-// ApplyPlanRequest represents a request to apply a plan.
-type ApplyPlanRequest struct {
-	PlanID string `json:"plan_id"`
-}
+		if err := service.SetQuota(ctx, q); err != nil {
+			return nil, huma.Error500InternalServerError("Failed to set quota", err)
+		}
 
-// ApplyPlan applies a subscription plan to a team.
-// POST /api/v1/teams/{id}/plan
-func (h *QuotaHandler) ApplyPlan(w http.ResponseWriter, r *http.Request) {
-	teamID := r.PathValue("id")
-	if teamID == "" {
-		writeError(w, http.StatusBadRequest, "team ID is required", nil)
-		return
-	}
-
-	var req ApplyPlanRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body", err)
-		return
-	}
-
-	if req.PlanID == "" {
-		writeError(w, http.StatusBadRequest, "plan_id is required", nil)
-		return
-	}
-
-	plan := quota.GetPlan(req.PlanID)
-	if plan == nil {
-		writeError(w, http.StatusNotFound, "plan not found", nil)
-		return
-	}
-
-	if err := h.quotaSvc.ApplyPlan(r.Context(), teamID, req.PlanID); err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to apply plan", err)
-		return
-	}
-
-	writeJSON(w, http.StatusOK, map[string]any{
-		"message": "plan applied successfully",
-		"plan":    plan,
+		return &SetQuotaOutput{
+			Body: q,
+		}, nil
 	})
-}
 
-// ListPlans lists available subscription plans.
-// GET /api/v1/plans
-func (h *QuotaHandler) ListPlans(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{
-		"plans": quota.DefaultPlans,
+	// Check quota
+	huma.Register(api, huma.Operation{
+		OperationID: "check-quota",
+		Method:      http.MethodPost,
+		Path:        "/v1/teams/{id}/quotas/check",
+		Summary:     "Check quota",
+		Tags:        []string{"Quota"},
+		Middlewares: huma.Middlewares{
+			rbacM.HumaRequirePermission(rbac.ResourceQuota, rbac.ActionRead),
+		},
+	}, func(ctx context.Context, input *CheckQuotaInput) (*CheckQuotaOutput, error) {
+		result, err := service.CheckQuota(ctx, quota.CheckQuotaRequest{
+			TeamID:    input.TeamID,
+			ProjectID: input.Body.ProjectID,
+			Type:      input.Body.Type,
+			Amount:    input.Body.Amount,
+		})
+		if err != nil {
+			return nil, huma.Error500InternalServerError("Failed to check quota", err)
+		}
+
+		return &CheckQuotaOutput{
+			Body: result,
+		}, nil
+	})
+
+	// Apply plan
+	huma.Register(api, huma.Operation{
+		OperationID: "apply-plan",
+		Method:      http.MethodPost,
+		Path:        "/v1/teams/{id}/plan",
+		Summary:     "Apply plan",
+		Tags:        []string{"Quota"},
+		Middlewares: huma.Middlewares{
+			rbacM.HumaRequirePermission(rbac.ResourceQuota, rbac.ActionManage),
+		},
+	}, func(ctx context.Context, input *ApplyPlanInput) (*ApplyPlanOutput, error) {
+		plan := quota.GetPlan(input.Body.PlanID)
+		if plan == nil {
+			return nil, huma.Error404NotFound("Plan not found")
+		}
+
+		if err := service.ApplyPlan(ctx, input.TeamID, input.Body.PlanID); err != nil {
+			return nil, huma.Error500InternalServerError("Failed to apply plan", err)
+		}
+
+		return &ApplyPlanOutput{
+			Body: struct {
+				Message string      `json:"message" doc:"Confirmation message"`
+				Plan    *quota.Plan `json:"plan" doc:"Applied plan"`
+			}{
+				Message: "Plan applied successfully",
+				Plan:    plan,
+			},
+		}, nil
+	})
+
+	// List plans
+	huma.Register(api, huma.Operation{
+		OperationID: "list-plans",
+		Method:      http.MethodGet,
+		Path:        "/v1/plans",
+		Summary:     "List plans",
+		Tags:        []string{"Quota"},
+		Middlewares: huma.Middlewares{
+			rbacM.HumaRequirePermission(rbac.ResourceQuota, rbac.ActionRead),
+		},
+	}, func(ctx context.Context, input *struct{}) (*ListPlansOutput, error) {
+		return &ListPlansOutput{
+			Body: struct {
+				Plans []quota.Plan `json:"plans" doc:"List of available plans"`
+			}{
+				Plans: quota.DefaultPlans,
+			},
+		}, nil
 	})
 }
