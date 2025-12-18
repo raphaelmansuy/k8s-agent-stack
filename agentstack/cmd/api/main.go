@@ -18,6 +18,7 @@ import (
 
 	"github.com/raphaelmansuy/agentstack/internal/api/handlers"
 	"github.com/raphaelmansuy/agentstack/internal/config"
+	"github.com/raphaelmansuy/agentstack/internal/domain/a2a"
 	"github.com/raphaelmansuy/agentstack/internal/infrastructure/cache"
 	"github.com/raphaelmansuy/agentstack/internal/infrastructure/database"
 	"github.com/raphaelmansuy/agentstack/internal/pkg/logger"
@@ -99,11 +100,14 @@ func main() {
 		URL:  "https://www.apache.org/licenses/LICENSE-2.0",
 	}
 
+	// Initialize A2A service
+	a2aService := a2a.NewService()
+
 	// Register routes
 	handlers.RegisterHealthRoutes(api)
 	handlers.RegisterAgentRoutes(api, db)
 	handlers.RegisterProjectRoutes(api, db)
-	handlers.RegisterChatRoutes(api, db, redisClient)
+	handlers.RegisterChatRoutes(api, db, redisClient, a2aService)
 
 	// Create HTTP server
 	srv := &http.Server{

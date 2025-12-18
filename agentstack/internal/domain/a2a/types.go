@@ -238,7 +238,9 @@ type SendMessageParams struct {
 
 // MessageInput represents the input message format.
 type MessageInput struct {
+	MessageID string `json:"messageId,omitempty"`
 	ContextID string `json:"contextId,omitempty"`
+	Role      string `json:"role,omitempty"`
 	Parts     []Part `json:"parts"`
 }
 

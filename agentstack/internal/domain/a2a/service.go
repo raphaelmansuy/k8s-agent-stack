@@ -86,7 +86,6 @@ func (s *Service) DeleteSession(contextID string) {
 func (s *Service) SendMessage(ctx context.Context, agentURL string, params *SendMessageParams) (*Task, error) {
 	// Create JSON-RPC request
 	reqID := uuid.NewString()
-	taskID := uuid.NewString()
 	contextID := params.Message.ContextID
 	if contextID == "" {
 		contextID = uuid.NewString()
@@ -121,7 +120,8 @@ func (s *Service) SendMessage(ctx context.Context, agentURL string, params *Send
 	}
 
 	var jsonResp Response
-	if err := json.NewDecoder(resp.Body).Decode(&jsonResp); err != nil {
+	respBody, _ := io.ReadAll(resp.Body)
+	if err := json.Unmarshal(respBody, &jsonResp); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -130,21 +130,29 @@ func (s *Service) SendMessage(ctx context.Context, agentURL string, params *Send
 	}
 
 	// Parse result as task
-	task := &Task{
-		TaskID:    taskID,
-		ContextID: contextID,
-	}
-
-	// If result is directly a message or status, convert
-	if jsonResp.Result != nil {
-		resultBytes, _ := json.Marshal(jsonResp.Result)
+	var task Task
+	resultBytes, _ := json.Marshal(jsonResp.Result)
+	if err := json.Unmarshal(resultBytes, &task); err != nil {
+		// Fallback: maybe it's just a TaskStatus?
 		var taskStatus TaskStatus
 		if err := json.Unmarshal(resultBytes, &taskStatus); err == nil {
 			task.Status = &taskStatus
+		} else {
+			return nil, fmt.Errorf("failed to parse result as Task or TaskStatus: %w", err)
 		}
 	}
 
-	return task, nil
+	// Ensure TaskID and ContextID are set if they were in the result but with different names
+	if task.TaskID == "" {
+		// Try to get "id" from the raw result if TaskID is empty
+		var rawResult map[string]interface{}
+		json.Unmarshal(resultBytes, &rawResult)
+		if id, ok := rawResult["id"].(string); ok {
+			task.TaskID = id
+		}
+	}
+
+	return &task, nil
 }
 
 // StreamMessage sends a message and streams the response via SSE.

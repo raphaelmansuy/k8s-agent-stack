@@ -3,13 +3,16 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
-	"github.com/google/uuid"
 
+	"github.com/raphaelmansuy/agentstack/internal/domain/a2a"
 	"github.com/raphaelmansuy/agentstack/internal/infrastructure/cache"
 	"github.com/raphaelmansuy/agentstack/internal/infrastructure/database"
+	"github.com/raphaelmansuy/agentstack/internal/infrastructure/database/db"
 )
 
 // ChatSession represents a chat session with an agent.
@@ -100,50 +103,93 @@ type SendMessageOutput struct {
 }
 
 // RegisterChatRoutes registers chat routes.
-func RegisterChatRoutes(api huma.API, db *database.Pool, redis *cache.Client) {
+func RegisterChatRoutes(api huma.API, pool *database.Pool, redis *cache.Client, a2aService *a2a.Service) {
+	queries := db.New(pool.Pool)
+
 	// Create chat session
 	huma.Post(api, "/v1/chat/sessions", func(ctx context.Context, input *CreateChatSessionInput) (*CreateChatSessionOutput, error) {
-		now := time.Now()
-		session := ChatSession{
-			ID:        uuid.New().String(),
-			AgentID:   input.Body.AgentID,
-			UserID:    "", // TODO: Get from auth context
-			Title:     input.Body.Title,
-			Metadata:  input.Body.Metadata,
-			Status:    "active",
-			CreatedAt: now,
-			UpdatedAt: now,
+		metadata, _ := json.Marshal(input.Body.Metadata)
+
+		session, err := queries.CreateChatSession(ctx, db.CreateChatSessionParams{
+			AgentID:  input.Body.AgentID,
+			Status:   "active",
+			Metadata: metadata,
+		})
+		if err != nil {
+			return nil, huma.Error500InternalServerError("Failed to create chat session", err)
 		}
 
-		// TODO: Save to database
-
-		return &CreateChatSessionOutput{Body: session}, nil
+		return &CreateChatSessionOutput{
+			Body: ChatSession{
+				ID:        session.ID,
+				AgentID:   session.AgentID,
+				Status:    session.Status,
+				Metadata:  input.Body.Metadata,
+				CreatedAt: session.CreatedAt,
+				UpdatedAt: session.UpdatedAt,
+			},
+		}, nil
 	})
 
 	// Get chat session
 	huma.Get(api, "/v1/chat/sessions/{id}", func(ctx context.Context, input *GetChatSessionInput) (*GetChatSessionOutput, error) {
-		now := time.Now()
-		// TODO: Fetch from database
+		session, err := queries.GetChatSession(ctx, input.ID)
+		if err != nil {
+			return nil, huma.Error404NotFound("Chat session not found")
+		}
+
+		var metadata map[string]string
+		if len(session.Metadata) > 0 {
+			json.Unmarshal(session.Metadata, &metadata)
+		}
+
 		return &GetChatSessionOutput{
 			Body: ChatSession{
-				ID:        input.ID,
-				AgentID:   "agent-1",
-				Status:    "active",
-				CreatedAt: now,
-				UpdatedAt: now,
+				ID:        session.ID,
+				AgentID:   session.AgentID,
+				Status:    session.Status,
+				Metadata:  metadata,
+				CreatedAt: session.CreatedAt,
+				UpdatedAt: session.UpdatedAt,
 			},
 		}, nil
 	})
 
 	// List messages in session
 	huma.Get(api, "/v1/chat/sessions/{session_id}/messages", func(ctx context.Context, input *ListChatMessagesInput) (*ListChatMessagesOutput, error) {
-		// TODO: Fetch from database
+		messages, err := queries.ListChatMessages(ctx, input.SessionID)
+		if err != nil {
+			return nil, huma.Error500InternalServerError("Failed to list messages", err)
+		}
+
+		chatMessages := make([]ChatMessage, len(messages))
+		for i, m := range messages {
+			var toolCalls []ToolCall
+			if len(m.ToolCalls) > 0 {
+				json.Unmarshal(m.ToolCalls, &toolCalls)
+			}
+			var metadata map[string]any
+			if len(m.Metadata) > 0 {
+				json.Unmarshal(m.Metadata, &metadata)
+			}
+
+			chatMessages[i] = ChatMessage{
+				ID:        m.ID,
+				SessionID: m.SessionID,
+				Role:      m.Role,
+				Content:   m.Content,
+				ToolCalls: toolCalls,
+				Metadata:  metadata,
+				CreatedAt: m.CreatedAt,
+			}
+		}
+
 		return &ListChatMessagesOutput{
 			Body: struct {
 				Messages []ChatMessage `json:"messages" doc:"List of messages"`
 				HasMore  bool          `json:"has_more" doc:"Whether more messages exist"`
 			}{
-				Messages: []ChatMessage{},
+				Messages: chatMessages,
 				HasMore:  false,
 			},
 		}, nil
@@ -151,35 +197,98 @@ func RegisterChatRoutes(api huma.API, db *database.Pool, redis *cache.Client) {
 
 	// Send message (synchronous)
 	huma.Post(api, "/v1/chat/sessions/{session_id}/messages", func(ctx context.Context, input *SendMessageInput) (*SendMessageOutput, error) {
-		now := time.Now()
+		// 1. Get session to find agent ID
+		session, err := queries.GetChatSession(ctx, input.SessionID)
+		if err != nil {
+			return nil, huma.Error404NotFound("Chat session not found")
+		}
 
-		userMsg := ChatMessage{
-			ID:        uuid.New().String(),
+		// 2. Save user message
+		userMetadata, _ := json.Marshal(input.Body.Metadata)
+		userMsg, err := queries.CreateChatMessage(ctx, db.CreateChatMessageParams{
 			SessionID: input.SessionID,
 			Role:      "user",
 			Content:   input.Body.Content,
-			Metadata:  input.Body.Metadata,
-			CreatedAt: now,
+			Metadata:  userMetadata,
+		})
+		if err != nil {
+			return nil, huma.Error500InternalServerError("Failed to save user message", err)
 		}
 
-		// TODO: Call agent and get response
-		assistantMsg := ChatMessage{
-			ID:        uuid.New().String(),
+		// 3. Call agent via A2A
+		// For now, we use a convention for the agent endpoint
+		// In a real system, this would be looked up in the agent registry/database
+		agentEndpoint := fmt.Sprintf("http://%s.kagent.svc.cluster.local:8080", session.AgentID)
+
+		// If we are running in the same namespace or using full DNS
+		// The agent we deployed is google-adk-byo-agent
+
+		task, err := a2aService.SendMessage(ctx, agentEndpoint, &a2a.SendMessageParams{
+			Message: a2a.MessageInput{
+				MessageID: userMsg.ID,
+				ContextID: input.SessionID,
+				Role:      "user",
+				Parts: []a2a.Part{
+					a2a.TextPart(input.Body.Content),
+				},
+			},
+		})
+		if err != nil {
+			return nil, huma.Error500InternalServerError(fmt.Sprintf("Failed to call agent at %s", agentEndpoint), err)
+		}
+
+		// Extract response content
+		var assistantContent string
+		if task.Status != nil && task.Status.Message != nil {
+			for _, part := range task.Status.Message.Parts {
+				if part.Kind == "text" {
+					assistantContent += part.Text
+				}
+			}
+		}
+
+		// If no content in message, check artifacts (common in some ADK agents)
+		if assistantContent == "" && len(task.Artifacts) > 0 {
+			for _, artifact := range task.Artifacts {
+				for _, part := range artifact.Parts {
+					if part.Kind == "text" {
+						assistantContent += part.Text
+					}
+				}
+			}
+		}
+
+		// 4. Save assistant message
+		assistantMetadata, _ := json.Marshal(task.Metadata)
+		assistantMsg, err := queries.CreateChatMessage(ctx, db.CreateChatMessageParams{
 			SessionID: input.SessionID,
 			Role:      "assistant",
-			Content:   "This is a placeholder response. Agent integration pending.",
-			CreatedAt: now.Add(time.Millisecond * 100),
+			Content:   assistantContent,
+			Metadata:  assistantMetadata,
+		})
+		if err != nil {
+			return nil, huma.Error500InternalServerError("Failed to save assistant message", err)
 		}
-
-		// TODO: Save messages to database
 
 		return &SendMessageOutput{
 			Body: struct {
 				UserMessage      ChatMessage `json:"user_message" doc:"The user's message"`
 				AssistantMessage ChatMessage `json:"assistant_message" doc:"The assistant's response"`
 			}{
-				UserMessage:      userMsg,
-				AssistantMessage: assistantMsg,
+				UserMessage: ChatMessage{
+					ID:        userMsg.ID,
+					SessionID: userMsg.SessionID,
+					Role:      userMsg.Role,
+					Content:   userMsg.Content,
+					CreatedAt: userMsg.CreatedAt,
+				},
+				AssistantMessage: ChatMessage{
+					ID:        assistantMsg.ID,
+					SessionID: assistantMsg.SessionID,
+					Role:      assistantMsg.Role,
+					Content:   assistantMsg.Content,
+					CreatedAt: assistantMsg.CreatedAt,
+				},
 			},
 		}, nil
 	})

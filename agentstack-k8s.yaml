@@ -1,0 +1,152 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agentstack
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: agentstack-db-secret
+  namespace: agentstack
+type: Opaque
+stringData:
+  POSTGRES_PASSWORD: agentstack
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agentstack-postgres
+  namespace: agentstack
+spec:
+  selector:
+    matchLabels:
+      app: agentstack-postgres
+  template:
+    metadata:
+      labels:
+        app: agentstack-postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:16-alpine
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_USER
+          value: agentstack
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: agentstack-db-secret
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          value: agentstack
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        - name: postgres-init
+          mountPath: /docker-entrypoint-initdb.d
+      volumes:
+      - name: postgres-storage
+        emptyDir: {}
+      - name: postgres-init
+        configMap:
+          name: agentstack-postgres-init
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agentstack-postgres
+  namespace: agentstack
+spec:
+  selector:
+    app: agentstack-postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agentstack-redis
+  namespace: agentstack
+spec:
+  selector:
+    matchLabels:
+      app: agentstack-redis
+  template:
+    metadata:
+      labels:
+        app: agentstack-redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        ports:
+        - containerPort: 6379
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agentstack-redis
+  namespace: agentstack
+spec:
+  selector:
+    app: agentstack-redis
+  ports:
+  - port: 6379
+    targetPort: 6379
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agentstack-api
+  namespace: agentstack
+spec:
+  selector:
+    matchLabels:
+      app: agentstack-api
+  template:
+    metadata:
+      labels:
+        app: agentstack-api
+    spec:
+      containers:
+      - name: api
+        image: dev.local/agentstack-api:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+        env:
+        - name: AGENTSTACK_ENVIRONMENT
+          value: development
+        - name: AGENTSTACK_DATABASE_URL
+          value: postgres://agentstack:agentstack@agentstack-postgres:5432/agentstack?sslmode=disable
+        - name: AGENTSTACK_REDIS_URL
+          value: redis://agentstack-redis:6379
+        - name: AGENTSTACK_TELEMETRY_ENABLED
+          value: "false"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agentstack-api
+  namespace: agentstack
+spec:
+  selector:
+    app: agentstack-api
+  ports:
+  - port: 8080
+    targetPort: 8080
