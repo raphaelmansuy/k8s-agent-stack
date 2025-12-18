@@ -35,7 +35,7 @@ make start
 make ui   # Opens http://localhost:8080 - keep terminal open!
 ```
 
-📖 **[Full Installation Guide](docs/getting-started.md)** | **[Production Setup](docs/getting-started.md#production-deployment)**
+📖 **[Quick Start Tutorial](tutorial/README.md)** | **[Full Installation Guide](docs/getting-started.md)** | **[Production Setup](docs/getting-started.md#production-deployment)**
 
 ## Architecture
 
