@@ -100,6 +100,53 @@ func main() {
 	router.Use(chiMiddleware.Recoverer)
 	router.Use(chiMiddleware.Timeout(60 * time.Second))
 
+	// Initialize Database Queries
+	queries := db.New(dbPool)
+
+	// Initialize Repositories
+	auditRepo := database.NewAuditRepository(queries)
+	quotaRepo := database.NewQuotaRepository(queries)
+	rbacRepo := database.NewRBACRepository(queries)
+	evalRepo := database.NewEvaluationRepository(queries)
+
+	// Initialize Caches/Queues
+	var quotaCache *cache.QuotaCache
+	var rbacCache *cache.RBACCache
+	var evalQueue *cache.EvaluationQueue
+	if redisClient != nil {
+		quotaCache = cache.NewQuotaCache(redisClient)
+		rbacCache = cache.NewRBACCache(redisClient)
+		evalQueue = cache.NewEvaluationQueue(redisClient)
+	}
+
+	// Initialize Services
+	auditService := audit.NewService(auditRepo)
+	quotaService := quota.NewService(quotaRepo, quotaCache)
+	rbacService := rbac.NewService(rbacRepo, rbacCache)
+
+	// Initialize API Key lookup
+	apiKeyLookup := func(ctx context.Context, keyHash string) (*middleware.APIKeyInfo, error) {
+		key, err := queries.GetAPIKey(ctx, keyHash)
+		if err != nil {
+			return nil, err
+		}
+		return &middleware.APIKeyInfo{
+			TeamID:    key.TeamID,
+			ProjectID: key.ProjectID.String,
+			Scopes:    key.Scopes,
+		}, nil
+	}
+
+	// Initialize Middlewares
+	auditMiddleware := middleware.NewAuditMiddleware(auditService)
+
+	// Apply global middleware
+	router.Use(middleware.Auth(middleware.AuthConfig{
+		JWTSecret:    cfg.Auth.JWTSecret,
+		APIKeyLookup: apiKeyLookup,
+	}))
+	router.Use(auditMiddleware.RequestLogger())
+
 	// Create Huma API
 	api := humachi.New(router, huma.DefaultConfig("AgentStack API", version))
 
@@ -124,25 +171,6 @@ func main() {
 	slogLogger := slog.New(slog.NewJSONHandler(deploymentLogger, nil))
 	deploymentService := deployment.NewService(slogLogger)
 
-	// Initialize Database Queries
-	queries := db.New(dbPool)
-
-	// Initialize Repositories
-	auditRepo := database.NewAuditRepository(queries)
-	quotaRepo := database.NewQuotaRepository(queries)
-	rbacRepo := database.NewRBACRepository(queries)
-	evalRepo := database.NewEvaluationRepository(queries)
-
-	// Initialize Caches/Queues
-	var quotaCache *cache.QuotaCache
-	var rbacCache *cache.RBACCache
-	var evalQueue *cache.EvaluationQueue
-	if redisClient != nil {
-		quotaCache = cache.NewQuotaCache(redisClient)
-		rbacCache = cache.NewRBACCache(redisClient)
-		evalQueue = cache.NewEvaluationQueue(redisClient)
-	}
-
 	// Initialize MLflow
 	mlflowClient := mlflow.NewClient(cfg.MLflow.URL)
 	mlflowAdapter := mlflow.NewMLflowAdapter(mlflowClient)
@@ -150,36 +178,12 @@ func main() {
 	// Initialize ID Generator
 	idGenerator := idgen.NewUUIDGenerator()
 
-	// Initialize Services
-	auditService := audit.NewService(auditRepo)
-	quotaService := quota.NewService(quotaRepo, quotaCache)
-	rbacService := rbac.NewService(rbacRepo, rbacCache)
+	// Initialize Services that depend on MLflow/IDGen
 	evaluationService := evaluation.NewService(mlflowAdapter, evalQueue, evalRepo, idGenerator)
 
-	// Initialize API Key lookup
-	apiKeyLookup := func(ctx context.Context, keyHash string) (*middleware.APIKeyInfo, error) {
-		key, err := queries.GetAPIKey(ctx, keyHash)
-		if err != nil {
-			return nil, err
-		}
-		return &middleware.APIKeyInfo{
-			TeamID:    key.TeamID,
-			ProjectID: key.ProjectID.String,
-			Scopes:    key.Scopes,
-		}, nil
-	}
-
-	// Initialize Middlewares
-	auditMiddleware := middleware.NewAuditMiddleware(auditService)
+	// Initialize remaining Middlewares
 	rbacMiddleware := middleware.NewRBACMiddleware(api, rbacService)
 	quotaMiddleware := middleware.NewQuotaMiddleware(api, quotaService)
-
-	// Apply global middleware
-	router.Use(middleware.Auth(middleware.AuthConfig{
-		JWTSecret:    cfg.Auth.JWTSecret,
-		APIKeyLookup: apiKeyLookup,
-	}))
-	router.Use(auditMiddleware.RequestLogger())
 
 	// Register routes
 	handlers.RegisterHealthRoutes(api)
@@ -199,6 +203,7 @@ func main() {
 	handlers.RegisterQuotaRoutes(api, quotaService, rbacMiddleware)
 	handlers.RegisterRBACRoutes(api, rbacService, rbacMiddleware, auditMiddleware)
 	handlers.RegisterEvaluationRoutes(api, evaluationService, rbacMiddleware, auditMiddleware)
+
 
 	// Start Evaluation Worker if Redis is available
 	if redisClient != nil {

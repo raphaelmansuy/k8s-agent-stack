@@ -41,7 +41,7 @@ func Auth(config AuthConfig) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Skip auth for health checks
-			if r.URL.Path == "/healthz" || r.URL.Path == "/readyz" || r.URL.Path == "/livez" {
+			if r.URL.Path == "/health" || r.URL.Path == "/health/detailed" || r.URL.Path == "/healthz" || r.URL.Path == "/readyz" || r.URL.Path == "/livez" {
 				next.ServeHTTP(w, r)
 				return
 			}

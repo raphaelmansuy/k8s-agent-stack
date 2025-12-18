@@ -24,8 +24,8 @@ var kagentGVR = schema.GroupVersionResource{
 	Resource: "agents",
 }
 
-// Agent represents an agent definition for deployment.
-type Agent struct {
+// AgentDeployment represents an agent definition for deployment.
+type AgentDeployment struct {
 	ID          string            `json:"id"`
 	Name        string            `json:"name"`
 	Description string            `json:"description,omitempty"`
@@ -102,7 +102,7 @@ type ToolSpec struct {
 type Service struct {
 	k8sClients map[string]*k8s.Client // namespace -> client
 	dynClient  dynamic.Interface
-	agents     map[string]*Agent
+	agents     map[string]*AgentDeployment
 	mu         sync.RWMutex
 	logger     *slog.Logger
 }
@@ -111,7 +111,7 @@ type Service struct {
 func NewService(logger *slog.Logger) *Service {
 	return &Service{
 		k8sClients: make(map[string]*k8s.Client),
-		agents:     make(map[string]*Agent),
+		agents:     make(map[string]*AgentDeployment),
 		logger:     logger,
 	}
 }
@@ -142,7 +142,7 @@ func (s *Service) getK8sClient(namespace string) (*k8s.Client, error) {
 }
 
 // CreateAgent creates a new agent deployment.
-func (s *Service) CreateAgent(ctx context.Context, agent *Agent) (*Agent, error) {
+func (s *Service) CreateAgent(ctx context.Context, agent *AgentDeployment) (*AgentDeployment, error) {
 	if agent.ID == "" {
 		return nil, fmt.Errorf("agent ID is required")
 	}
@@ -201,7 +201,7 @@ func (s *Service) kagentCRDExists(ctx context.Context, namespace string) bool {
 }
 
 // deployKagentAgent deploys an agent using kagent CRD.
-func (s *Service) deployKagentAgent(ctx context.Context, agent *Agent) error {
+func (s *Service) deployKagentAgent(ctx context.Context, agent *AgentDeployment) error {
 	if s.dynClient == nil {
 		return fmt.Errorf("dynamic client not initialized")
 	}
@@ -319,7 +319,7 @@ func (s *Service) deployKagentAgent(ctx context.Context, agent *Agent) error {
 }
 
 // deployKnativeAgent deploys an agent using Knative Service.
-func (s *Service) deployKnativeAgent(ctx context.Context, k8sClient *k8s.Client, agent *Agent) error {
+func (s *Service) deployKnativeAgent(ctx context.Context, k8sClient *k8s.Client, agent *AgentDeployment) error {
 	spec := &k8s.KnativeServiceSpec{
 		Name:    agent.Name,
 		AgentID: agent.ID,
@@ -346,7 +346,7 @@ func (s *Service) deployKnativeAgent(ctx context.Context, k8sClient *k8s.Client,
 }
 
 // GetAgent retrieves an agent by ID.
-func (s *Service) GetAgent(ctx context.Context, agentID string) (*Agent, error) {
+func (s *Service) GetAgent(ctx context.Context, agentID string) (*AgentDeployment, error) {
 	s.mu.RLock()
 	agent, ok := s.agents[agentID]
 	s.mu.RUnlock()
@@ -364,7 +364,7 @@ func (s *Service) GetAgent(ctx context.Context, agentID string) (*Agent, error) 
 }
 
 // refreshAgentStatus fetches current status from the cluster.
-func (s *Service) refreshAgentStatus(ctx context.Context, agent *Agent) error {
+func (s *Service) refreshAgentStatus(ctx context.Context, agent *AgentDeployment) error {
 	// Try kagent first
 	if s.dynClient != nil {
 		obj, err := s.dynClient.Resource(kagentGVR).Namespace(agent.Namespace).Get(ctx, agent.Name, metav1.GetOptions{})
@@ -395,7 +395,7 @@ func (s *Service) refreshAgentStatus(ctx context.Context, agent *Agent) error {
 }
 
 // parseKagentStatus parses status from kagent Agent CRD.
-func (s *Service) parseKagentStatus(obj *unstructured.Unstructured, agent *Agent) error {
+func (s *Service) parseKagentStatus(obj *unstructured.Unstructured, agent *AgentDeployment) error {
 	status, found, err := unstructured.NestedMap(obj.Object, "status")
 	if err != nil || !found {
 		return nil
@@ -414,11 +414,11 @@ func (s *Service) parseKagentStatus(obj *unstructured.Unstructured, agent *Agent
 }
 
 // ListAgents returns all managed agents.
-func (s *Service) ListAgents(ctx context.Context, namespace string) ([]*Agent, error) {
+func (s *Service) ListAgents(ctx context.Context, namespace string) ([]*AgentDeployment, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	agents := make([]*Agent, 0)
+	agents := make([]*AgentDeployment, 0)
 	for _, agent := range s.agents {
 		if namespace == "" || agent.Namespace == namespace {
 			agents = append(agents, agent)
@@ -429,7 +429,7 @@ func (s *Service) ListAgents(ctx context.Context, namespace string) ([]*Agent, e
 }
 
 // UpdateAgent updates an agent deployment.
-func (s *Service) UpdateAgent(ctx context.Context, agentID string, update *Agent) (*Agent, error) {
+func (s *Service) UpdateAgent(ctx context.Context, agentID string, update *AgentDeployment) (*AgentDeployment, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -480,7 +480,7 @@ func (s *Service) UpdateAgent(ctx context.Context, agentID string, update *Agent
 }
 
 // updateKagentAgent updates an existing kagent Agent.
-func (s *Service) updateKagentAgent(ctx context.Context, agent *Agent) error {
+func (s *Service) updateKagentAgent(ctx context.Context, agent *AgentDeployment) error {
 	if s.dynClient == nil {
 		return fmt.Errorf("dynamic client not initialized")
 	}
@@ -500,7 +500,7 @@ func (s *Service) updateKagentAgent(ctx context.Context, agent *Agent) error {
 }
 
 // updateKnativeAgent updates an existing Knative Service.
-func (s *Service) updateKnativeAgent(ctx context.Context, k8sClient *k8s.Client, agent *Agent) error {
+func (s *Service) updateKnativeAgent(ctx context.Context, k8sClient *k8s.Client, agent *AgentDeployment) error {
 	spec := &k8s.KnativeServiceSpec{
 		Name:    agent.Name,
 		AgentID: agent.ID,
@@ -600,13 +600,13 @@ func (s *Service) WaitForReady(ctx context.Context, agentID string, timeout time
 }
 
 // ExportConfig exports agent configuration as JSON.
-func (s *Service) ExportConfig(agent *Agent) ([]byte, error) {
+func (s *Service) ExportConfig(agent *AgentDeployment) ([]byte, error) {
 	return json.MarshalIndent(agent, "", "  ")
 }
 
 // ImportConfig imports agent configuration from JSON.
-func (s *Service) ImportConfig(data []byte) (*Agent, error) {
-	var agent Agent
+func (s *Service) ImportConfig(data []byte) (*AgentDeployment, error) {
+	var agent AgentDeployment
 	if err := json.Unmarshal(data, &agent); err != nil {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}

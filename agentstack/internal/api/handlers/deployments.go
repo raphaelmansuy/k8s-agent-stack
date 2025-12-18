@@ -49,7 +49,7 @@ type CreateDeploymentInput struct {
 
 // CreateDeploymentOutput is the output for creating a deployment.
 type CreateDeploymentOutput struct {
-	Body *deployment.Agent
+	Body *deployment.AgentDeployment
 }
 
 // ListDeploymentsInput is the input for listing deployments.
@@ -60,7 +60,7 @@ type ListDeploymentsInput struct {
 // ListDeploymentsOutput is the output for listing deployments.
 type ListDeploymentsOutput struct {
 	Body struct {
-		Deployments []*deployment.Agent `json:"deployments" doc:"List of deployments"`
+		Deployments []*deployment.AgentDeployment `json:"deployments" doc:"List of deployments"`
 		Total       int                 `json:"total" doc:"Total count"`
 	}
 }
@@ -72,7 +72,7 @@ type GetDeploymentInput struct {
 
 // GetDeploymentOutput is the output for getting a deployment.
 type GetDeploymentOutput struct {
-	Body *deployment.Agent
+	Body *deployment.AgentDeployment
 }
 
 // UpdateDeploymentInput is the input for updating a deployment.
@@ -88,7 +88,7 @@ type UpdateDeploymentInput struct {
 
 // UpdateDeploymentOutput is the output for updating a deployment.
 type UpdateDeploymentOutput struct {
-	Body *deployment.Agent
+	Body *deployment.AgentDeployment
 }
 
 // DeleteDeploymentInput is the input for deleting a deployment.
@@ -123,7 +123,7 @@ type WaitForReadyInput struct {
 
 // WaitForReadyOutput is the output for waiting for deployment readiness.
 type WaitForReadyOutput struct {
-	Body *deployment.Agent
+	Body *deployment.AgentDeployment
 }
 
 // RegisterDeploymentRoutes registers deployment routes.
@@ -146,7 +146,7 @@ func RegisterDeploymentRoutes(api huma.API, service *deployment.Service, rbacM *
 
 		return &ListDeploymentsOutput{
 			Body: struct {
-				Deployments []*deployment.Agent `json:"deployments" doc:"List of deployments"`
+				Deployments []*deployment.AgentDeployment `json:"deployments" doc:"List of deployments"`
 				Total       int                 `json:"total" doc:"Total count"`
 			}{
 				Deployments: agents,
@@ -190,7 +190,7 @@ func RegisterDeploymentRoutes(api huma.API, service *deployment.Service, rbacM *
 			auditM.HumaLogAction(audit.EventAgentDeployed, string(rbac.ResourceDeployment)),
 		},
 	}, func(ctx context.Context, input *CreateDeploymentInput) (*CreateDeploymentOutput, error) {
-		agent := &deployment.Agent{
+		agent := &deployment.AgentDeployment{
 			ID:          input.Body.ID,
 			Name:        input.Body.Name,
 			Description: input.Body.Description,
@@ -225,7 +225,7 @@ func RegisterDeploymentRoutes(api huma.API, service *deployment.Service, rbacM *
 			rbacM.HumaRequirePermission(rbac.ResourceDeployment, rbac.ActionUpdate),
 		},
 	}, func(ctx context.Context, input *UpdateDeploymentInput) (*UpdateDeploymentOutput, error) {
-		update := &deployment.Agent{
+		update := &deployment.AgentDeployment{
 			Image:       input.Body.Image,
 			Description: input.Body.Description,
 			Env:         input.Body.Env,
