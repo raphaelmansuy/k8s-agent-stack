@@ -205,7 +205,6 @@ func main() {
 	handlers.RegisterRBACRoutes(api, rbacService, rbacMiddleware, auditMiddleware)
 	handlers.RegisterEvaluationRoutes(api, evaluationService, rbacMiddleware, auditMiddleware)
 
-
 	// Start Evaluation Worker if Redis is available
 	if redisClient != nil {
 		evalWorker := worker.NewEvaluationWorker(redisClient.GetRDB(), evaluationService, log)
