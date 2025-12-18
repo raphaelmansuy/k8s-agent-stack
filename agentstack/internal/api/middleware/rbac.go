@@ -29,6 +29,14 @@ func (m *RBACMiddleware) RequirePermission(resource rbac.Resource, action rbac.A
 				return
 			}
 
+			// Check API Key scopes first if applicable
+			if auth.UserID == "" && len(auth.Scopes) > 0 {
+				if !HasScope(r.Context(), string(resource), string(action)) {
+					http.Error(w, "insufficient API key scopes", http.StatusForbidden)
+					return
+				}
+			}
+
 			// Determine scope from request
 			scopeType, scopeID := m.extractScope(r)
 
@@ -46,6 +54,22 @@ func (m *RBACMiddleware) RequirePermission(resource rbac.Resource, action rbac.A
 			}
 			if auth.ProjectID != "" {
 				conditions["project_id"] = auth.ProjectID
+			}
+
+			// If it's an API key, we've already checked scopes.
+			// Now we just need to ensure the scope matches the key's ownership.
+			if auth.UserID == "" {
+				if scopeType == rbac.ScopeTeam && scopeID != auth.TeamID {
+					http.Error(w, "API key belongs to a different team", http.StatusForbidden)
+					return
+				}
+				if scopeType == rbac.ScopeProject && auth.ProjectID != "" && scopeID != auth.ProjectID {
+					http.Error(w, "API key is restricted to a different project", http.StatusForbidden)
+					return
+				}
+				// If it passed these checks, it's allowed.
+				next.ServeHTTP(w, r)
+				return
 			}
 
 			result, err := m.rbacSvc.CheckPermission(r.Context(), rbac.PermissionRequest{
@@ -83,6 +107,16 @@ func (m *RBACMiddleware) HumaRequirePermission(resource rbac.Resource, action rb
 			return
 		}
 
+		// Check API Key scopes first if applicable
+		if auth.UserID == "" && len(auth.Scopes) > 0 {
+			if !HasScope(ctx.Context(), string(resource), string(action)) {
+				huma.WriteErr(m.api, ctx, http.StatusForbidden, "insufficient API key scopes")
+				return
+			}
+			// For API keys, if they have the scope, we allow it as long as it's within their team/project
+			// (which is enforced by TenantMiddleware and the checks below)
+		}
+
 		// Try to extract scope from path parameters
 		scopeType := rbac.ScopeGlobal
 		scopeID := ""
@@ -108,6 +142,22 @@ func (m *RBACMiddleware) HumaRequirePermission(resource rbac.Resource, action rb
 		}
 		if auth.ProjectID != "" {
 			conditions["project_id"] = auth.ProjectID
+		}
+
+		// If it's an API key, we've already checked scopes.
+		// Now we just need to ensure the scope matches the key's ownership.
+		if auth.UserID == "" {
+			if scopeType == rbac.ScopeTeam && scopeID != auth.TeamID {
+				huma.WriteErr(m.api, ctx, http.StatusForbidden, "API key belongs to a different team")
+				return
+			}
+			if scopeType == rbac.ScopeProject && auth.ProjectID != "" && scopeID != auth.ProjectID {
+				huma.WriteErr(m.api, ctx, http.StatusForbidden, "API key is restricted to a different project")
+				return
+			}
+			// If it passed these checks, it's allowed.
+			next(ctx)
+			return
 		}
 
 		result, err := m.rbacSvc.CheckPermission(ctx.Context(), rbac.PermissionRequest{

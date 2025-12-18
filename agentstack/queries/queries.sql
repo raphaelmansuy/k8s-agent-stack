@@ -136,6 +136,10 @@ RETURNING *;
 SELECT * FROM api_keys
 WHERE key_hash = $1 AND (expires_at IS NULL OR expires_at > NOW()) LIMIT 1;
 
+-- name: GetAPIKeyByID :one
+SELECT * FROM api_keys
+WHERE id = $1 LIMIT 1;
+
 -- name: ListAPIKeys :many
 SELECT id, team_id, project_id, name, key_prefix, scopes, last_used_at, expires_at, created_at
 FROM api_keys
@@ -145,6 +149,13 @@ ORDER BY created_at DESC;
 -- name: CreateAPIKey :one
 INSERT INTO api_keys (team_id, project_id, name, key_hash, key_prefix, scopes, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
+RETURNING *;
+
+-- name: RotateAPIKey :one
+UPDATE api_keys
+SET key_hash = $2,
+    key_prefix = $3
+WHERE id = $1
 RETURNING *;
 
 -- name: UpdateAPIKeyLastUsed :exec

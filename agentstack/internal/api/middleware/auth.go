@@ -148,10 +148,21 @@ func GetScopes(ctx context.Context) []string {
 }
 
 // HasScope checks if the context has a specific scope.
-func HasScope(ctx context.Context, scope string) bool {
+func HasScope(ctx context.Context, resource string, action string) bool {
 	scopes := GetScopes(ctx)
+	if len(scopes) == 0 {
+		return false
+	}
+
+	required := resource + ":" + action
+	resourceWildcard := resource + ":*"
+
 	for _, s := range scopes {
-		if s == scope || s == "*" {
+		if s == "*" || s == required || s == resourceWildcard {
+			return true
+		}
+		// Handle "manage" action as a wildcard for all actions on a resource
+		if action != "manage" && s == resource+":manage" {
 			return true
 		}
 	}

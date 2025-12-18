@@ -64,3 +64,12 @@ func (s *AuthService) ListAPIKeys(ctx context.Context) (*ListAPIKeysResponse, er
 func (s *AuthService) RevokeAPIKey(ctx context.Context, id string) error {
 	return s.client.Delete(ctx, "/v1/api-keys/"+id)
 }
+
+// RotateAPIKey rotates an API key by ID.
+func (s *AuthService) RotateAPIKey(ctx context.Context, id string) (*APIKey, error) {
+	var apiKey APIKey
+	if err := s.client.Post(ctx, "/v1/api-keys/"+id+"/rotate", nil, &apiKey); err != nil {
+		return nil, err
+	}
+	return &apiKey, nil
+}

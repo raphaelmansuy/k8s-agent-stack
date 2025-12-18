@@ -2,11 +2,13 @@ package commands
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/raphaelmansuy/agentstack/cli/internal/output"
 	"github.com/raphaelmansuy/agentstack/sdk"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 )
 
 func newAgentCmd() *cobra.Command {
@@ -19,6 +21,35 @@ func newAgentCmd() *cobra.Command {
 	cmd.AddCommand(newAgentCreateCmd())
 	cmd.AddCommand(newAgentUpdateCmd())
 	cmd.AddCommand(newAgentDeleteCmd())
+	cmd.AddCommand(newAgentDeployCmd())
+	cmd.AddCommand(newLogsCmd())
+	return cmd
+}
+
+func newAgentDeployCmd() *cobra.Command {
+	var filename string
+	cmd := &cobra.Command{
+		Use:   "deploy -f <filename>",
+		Short: "Deploy an agent from a manifest file",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if filename == "" {
+				return fmt.Errorf("-f is required")
+			}
+			data, err := os.ReadFile(filename)
+			if err != nil {
+				return err
+			}
+			var manifest Manifest
+			if err := yaml.Unmarshal(data, &manifest); err != nil {
+				return err
+			}
+			if manifest.Kind != "Agent" {
+				return fmt.Errorf("manifest kind must be Agent")
+			}
+			return applyAgent(cmd.Context(), manifest)
+		},
+	}
+	cmd.Flags().StringVarP(&filename, "file", "f", "", "agent manifest file")
 	return cmd
 }
 

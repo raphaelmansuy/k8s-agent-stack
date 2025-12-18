@@ -17,6 +17,7 @@ func newKeysCmd() *cobra.Command {
 	cmd.AddCommand(newKeysListCmd())
 	cmd.AddCommand(newKeysCreateCmd())
 	cmd.AddCommand(newKeysDeleteCmd())
+	cmd.AddCommand(newKeysRotateCmd())
 	return cmd
 }
 
@@ -117,4 +118,45 @@ func newKeysDeleteCmd() *cobra.Command {
 			return nil
 		},
 	}
+}
+
+func newKeysRotateCmd() *cobra.Command {
+	var force bool
+	cmd := &cobra.Command{
+		Use:   "rotate <id>",
+		Short: "Rotate an API key",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := cmd.Context()
+			id := args[0]
+
+			if !force {
+				fmt.Printf("Are you sure you want to rotate API key %s? The old key will stop working immediately. (y/N): ", id)
+				var confirm string
+				fmt.Scanln(&confirm)
+				if confirm != "y" && confirm != "Y" {
+					fmt.Println("Aborted")
+					return nil
+				}
+			}
+
+			spinner := output.NewSpinner(fmt.Sprintf("Rotating API key %s...", id))
+			spinner.Start()
+			key, err := client.Auth.RotateAPIKey(ctx, id)
+			if err != nil {
+				spinner.Fail("Failed to rotate API key")
+				return fmt.Errorf("failed to rotate API key: %w", err)
+			}
+			spinner.Success("API key rotated successfully")
+
+			fmt.Printf("\nIMPORTANT: Copy this new key now. It will not be shown again!\n")
+			fmt.Printf("New API Key: %s\n\n", key.Key)
+
+			return nil
+		},
+	}
+
+	cmd.Flags().BoolVarP(&force, "force", "f", false, "Skip confirmation")
+
+	return cmd
 }

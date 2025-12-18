@@ -142,6 +142,56 @@ func RegisterAPIKeyRoutes(api huma.API, authService *auth.Service, rbacM *middle
 		}, nil
 	})
 
+	// Rotate API key
+	huma.Register(api, huma.Operation{
+		OperationID: "rotate-api-key",
+		Method:      http.MethodPost,
+		Path:        "/v1/api-keys/{id}/rotate",
+		Summary:     "Rotate an API key",
+		Tags:        []string{"Authentication"},
+		Middlewares: huma.Middlewares{
+			rbacM.HumaRequirePermission(rbac.ResourceAPIKey, rbac.ActionUpdate),
+		},
+	}, func(ctx context.Context, input *struct {
+		ID string `path:"id" doc:"API Key ID"`
+	}) (*CreateAPIKeyOutput, error) {
+		teamID := middleware.GetTeamID(ctx)
+		if teamID == "" {
+			return nil, huma.Error401Unauthorized("Authentication required")
+		}
+
+		// Verify ownership
+		existing, err := authService.GetAPIKey(ctx, input.ID)
+		if err != nil {
+			return nil, huma.Error404NotFound("API key not found")
+		}
+		if existing.TeamID != teamID {
+			return nil, huma.Error403Forbidden("Access denied")
+		}
+
+		generated, err := authService.RotateKey(ctx, input.ID)
+		if err != nil {
+			return nil, huma.Error500InternalServerError("Failed to rotate API key", err)
+		}
+
+		// Audit log
+		auditM.Log(ctx, audit.EventAPIKeyRotated, string(rbac.ResourceAPIKey), input.ID, "rotate", nil)
+
+		resp := CreateAPIKeyOutput{}
+		resp.Body.APIKeyResponse = APIKeyResponse{
+			ID:         generated.ID,
+			Name:       generated.Name,
+			KeyPrefix:  generated.KeyPrefix,
+			Scopes:     generated.Scopes,
+			LastUsedAt: generated.LastUsedAt,
+			ExpiresAt:  generated.ExpiresAt,
+			CreatedAt:  generated.CreatedAt,
+		}
+		resp.Body.RawKey = generated.RawKey
+
+		return &resp, nil
+	})
+
 	// Delete API key
 	huma.Register(api, huma.Operation{
 		OperationID: "delete-api-key",

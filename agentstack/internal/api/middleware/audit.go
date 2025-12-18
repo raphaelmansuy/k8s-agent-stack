@@ -2,10 +2,12 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 	"github.com/raphaelmansuy/agentstack/internal/domain/audit"
 )
@@ -25,7 +27,12 @@ func (m *AuditMiddleware) RequestLogger() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
-			requestID := uuid.New().String()
+			
+			// Use Chi request ID if available, otherwise generate one
+			requestID := middleware.GetReqID(r.Context())
+			if requestID == "" {
+				requestID = uuid.New().String()
+			}
 
 			// Add request ID to context
 			ctx := SetRequestIDInContext(r.Context(), requestID)
@@ -191,6 +198,37 @@ func (m *AuditMiddleware) HumaLogAction(eventType audit.EventType, resourceType 
 			Details:    details,
 		})
 	}
+}
+
+// Log records an audit event directly.
+func (m *AuditMiddleware) Log(ctx context.Context, eventType audit.EventType, resource, resourceID, action string, details map[string]any) {
+	auth := GetAuthFromContext(ctx)
+	requestID := GetRequestIDFromContext(ctx)
+
+	actorType := audit.ActorSystem
+	actorID := "system"
+	actorEmail := ""
+	teamID := ""
+	if auth != nil {
+		actorType = audit.ActorUser
+		actorID = auth.UserID
+		actorEmail = auth.Email
+		teamID = auth.TeamID
+	}
+
+	_ = m.auditSvc.LogAction(ctx, audit.LogParams{
+		Type:       eventType,
+		TeamID:     teamID,
+		ActorID:    actorID,
+		ActorType:  actorType,
+		ActorEmail: actorEmail,
+		Resource:   resource,
+		ResourceID: resourceID,
+		Action:     action,
+		Result:     audit.ResultSuccess,
+		RequestID:  requestID,
+		Details:    details,
+	})
 }
 
 // responseCapture wraps ResponseWriter to capture status code and response size.

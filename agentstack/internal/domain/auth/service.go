@@ -16,6 +16,7 @@ type Repository interface {
 	ListAPIKeys(ctx context.Context, teamID string) ([]*APIKey, error)
 	DeleteAPIKey(ctx context.Context, id string) error
 	UpdateLastUsed(ctx context.Context, id string) error
+	RotateAPIKey(ctx context.Context, id, hash, prefix string) (*APIKey, error)
 }
 
 // Service provides API key management functionality.
@@ -30,15 +31,10 @@ func NewService(repo Repository) *Service {
 
 // CreateKey generates and stores a new API key.
 func (s *Service) CreateKey(ctx context.Context, input *APIKeyCreate) (*APIKeyGenerated, error) {
-	// Generate raw key: sk_live_<32 chars>
-	rawKey, err := s.generateRandomKey(32)
+	fullKey, hash, prefix, err := s.generateKey()
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate key: %w", err)
+		return nil, err
 	}
-
-	fullKey := fmt.Sprintf("sk_live_%s", rawKey)
-	prefix := fullKey[:8] // sk_live_
-	hash := s.HashKey(fullKey)
 
 	key := &APIKey{
 		TeamID:    input.TeamID,
@@ -60,6 +56,36 @@ func (s *Service) CreateKey(ctx context.Context, input *APIKeyCreate) (*APIKeyGe
 	}, nil
 }
 
+// RotateKey rotates an existing API key.
+func (s *Service) RotateKey(ctx context.Context, id string) (*APIKeyGenerated, error) {
+	fullKey, hash, prefix, err := s.generateKey()
+	if err != nil {
+		return nil, err
+	}
+
+	key, err := s.repo.RotateAPIKey(ctx, id, hash, prefix)
+	if err != nil {
+		return nil, err
+	}
+
+	return &APIKeyGenerated{
+		APIKey: *key,
+		RawKey: fullKey,
+	}, nil
+}
+
+func (s *Service) generateKey() (string, string, string, error) {
+	rawKey, err := s.generateRandomKey(32)
+	if err != nil {
+		return "", "", "", fmt.Errorf("failed to generate key: %w", err)
+	}
+
+	fullKey := fmt.Sprintf("sk_live_%s", rawKey)
+	prefix := fullKey[:8] // sk_live_
+	hash := s.HashKey(fullKey)
+	return fullKey, hash, prefix, nil
+}
+
 // HashKey returns a SHA-256 hash of the key.
 func (s *Service) HashKey(key string) string {
 	hash := sha256.Sum256([]byte(key))
@@ -76,6 +102,10 @@ func (s *Service) generateRandomKey(length int) (string, error) {
 
 func (s *Service) ListKeys(ctx context.Context, teamID string) ([]*APIKey, error) {
 	return s.repo.ListAPIKeys(ctx, teamID)
+}
+
+func (s *Service) GetAPIKey(ctx context.Context, id string) (*APIKey, error) {
+	return s.repo.GetAPIKey(ctx, id)
 }
 
 func (s *Service) DeleteKey(ctx context.Context, id string) error {

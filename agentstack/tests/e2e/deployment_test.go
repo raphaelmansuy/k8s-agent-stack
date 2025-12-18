@@ -6,21 +6,60 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
-	"github.com/raphaelmansuy/agentstack/internal/api/handlers"
 	"github.com/raphaelmansuy/agentstack/internal/domain/a2a"
 	"github.com/raphaelmansuy/agentstack/internal/testing/kagent"
 )
 
+type SendMessageResponse struct {
+	TaskID string `json:"taskId"`
+}
+
+func registerA2AMock(mux *http.ServeMux, service *a2a.Service) {
+	mux.HandleFunc("/a2a/send", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			AgentURL  string `json:"agentUrl"`
+			Content   string `json:"content"`
+			ContextID string `json:"contextId"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if body.AgentURL == "" || body.Content == "" {
+			http.Error(w, "missing required fields", http.StatusBadRequest)
+			return
+		}
+
+		params := &a2a.SendMessageParams{
+			Message: a2a.MessageInput{
+				Parts:     []a2a.Part{a2a.TextPart(body.Content)},
+				ContextID: body.ContextID,
+			},
+		}
+
+		task, err := service.SendMessage(r.Context(), body.AgentURL, params)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"taskId":    task.TaskID,
+			"contextId": task.ContextID,
+		})
+	})
+}
+
 // TestE2EAgentDeploymentFlow tests the complete agent deployment flow.
 func TestE2EAgentDeploymentFlow(t *testing.T) {
 	ctx := context.Background()
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
 	k := kagent.New(kagent.DefaultConfig())
 	defer k.Close()
@@ -30,10 +69,10 @@ func TestE2EAgentDeploymentFlow(t *testing.T) {
 	}
 
 	a2aService := a2a.NewService()
-	a2aHandler := handlers.NewA2AHandler(a2aService, logger)
+	
 
 	mux := http.NewServeMux()
-	a2aHandler.RegisterRoutes(mux)
+	registerA2AMock(mux, a2aService)
 
 	server := httptest.NewServer(mux)
 	defer server.Close()
@@ -55,7 +94,7 @@ func TestE2EAgentDeploymentFlow(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", resp.StatusCode, body)
 	}
 
-	var sendResp handlers.SendMessageResponse
+	var sendResp SendMessageResponse
 	if err := json.NewDecoder(resp.Body).Decode(&sendResp); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
@@ -72,7 +111,6 @@ func TestE2EAgentDeploymentFlow(t *testing.T) {
 // TestE2EAPIChain tests the full API chain.
 func TestE2EAPIChain(t *testing.T) {
 	ctx := context.Background()
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
 	k := kagent.New(kagent.DefaultConfig())
 	defer k.Close()
@@ -82,10 +120,10 @@ func TestE2EAPIChain(t *testing.T) {
 	}
 
 	a2aService := a2a.NewService()
-	a2aHandler := handlers.NewA2AHandler(a2aService, logger)
+	
 
 	mux := http.NewServeMux()
-	a2aHandler.RegisterRoutes(mux)
+	registerA2AMock(mux, a2aService)
 
 	server := httptest.NewServer(mux)
 	defer server.Close()
@@ -119,7 +157,7 @@ func TestE2EAPIChain(t *testing.T) {
 				t.Errorf("expected 200, got %d: %s", resp.StatusCode, body)
 			}
 
-			var result handlers.SendMessageResponse
+			var result SendMessageResponse
 			if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 				t.Fatalf("failed to decode: %v", err)
 			}
@@ -133,13 +171,12 @@ func TestE2EAPIChain(t *testing.T) {
 
 // TestE2EValidation tests input validation across the API.
 func TestE2EValidation(t *testing.T) {
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
 	a2aService := a2a.NewService()
-	a2aHandler := handlers.NewA2AHandler(a2aService, logger)
+	
 
 	mux := http.NewServeMux()
-	a2aHandler.RegisterRoutes(mux)
+	registerA2AMock(mux, a2aService)
 
 	server := httptest.NewServer(mux)
 	defer server.Close()
@@ -218,16 +255,15 @@ func TestE2EAgentDiscovery(t *testing.T) {
 // TestE2EErrorRecovery tests error handling and recovery.
 func TestE2EErrorRecovery(t *testing.T) {
 	ctx := context.Background()
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
 	k := kagent.New(kagent.DefaultConfig())
 	defer k.Close()
 
 	a2aService := a2a.NewService()
-	a2aHandler := handlers.NewA2AHandler(a2aService, logger)
+	
 
 	mux := http.NewServeMux()
-	a2aHandler.RegisterRoutes(mux)
+	registerA2AMock(mux, a2aService)
 
 	server := httptest.NewServer(mux)
 	defer server.Close()

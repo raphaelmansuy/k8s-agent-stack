@@ -17,7 +17,6 @@ func TestAgent(t *testing.T) {
 		ProjectID: "project-1",
 		Name:      "Test Agent",
 		Slug:      "test-agent",
-		ModelID:   "gpt-4",
 		Status:    "active",
 	}
 

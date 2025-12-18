@@ -19,7 +19,28 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 	"go.opentelemetry.io/otel/trace"
+
+	"github.com/raphaelmansuy/agentstack/internal/config"
 )
+
+// NewFromConfig creates a new Telemetry instance from application configuration.
+func NewFromConfig(ctx context.Context, cfg config.OTelConfig, env string) (*Telemetry, error) {
+	if !cfg.Enabled {
+		return &Telemetry{}, nil
+	}
+
+	tConfig := TelemetryConfig{
+		ServiceName:     cfg.ServiceName,
+		ServiceVersion:  "1.0.0",
+		Environment:     env,
+		OTLPEndpoint:    cfg.Endpoint,
+		SampleRate:      1.0,
+		MetricsInterval: 15 * time.Second,
+		Insecure:        cfg.Insecure,
+	}
+
+	return New(ctx, tConfig)
+}
 
 // TelemetryConfig configures the telemetry system.
 type TelemetryConfig struct {
@@ -319,6 +340,10 @@ func (t *Telemetry) StartSpan(ctx context.Context, name string, opts ...trace.Sp
 func (t *Telemetry) HTTPMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if t.tracer == nil {
+				next.ServeHTTP(w, r)
+				return
+			}
 			start := time.Now()
 
 			// Extract trace context from headers

@@ -48,9 +48,18 @@ func (r *APIKeyRepository) CreateAPIKey(ctx context.Context, key *auth.APIKey) e
 }
 
 func (r *APIKeyRepository) GetAPIKey(ctx context.Context, id string) (*auth.APIKey, error) {
-	// Note: GetAPIKey in queries.sql uses key_hash, but we might need one by ID too.
-	// For now, let's implement GetAPIKeyByHash as required by the service.
-	return nil, nil
+	queries, cleanup, err := r.pool.Queries(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup()
+
+	row, err := queries.GetAPIKeyByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.mapAPIKey(row), nil
 }
 
 func (r *APIKeyRepository) GetAPIKeyByHash(ctx context.Context, hash string) (*auth.APIKey, error) {
@@ -115,6 +124,25 @@ func (r *APIKeyRepository) UpdateLastUsed(ctx context.Context, id string) error 
 	defer cleanup()
 
 	return queries.UpdateAPIKeyLastUsed(ctx, id)
+}
+
+func (r *APIKeyRepository) RotateAPIKey(ctx context.Context, id, hash, prefix string) (*auth.APIKey, error) {
+	queries, cleanup, err := r.pool.Queries(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup()
+
+	row, err := queries.RotateAPIKey(ctx, db.RotateAPIKeyParams{
+		ID:        id,
+		KeyHash:   hash,
+		KeyPrefix: prefix,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return r.mapAPIKey(row), nil
 }
 
 func (r *APIKeyRepository) mapAPIKey(row db.ApiKey) *auth.APIKey {

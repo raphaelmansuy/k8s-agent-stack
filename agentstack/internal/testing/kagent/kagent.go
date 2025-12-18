@@ -272,7 +272,7 @@ func (k *MockKagent) handleMessageSend(w http.ResponseWriter, req *a2a.Request) 
 	k.tasks[taskID] = task
 	k.mu.Unlock()
 
-	k.writeResponse(w, req.ID, task.Status)
+	k.writeResponse(w, req.ID, task)
 }
 
 // handleMessageStream handles streaming message requests.

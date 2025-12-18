@@ -41,7 +41,7 @@ func TestAgentPhases(t *testing.T) {
 }
 
 func TestAgentSerialization(t *testing.T) {
-	agent := &Agent{
+	agent := &AgentDeployment{
 		ID:          "agent-123",
 		Name:        "test-agent",
 		Description: "A test agent",
@@ -86,7 +86,7 @@ func TestAgentSerialization(t *testing.T) {
 	}
 
 	// Deserialize
-	var parsed Agent
+	var parsed AgentDeployment
 	if err := json.Unmarshal(data, &parsed); err != nil {
 		t.Fatalf("failed to unmarshal agent: %v", err)
 	}
@@ -228,7 +228,7 @@ func TestAgentStatus(t *testing.T) {
 
 func TestMinimalAgent(t *testing.T) {
 	// Test with minimal required fields
-	agent := &Agent{
+	agent := &AgentDeployment{
 		ID:    "minimal-agent",
 		Image: "nginx:latest",
 	}
@@ -238,7 +238,7 @@ func TestMinimalAgent(t *testing.T) {
 		t.Fatalf("failed to marshal: %v", err)
 	}
 
-	var parsed Agent
+	var parsed AgentDeployment
 	if err := json.Unmarshal(data, &parsed); err != nil {
 		t.Fatalf("failed to unmarshal: %v", err)
 	}
@@ -252,7 +252,7 @@ func TestMinimalAgent(t *testing.T) {
 }
 
 func TestAgentDefaultValues(t *testing.T) {
-	agent := &Agent{
+	agent := &AgentDeployment{
 		ID:    "test",
 		Image: "test:latest",
 	}
@@ -270,7 +270,7 @@ func TestAgentDefaultValues(t *testing.T) {
 }
 
 func TestAgentEnvMap(t *testing.T) {
-	agent := &Agent{
+	agent := &AgentDeployment{
 		ID:    "env-test",
 		Image: "test:latest",
 		Env: map[string]string{
@@ -285,7 +285,7 @@ func TestAgentEnvMap(t *testing.T) {
 		t.Fatalf("failed to marshal: %v", err)
 	}
 
-	var parsed Agent
+	var parsed AgentDeployment
 	if err := json.Unmarshal(data, &parsed); err != nil {
 		t.Fatalf("failed to unmarshal: %v", err)
 	}
@@ -299,7 +299,7 @@ func TestAgentEnvMap(t *testing.T) {
 }
 
 func TestMultipleTools(t *testing.T) {
-	agent := &Agent{
+	agent := &AgentDeployment{
 		ID:    "multi-tool",
 		Image: "test:latest",
 		Tools: []ToolSpec{
@@ -314,7 +314,7 @@ func TestMultipleTools(t *testing.T) {
 		t.Fatalf("failed to marshal: %v", err)
 	}
 
-	var parsed Agent
+	var parsed AgentDeployment
 	if err := json.Unmarshal(data, &parsed); err != nil {
 		t.Fatalf("failed to unmarshal: %v", err)
 	}

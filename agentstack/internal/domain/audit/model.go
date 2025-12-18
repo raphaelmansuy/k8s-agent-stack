@@ -15,6 +15,7 @@ const (
 	EventLogout        EventType = "auth.logout"
 	EventAPIKeyCreated EventType = "auth.api_key_created"
 	EventAPIKeyRevoked EventType = "auth.api_key_revoked"
+	EventAPIKeyRotated EventType = "auth.api_key_rotated"
 
 	// Resource events
 	EventAgentCreated  EventType = "agent.created"

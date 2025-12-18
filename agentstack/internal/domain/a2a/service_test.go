@@ -84,6 +84,8 @@ func TestSendMessageSuccess(t *testing.T) {
 		resp := Response{
 			JSONRPC: "2.0",
 			Result: map[string]interface{}{
+				"taskId":    "test-task-id",
+				"contextId": "test-context-id",
 				"state":     "completed",
 				"timestamp": "2024-01-01T00:00:00Z",
 			},

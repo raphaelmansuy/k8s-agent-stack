@@ -9,15 +9,17 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"github.com/raphaelmansuy/agentstack/internal/infrastructure/telemetry"
 )
 
 // Client wraps the Redis client with additional functionality.
 type Client struct {
-	rdb *redis.Client
+	rdb       *redis.Client
+	telemetry *telemetry.Telemetry
 }
 
 // NewRedisClient creates a new Redis client from a URL.
-func NewRedisClient(url string) (*Client, error) {
+func NewRedisClient(url string, t *telemetry.Telemetry) (*Client, error) {
 	opts, err := redis.ParseURL(url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse Redis URL: %w", err)
@@ -41,7 +43,7 @@ func NewRedisClient(url string) (*Client, error) {
 		return nil, fmt.Errorf("failed to ping Redis: %w", err)
 	}
 
-	return &Client{rdb: client}, nil
+	return &Client{rdb: client, telemetry: t}, nil
 }
 
 // Close closes the Redis connection.
@@ -62,7 +64,16 @@ func (c *Client) Get(ctx context.Context, key string) (string, error) {
 	if c.rdb == nil {
 		return "", errors.New("redis client not initialized")
 	}
-	return c.rdb.Get(ctx, key).Result()
+	var err error
+	var hit bool
+	if c.telemetry != nil {
+		finish := c.telemetry.CacheHook(ctx, "get", key)
+		defer func() { finish(hit, err) }()
+	}
+	val, e := c.rdb.Get(ctx, key).Result()
+	err = e
+	hit = err == nil
+	return val, err
 }
 
 // GetInt64 retrieves an int64 value from cache.

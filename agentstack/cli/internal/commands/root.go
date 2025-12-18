@@ -79,6 +79,7 @@ func init() {
 	rootCmd.AddCommand(newConfigCmd())
 	rootCmd.AddCommand(newLoginCmd())
 	rootCmd.AddCommand(newKeysCmd())
+	rootCmd.AddCommand(newApplyCmd())
 }
 
 func getFormatter() (*output.Formatter, error) {

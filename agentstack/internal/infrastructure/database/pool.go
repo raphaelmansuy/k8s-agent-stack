@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/raphaelmansuy/agentstack/internal/api/middleware"
 	"github.com/raphaelmansuy/agentstack/internal/infrastructure/database/db"
+	"github.com/raphaelmansuy/agentstack/internal/infrastructure/telemetry"
 )
 
 type contextKey string
@@ -23,10 +24,11 @@ const (
 // Pool wraps pgxpool.Pool with additional functionality.
 type Pool struct {
 	*pgxpool.Pool
+	telemetry *telemetry.Telemetry
 }
 
 // NewPool creates a new PostgreSQL connection pool.
-func NewPool(ctx context.Context, databaseURL string) (*Pool, error) {
+func NewPool(ctx context.Context, databaseURL string, t *telemetry.Telemetry) (*Pool, error) {
 	config, err := pgxpool.ParseConfig(databaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse database URL: %w", err)
@@ -53,7 +55,7 @@ func NewPool(ctx context.Context, databaseURL string) (*Pool, error) {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	return &Pool{Pool: pool}, nil
+	return &Pool{Pool: pool, telemetry: t}, nil
 }
 
 // WithTenant returns a connection with the tenant context set for RLS.
@@ -94,33 +96,54 @@ func (p *Pool) Queries(ctx context.Context) (*db.Queries, func(), error) {
 
 // TenantDB implements db.DBTX and automatically uses the tenant connection from context if available.
 type TenantDB struct {
-	pool *pgxpool.Pool
+	pool *Pool
 }
 
 func (d *TenantDB) Exec(ctx context.Context, sql string, arguments ...interface{}) (pgconn.CommandTag, error) {
-	if conn, ok := ctx.Value(connKey).(*pgxpool.Conn); ok {
-		return conn.Exec(ctx, sql, arguments...)
+	var err error
+	if d.pool.telemetry != nil {
+		finish := d.pool.telemetry.DBQueryHook(ctx, "Exec", sql, arguments)
+		defer func() { finish(err) }()
 	}
-	return d.pool.Exec(ctx, sql, arguments...)
+	if conn, ok := ctx.Value(connKey).(*pgxpool.Conn); ok {
+		tag, e := conn.Exec(ctx, sql, arguments...)
+		err = e
+		return tag, err
+	}
+	tag, e := d.pool.Pool.Exec(ctx, sql, arguments...)
+	err = e
+	return tag, err
 }
 
 func (d *TenantDB) Query(ctx context.Context, sql string, arguments ...interface{}) (pgx.Rows, error) {
-	if conn, ok := ctx.Value(connKey).(*pgxpool.Conn); ok {
-		return conn.Query(ctx, sql, arguments...)
+	var err error
+	if d.pool.telemetry != nil {
+		finish := d.pool.telemetry.DBQueryHook(ctx, "Query", sql, arguments)
+		defer func() { finish(err) }()
 	}
-	return d.pool.Query(ctx, sql, arguments...)
+	if conn, ok := ctx.Value(connKey).(*pgxpool.Conn); ok {
+		rows, e := conn.Query(ctx, sql, arguments...)
+		err = e
+		return rows, err
+	}
+	rows, e := d.pool.Pool.Query(ctx, sql, arguments...)
+	err = e
+	return rows, err
 }
 
 func (d *TenantDB) QueryRow(ctx context.Context, sql string, arguments ...interface{}) pgx.Row {
+	if d.pool.telemetry != nil {
+		defer d.pool.telemetry.DBQueryHook(ctx, "QueryRow", sql, arguments)(nil)
+	}
 	if conn, ok := ctx.Value(connKey).(*pgxpool.Conn); ok {
 		return conn.QueryRow(ctx, sql, arguments...)
 	}
-	return d.pool.QueryRow(ctx, sql, arguments...)
+	return d.pool.Pool.QueryRow(ctx, sql, arguments...)
 }
 
 // NewTenantDB creates a new TenantDB.
 func (p *Pool) NewTenantDB() *TenantDB {
-	return &TenantDB{pool: p.Pool}
+	return &TenantDB{pool: p}
 }
 
 // TenantMiddleware returns a middleware that sets the tenant context for RLS.

@@ -18,6 +18,7 @@ import (
 	"github.com/raphaelmansuy/agentstack/internal/infrastructure/database/db"
 	"github.com/raphaelmansuy/agentstack/internal/infrastructure/idgen"
 	"github.com/raphaelmansuy/agentstack/internal/infrastructure/mlflow"
+	"github.com/raphaelmansuy/agentstack/internal/infrastructure/telemetry"
 	"github.com/raphaelmansuy/agentstack/internal/infrastructure/worker"
 	"github.com/raphaelmansuy/agentstack/internal/pkg/logger"
 )
@@ -50,15 +51,27 @@ func main() {
 		log.Fatal("failed to load configuration", zap.Error(err))
 	}
 
+	// Initialize Telemetry
+	otelSvc, err := telemetry.NewFromConfig(context.Background(), cfg.Telemetry, "production")
+	if err != nil {
+		log.Warn("failed to initialize telemetry", zap.Error(err))
+	} else {
+		defer func() {
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			_ = otelSvc.Shutdown(shutdownCtx)
+		}()
+	}
+
 	// Initialize database connection
-	dbPool, err := database.NewPool(context.Background(), cfg.Database.URL)
+	dbPool, err := database.NewPool(context.Background(), cfg.Database.URL, otelSvc)
 	if err != nil {
 		log.Fatal("failed to connect to database", zap.Error(err))
 	}
 	defer dbPool.Close()
 
 	// Initialize Redis client
-	redisClient, err := cache.NewRedisClient(cfg.Redis.URL)
+	redisClient, err := cache.NewRedisClient(cfg.Redis.URL, otelSvc)
 	if err != nil {
 		log.Fatal("failed to connect to Redis", zap.Error(err))
 	}

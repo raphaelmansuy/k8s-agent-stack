@@ -32,6 +32,7 @@ import (
 	"github.com/raphaelmansuy/agentstack/internal/infrastructure/database/db"
 	"github.com/raphaelmansuy/agentstack/internal/infrastructure/idgen"
 	"github.com/raphaelmansuy/agentstack/internal/infrastructure/mlflow"
+	infraTelemetry "github.com/raphaelmansuy/agentstack/internal/infrastructure/telemetry"
 	"github.com/raphaelmansuy/agentstack/internal/infrastructure/worker"
 	"github.com/raphaelmansuy/agentstack/internal/pkg/logger"
 	"github.com/raphaelmansuy/agentstack/internal/pkg/telemetry"
@@ -69,22 +70,22 @@ func main() {
 	}
 
 	// Initialize OpenTelemetry
-	shutdown, err := telemetry.InitTracer(cfg.Telemetry)
+	otelSvc, err := infraTelemetry.NewFromConfig(ctx, cfg.Telemetry, cfg.Environment)
 	if err != nil {
 		log.Warn("failed to initialize telemetry", zap.Error(err))
 	} else {
-		defer func() { _ = shutdown(context.Background()) }()
+		defer func() { _ = otelSvc.Shutdown(context.Background()) }()
 	}
 
 	// Initialize database connection
-	dbPool, err := database.NewPool(context.Background(), cfg.Database.URL)
+	dbPool, err := database.NewPool(context.Background(), cfg.Database.URL, otelSvc)
 	if err != nil {
 		log.Fatal("failed to connect to database", zap.Error(err))
 	}
 	defer dbPool.Close()
 
 	// Initialize Redis client
-	redisClient, err := cache.NewRedisClient(cfg.Redis.URL)
+	redisClient, err := cache.NewRedisClient(cfg.Redis.URL, otelSvc)
 	if err != nil {
 		log.Warn("failed to connect to Redis", zap.Error(err))
 		// Redis is optional for development, continue without it
@@ -98,8 +99,10 @@ func main() {
 	// Apply middleware
 	router.Use(chiMiddleware.RequestID)
 	router.Use(chiMiddleware.RealIP)
+	router.Use(middleware.Logger(log))
 	router.Use(chiMiddleware.Recoverer)
 	router.Use(chiMiddleware.Timeout(60 * time.Second))
+	router.Use(otelSvc.HTTPMiddleware())
 	router.Use(telemetry.MetricsMiddleware)
 
 	// Initialize Database Queries
