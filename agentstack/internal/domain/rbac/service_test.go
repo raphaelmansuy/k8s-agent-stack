@@ -101,9 +101,9 @@ func TestCheckPermission(t *testing.T) {
 	}
 
 	tests := []struct {
-		name    string
-		req     PermissionRequest
-		want    bool
+		name string
+		req  PermissionRequest
+		want bool
 	}{
 		{
 			name: "owner can manage agents",

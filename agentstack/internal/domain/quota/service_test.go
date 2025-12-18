@@ -66,9 +66,9 @@ func TestCheckQuota(t *testing.T) {
 	repo.usage["q1"] = 3
 
 	tests := []struct {
-		name    string
-		req     CheckQuotaRequest
-		want    bool
+		name string
+		req  CheckQuotaRequest
+		want bool
 	}{
 		{
 			name: "within quota",

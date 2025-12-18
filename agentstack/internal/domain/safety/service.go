@@ -21,14 +21,14 @@ type Moderator interface {
 
 // Config contains safety service configuration.
 type Config struct {
-	Enabled              bool              `json:"enabled"`
-	BlockedPatterns      []string          `json:"blocked_patterns"`
-	BlockedWords         []string          `json:"blocked_words"`
-	MaxInputLength       int               `json:"max_input_length"`
-	MaxOutputLength      int               `json:"max_output_length"`
-	RequireModeration    bool              `json:"require_moderation"`
-	FailOpen             bool              `json:"fail_open"` // If true, allow on moderation failure
-	ModerationThresholds Thresholds        `json:"moderation_thresholds"`
+	Enabled              bool       `json:"enabled"`
+	BlockedPatterns      []string   `json:"blocked_patterns"`
+	BlockedWords         []string   `json:"blocked_words"`
+	MaxInputLength       int        `json:"max_input_length"`
+	MaxOutputLength      int        `json:"max_output_length"`
+	RequireModeration    bool       `json:"require_moderation"`
+	FailOpen             bool       `json:"fail_open"` // If true, allow on moderation failure
+	ModerationThresholds Thresholds `json:"moderation_thresholds"`
 }
 
 // DefaultConfig returns a sensible default configuration.

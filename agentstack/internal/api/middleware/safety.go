@@ -88,9 +88,9 @@ func (m *SafetyMiddleware) PreExecutionHandler(next http.Handler) http.Handler {
 
 // SafetyErrorResponse is the response when content is blocked.
 type SafetyErrorResponse struct {
-	Error  string          `json:"error"`
-	Reason string          `json:"reason"`
-	Checks []safety.Check  `json:"checks,omitempty"`
+	Error  string         `json:"error"`
+	Reason string         `json:"reason"`
+	Checks []safety.Check `json:"checks,omitempty"`
 }
 
 type contextKey string
@@ -114,7 +114,7 @@ func extractTextFromBody(body []byte) string {
 
 	// Try common field names for message content
 	textFields := []string{"message", "content", "text", "input", "prompt", "query"}
-	
+
 	for _, field := range textFields {
 		if val, ok := data[field]; ok {
 			switch v := val.(type) {
@@ -190,7 +190,7 @@ func (w *SafetyResponseWriter) Flush() error {
 
 	// Try to extract text content
 	output := extractTextFromBody(body)
-	
+
 	if output != "" && w.safetySvc.IsEnabled() {
 		result, err := w.safetySvc.CheckOutput(w.ctx, output)
 		if err == nil && !result.Allowed {

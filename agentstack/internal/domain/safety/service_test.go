@@ -131,7 +131,7 @@ func TestCheckInput_BlockedPatterns(t *testing.T) {
 func TestCheckInput_Moderation(t *testing.T) {
 	config := DefaultConfig()
 	config.RequireModeration = true
-	
+
 	// Test with safe content
 	moderator := &mockModerator{
 		classification: &Classification{
@@ -380,7 +380,7 @@ func TestNewContentBlockedError(t *testing.T) {
 
 func TestDefaultConfig(t *testing.T) {
 	config := DefaultConfig()
-	
+
 	if !config.Enabled {
 		t.Error("expected Enabled=true by default")
 	}

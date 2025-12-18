@@ -37,13 +37,13 @@ type Usage struct {
 
 // Plan defines a set of quotas for a subscription tier.
 type Plan struct {
-	ID           string                   `json:"id"`
-	Name         string                   `json:"name"`
-	Description  string                   `json:"description"`
-	Quotas       map[QuotaType]int64      `json:"quotas"`
+	ID           string                    `json:"id"`
+	Name         string                    `json:"name"`
+	Description  string                    `json:"description"`
+	Quotas       map[QuotaType]int64       `json:"quotas"`
 	PeriodQuotas map[QuotaType]PeriodQuota `json:"period_quotas"`
-	Price        float64                  `json:"price"`
-	IsActive     bool                     `json:"is_active"`
+	Price        float64                   `json:"price"`
+	IsActive     bool                      `json:"is_active"`
 }
 
 // PeriodQuota defines a quota with a time period.

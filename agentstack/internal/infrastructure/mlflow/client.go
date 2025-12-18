@@ -267,11 +267,11 @@ const (
 
 // Experiment represents an MLflow experiment.
 type Experiment struct {
-	ExperimentID   string
-	Name           string
+	ExperimentID     string
+	Name             string
 	ArtifactLocation string
-	LifecycleStage string
-	Tags           map[string]string
+	LifecycleStage   string
+	Tags             map[string]string
 }
 
 // RunInfo represents information about a run.

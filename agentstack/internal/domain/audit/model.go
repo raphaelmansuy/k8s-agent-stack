@@ -27,11 +27,11 @@ const (
 	EventProjectUpdated EventType = "project.updated"
 	EventProjectDeleted EventType = "project.deleted"
 
-	EventDeploymentCreated  EventType = "deployment.created"
-	EventDeploymentUpdated  EventType = "deployment.updated"
-	EventDeploymentDeleted  EventType = "deployment.deleted"
-	EventDeploymentScaled   EventType = "deployment.scaled"
-	EventDeploymentRestart  EventType = "deployment.restarted"
+	EventDeploymentCreated EventType = "deployment.created"
+	EventDeploymentUpdated EventType = "deployment.updated"
+	EventDeploymentDeleted EventType = "deployment.deleted"
+	EventDeploymentScaled  EventType = "deployment.scaled"
+	EventDeploymentRestart EventType = "deployment.restarted"
 
 	// Access events
 	EventMemberInvited    EventType = "member.invited"

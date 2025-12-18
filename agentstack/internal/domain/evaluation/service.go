@@ -9,10 +9,10 @@ import (
 
 // Service handles evaluation operations including tracing and feedback.
 type Service struct {
-	mlflow    MLflowClient
-	queue     Queue
-	repo      Repository
-	idGen     IDGenerator
+	mlflow MLflowClient
+	queue  Queue
+	repo   Repository
+	idGen  IDGenerator
 }
 
 // MLflowClient defines the interface for MLflow operations.

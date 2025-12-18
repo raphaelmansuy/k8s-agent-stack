@@ -3,8 +3,14 @@
 package handlers
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"context"
+	"errors"
+	"fmt"
+	"strings"
+	"time"
+
 	"github.com/go-playground/validator/v10"
+	"github.com/gofiber/fiber/v2"
 )
 
 var validate = validator.New()
@@ -148,13 +154,13 @@ type ListResponse struct {
 // --- Error Handling ---
 
 type ErrorResponse struct {
-	Type     string            `json:"type"`
-	Title    string            `json:"title"`
-	Status   int               `json:"status"`
-	Detail   string            `json:"detail"`
-	Instance string            `json:"instance,omitempty"`
-	TraceID  string            `json:"trace_id,omitempty"`
-	Errors   []FieldError      `json:"errors,omitempty"`
+	Type     string       `json:"type"`
+	Title    string       `json:"title"`
+	Status   int          `json:"status"`
+	Detail   string       `json:"detail"`
+	Instance string       `json:"instance,omitempty"`
+	TraceID  string       `json:"trace_id,omitempty"`
+	Errors   []FieldError `json:"errors,omitempty"`
 }
 
 type FieldError struct {

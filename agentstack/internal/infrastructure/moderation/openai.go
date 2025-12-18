@@ -117,9 +117,9 @@ type moderationResponse struct {
 }
 
 type moderationResult struct {
-	Flagged        bool                  `json:"flagged"`
-	Categories     moderationCategories  `json:"categories"`
-	CategoryScores moderationScores      `json:"category_scores"`
+	Flagged        bool                 `json:"flagged"`
+	Categories     moderationCategories `json:"categories"`
+	CategoryScores moderationScores     `json:"category_scores"`
 }
 
 type moderationCategories struct {
