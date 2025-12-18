@@ -9,20 +9,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// ContextKey type for context values.
-type ContextKey string
-
-const (
-	// ContextKeyTeamID is the context key for team ID.
-	ContextKeyTeamID ContextKey = "team_id"
-	// ContextKeyProjectID is the context key for project ID.
-	ContextKeyProjectID ContextKey = "project_id"
-	// ContextKeyUserID is the context key for user ID.
-	ContextKeyUserID ContextKey = "user_id"
-	// ContextKeyScopes is the context key for API scopes.
-	ContextKeyScopes ContextKey = "scopes"
-)
-
 // AuthConfig holds authentication configuration.
 type AuthConfig struct {
 	JWTSecret    string
@@ -130,32 +116,32 @@ func hashAPIKey(key string) string {
 
 // GetTeamID extracts team ID from context.
 func GetTeamID(ctx context.Context) string {
-	if v := ctx.Value(ContextKeyTeamID); v != nil {
-		return v.(string)
+	if auth := GetAuthFromContext(ctx); auth != nil {
+		return auth.TeamID
 	}
 	return ""
 }
 
 // GetProjectID extracts project ID from context.
 func GetProjectID(ctx context.Context) string {
-	if v := ctx.Value(ContextKeyProjectID); v != nil {
-		return v.(string)
+	if auth := GetAuthFromContext(ctx); auth != nil {
+		return auth.ProjectID
 	}
 	return ""
 }
 
 // GetUserID extracts user ID from context.
 func GetUserID(ctx context.Context) string {
-	if v := ctx.Value(ContextKeyUserID); v != nil {
-		return v.(string)
+	if auth := GetAuthFromContext(ctx); auth != nil {
+		return auth.UserID
 	}
 	return ""
 }
 
 // GetScopes extracts scopes from context.
 func GetScopes(ctx context.Context) []string {
-	if v := ctx.Value(ContextKeyScopes); v != nil {
-		return v.([]string)
+	if auth := GetAuthFromContext(ctx); auth != nil {
+		return auth.Scopes
 	}
 	return nil
 }

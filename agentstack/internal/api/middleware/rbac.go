@@ -83,9 +83,21 @@ func (m *RBACMiddleware) HumaRequirePermission(resource rbac.Resource, action rb
 			return
 		}
 
-		// For Huma, we use global scope for now as extracting from path is complex without the router context
+		// Try to extract scope from path parameters
 		scopeType := rbac.ScopeGlobal
 		scopeID := ""
+
+		if projectID := ctx.Param("projectId"); projectID != "" {
+			scopeType = rbac.ScopeProject
+			scopeID = projectID
+		} else if teamID := ctx.Param("teamId"); teamID != "" {
+			scopeType = rbac.ScopeTeam
+			scopeID = teamID
+		} else if auth.TeamID != "" {
+			// Fallback to team scope from auth
+			scopeType = rbac.ScopeTeam
+			scopeID = auth.TeamID
+		}
 
 		conditions := map[string]string{
 			"user_id": auth.UserID,

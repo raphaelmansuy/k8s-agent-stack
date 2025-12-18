@@ -2,7 +2,6 @@
 package middleware
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -125,8 +124,9 @@ func TenantContext() func(next http.Handler) http.Handler {
 			}
 
 			if teamID != "" {
-				ctx := context.WithValue(r.Context(), ContextKeyTeamID, teamID)
-				r = r.WithContext(ctx)
+				// No need to set ContextKeyTeamID anymore as GetTeamID uses AuthInfo
+				next.ServeHTTP(w, r)
+				return
 			}
 
 			next.ServeHTTP(w, r)

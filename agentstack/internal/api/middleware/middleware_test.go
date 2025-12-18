@@ -92,7 +92,7 @@ func TestGetTeamID(t *testing.T) {
 	}{
 		{
 			name:     "with team ID",
-			ctx:      context.WithValue(context.Background(), ContextKeyTeamID, "team-123"),
+			ctx:      SetAuthInContext(context.Background(), &AuthInfo{TeamID: "team-123"}),
 			expected: "team-123",
 		},
 		{
@@ -113,7 +113,7 @@ func TestGetTeamID(t *testing.T) {
 }
 
 func TestGetProjectID(t *testing.T) {
-	ctx := context.WithValue(context.Background(), ContextKeyProjectID, "project-456")
+	ctx := SetAuthInContext(context.Background(), &AuthInfo{ProjectID: "project-456"})
 	result := GetProjectID(ctx)
 	if result != "project-456" {
 		t.Errorf("GetProjectID() = %v, want project-456", result)
@@ -126,7 +126,7 @@ func TestGetProjectID(t *testing.T) {
 }
 
 func TestGetUserID(t *testing.T) {
-	ctx := context.WithValue(context.Background(), ContextKeyUserID, "user-789")
+	ctx := SetAuthInContext(context.Background(), &AuthInfo{UserID: "user-789"})
 	result := GetUserID(ctx)
 	if result != "user-789" {
 		t.Errorf("GetUserID() = %v, want user-789", result)

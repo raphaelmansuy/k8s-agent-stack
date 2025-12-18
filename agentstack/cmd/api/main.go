@@ -101,7 +101,7 @@ func main() {
 	router.Use(chiMiddleware.Timeout(60 * time.Second))
 
 	// Initialize Database Queries
-	queries := db.New(dbPool)
+	queries := db.New(dbPool.NewTenantDB())
 
 	// Initialize Repositories
 	auditRepo := database.NewAuditRepository(queries)
@@ -145,6 +145,7 @@ func main() {
 		JWTSecret:    cfg.Auth.JWTSecret,
 		APIKeyLookup: apiKeyLookup,
 	}))
+	router.Use(dbPool.TenantMiddleware())
 	router.Use(auditMiddleware.RequestLogger())
 
 	// Create Huma API
