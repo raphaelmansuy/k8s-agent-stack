@@ -75,7 +75,6 @@ func newApplyCmd() *cobra.Command {
 				}
 
 				if applyErr != nil {
-					fmt.Printf("%sError applying %s %s: %v%s\n", output.ColorRed, manifest.Kind, manifest.Metadata.Name, applyErr, output.ColorReset)
 					failed++
 				} else {
 					switch action {
@@ -87,15 +86,18 @@ func newApplyCmd() *cobra.Command {
 				}
 			}
 
-			fmt.Println()
+			if created > 0 || updated > 0 || failed > 0 {
+				fmt.Println()
+				fmt.Println("Summary:")
+			}
 			if created > 0 {
-				fmt.Printf("%sCreated %d resource(s)%s\n", output.ColorGreen, created, output.ColorReset)
+				fmt.Printf("  %sCreated: %d%s\n", output.ColorGreen, created, output.ColorReset)
 			}
 			if updated > 0 {
-				fmt.Printf("%sUpdated %d resource(s)%s\n", output.ColorBlue, updated, output.ColorReset)
+				fmt.Printf("  %sUpdated: %d%s\n", output.ColorBlue, updated, output.ColorReset)
 			}
 			if failed > 0 {
-				fmt.Printf("%sFailed to apply %d resource(s)%s\n", output.ColorRed, failed, output.ColorReset)
+				fmt.Printf("  %sFailed:  %d%s\n", output.ColorRed, failed, output.ColorReset)
 			}
 
 			return nil
@@ -145,7 +147,7 @@ func applyAgentWithAction(ctx context.Context, m Manifest) (string, error) {
 		spinner.Start()
 		_, err := client.Agents.Create(ctx, req)
 		if err != nil {
-			spinner.Fail(fmt.Sprintf("Failed to create agent %s", name))
+			spinner.FailErr(fmt.Sprintf("Failed to create agent %s", name), err)
 			return "", err
 		}
 		spinner.Success(fmt.Sprintf("Agent %s created", name))
@@ -161,7 +163,7 @@ func applyAgentWithAction(ctx context.Context, m Manifest) (string, error) {
 		spinner.Start()
 		_, err := client.Agents.Update(ctx, existing.ID, req)
 		if err != nil {
-			spinner.Fail(fmt.Sprintf("Failed to update agent %s", name))
+			spinner.FailErr(fmt.Sprintf("Failed to update agent %s", name), err)
 			return "", err
 		}
 		spinner.Success(fmt.Sprintf("Agent %s updated", name))
@@ -181,10 +183,14 @@ func applyDeploymentWithAction(ctx context.Context, m Manifest) (string, error) 
 		return "", fmt.Errorf("spec.agentName is required for deployment")
 	}
 
+	spinner := output.NewSpinner(fmt.Sprintf("Applying deployment %s...", name))
+	spinner.Start()
+
 	projectID := getProjectID()
 	agent, err := client.Agents.GetByName(ctx, projectID, agentName)
 	if err != nil {
-		return "", fmt.Errorf("failed to find agent %s: %w", agentName, err)
+		spinner.FailErr(fmt.Sprintf("Failed to find agent %s", agentName), err)
+		return "", err
 	}
 
 	// Check if deployment exists (this is simplified, usually we'd check by name/label)
@@ -198,11 +204,9 @@ func applyDeploymentWithAction(ctx context.Context, m Manifest) (string, error) 
 		req.Version = version
 	}
 
-	spinner := output.NewSpinner(fmt.Sprintf("Creating deployment for agent %s...", agentName))
-	spinner.Start()
 	_, err = client.Deployments.Create(ctx, req)
 	if err != nil {
-		spinner.Fail(fmt.Sprintf("Failed to create deployment for agent %s", agentName))
+		spinner.FailErr(fmt.Sprintf("Failed to create deployment for agent %s", agentName), err)
 		return "", err
 	}
 	spinner.Success(fmt.Sprintf("Deployment for agent %s created", agentName))

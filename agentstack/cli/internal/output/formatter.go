@@ -277,7 +277,13 @@ func (s *Spinner) Success(message string) {
 // Fail stops the spinner and prints a failure message.
 func (s *Spinner) Fail(message string) {
 	s.Stop()
-	fmt.Fprintf(s.writer, "✗ %s\n", message)
+	fmt.Fprintf(s.writer, "%s %s\n", Colorize("✗", ColorRed), message)
+}
+
+// FailErr stops the spinner and prints a failure message with an error.
+func (s *Spinner) FailErr(message string, err error) {
+	s.Stop()
+	fmt.Fprintf(s.writer, "%s %s: %v\n", Colorize("✗", ColorRed), message, err)
 }
 
 // FormatDuration formats a duration in a human-readable way.
