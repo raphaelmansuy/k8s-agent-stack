@@ -69,7 +69,6 @@ func TestE2EAgentDeploymentFlow(t *testing.T) {
 	}
 
 	a2aService := a2a.NewService()
-	
 
 	mux := http.NewServeMux()
 	registerA2AMock(mux, a2aService)
@@ -120,7 +119,6 @@ func TestE2EAPIChain(t *testing.T) {
 	}
 
 	a2aService := a2a.NewService()
-	
 
 	mux := http.NewServeMux()
 	registerA2AMock(mux, a2aService)
@@ -173,7 +171,6 @@ func TestE2EAPIChain(t *testing.T) {
 func TestE2EValidation(t *testing.T) {
 
 	a2aService := a2a.NewService()
-	
 
 	mux := http.NewServeMux()
 	registerA2AMock(mux, a2aService)
@@ -260,7 +257,6 @@ func TestE2EErrorRecovery(t *testing.T) {
 	defer k.Close()
 
 	a2aService := a2a.NewService()
-	
 
 	mux := http.NewServeMux()
 	registerA2AMock(mux, a2aService)

@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/redis/go-redis/v9"
 	"github.com/raphaelmansuy/agentstack/internal/infrastructure/telemetry"
+	"github.com/redis/go-redis/v9"
 )
 
 // Client wraps the Redis client with additional functionality.

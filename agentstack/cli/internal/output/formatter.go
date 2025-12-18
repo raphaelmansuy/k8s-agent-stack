@@ -147,8 +147,11 @@ func (t *TablePrinter) Render() error {
 	}
 	for _, row := range t.rows {
 		for i, cell := range row {
-			if i < len(widths) && len(cell) > widths[i] {
-				widths[i] = len(cell)
+			if i < len(widths) {
+				displayLen := len(stripANSI(cell))
+				if displayLen > widths[i] {
+					widths[i] = displayLen
+				}
 			}
 		}
 	}
@@ -182,10 +185,31 @@ func (t *TablePrinter) Render() error {
 }
 
 func padRight(s string, width int) string {
-	if len(s) >= width {
+	displayLen := len(stripANSI(s))
+	if displayLen >= width {
 		return s
 	}
-	return s + strings.Repeat(" ", width-len(s))
+	return s + strings.Repeat(" ", width-displayLen)
+}
+
+func stripANSI(s string) string {
+	// Simple regex-free ANSI stripper
+	var b strings.Builder
+	inEscape := false
+	for i := 0; i < len(s); i++ {
+		if s[i] == '\033' {
+			inEscape = true
+			continue
+		}
+		if inEscape {
+			if (s[i] >= 'A' && s[i] <= 'Z') || (s[i] >= 'a' && s[i] <= 'z') {
+				inEscape = false
+			}
+			continue
+		}
+		b.WriteByte(s[i])
+	}
+	return b.String()
 }
 
 // Spinner provides a simple terminal spinner for long-running operations.
@@ -307,6 +331,20 @@ const (
 // Colorize applies a color to a string.
 func Colorize(s, color string) string {
 	return color + s + ColorReset
+}
+
+// ColorizeStatus returns a colorized status string.
+func ColorizeStatus(status string) string {
+	switch strings.ToLower(status) {
+	case "active", "running", "healthy", "ready", "success":
+		return Colorize(status, ColorGreen)
+	case "draft", "pending", "working", "submitted", "starting":
+		return Colorize(status, ColorYellow)
+	case "archived", "stopped", "failed", "error", "cancelled", "unhealthy":
+		return Colorize(status, ColorRed)
+	default:
+		return status
+	}
 }
 
 // Success formats a success message.

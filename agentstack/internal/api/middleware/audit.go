@@ -27,7 +27,7 @@ func (m *AuditMiddleware) RequestLogger() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
-			
+
 			// Use Chi request ID if available, otherwise generate one
 			requestID := middleware.GetReqID(r.Context())
 			if requestID == "" {

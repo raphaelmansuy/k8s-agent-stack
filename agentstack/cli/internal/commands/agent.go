@@ -46,7 +46,8 @@ func newAgentDeployCmd() *cobra.Command {
 			if manifest.Kind != "Agent" {
 				return fmt.Errorf("manifest kind must be Agent")
 			}
-			return applyAgent(cmd.Context(), manifest)
+			_, err = applyAgentWithAction(cmd.Context(), manifest)
+			return err
 		},
 	}
 	cmd.Flags().StringVarP(&filename, "file", "f", "", "agent manifest file")
@@ -76,7 +77,8 @@ func newAgentListCmd() *cobra.Command {
 			tp.SetHeaders("ID", "Name", "Status", "Created")
 			for _, agent := range resp.Agents {
 				created := formatTime(agent.CreatedAt)
-				tp.AddRow(agent.ID, agent.Name, agent.Status, created)
+				status := output.ColorizeStatus(agent.Status)
+				tp.AddRow(agent.ID, agent.Name, status, created)
 			}
 			return tp.Render()
 		},

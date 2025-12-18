@@ -47,7 +47,8 @@ func newDeployListCmd() *cobra.Command {
 			tp.SetHeaders("ID", "Agent", "Replicas", "Status")
 			for _, d := range resp.Deployments {
 				replicas := fmt.Sprintf("%d", d.Replicas)
-				tp.AddRow(d.ID, d.AgentID, replicas, d.Status)
+				status := output.ColorizeStatus(d.Status)
+				tp.AddRow(d.ID, d.AgentID, replicas, status)
 			}
 			return tp.Render()
 		},
@@ -75,7 +76,7 @@ func newDeployGetCmd() *cobra.Command {
 			}
 			fmt.Printf("ID:           %s\n", deployment.ID)
 			fmt.Printf("Agent ID:     %s\n", deployment.AgentID)
-			fmt.Printf("Status:       %s\n", deployment.Status)
+			fmt.Printf("Status:       %s\n", output.ColorizeStatus(deployment.Status))
 			fmt.Printf("Replicas:     %d\n", deployment.Replicas)
 			fmt.Printf("Endpoint:     %s\n", deployment.Endpoint)
 			return nil
