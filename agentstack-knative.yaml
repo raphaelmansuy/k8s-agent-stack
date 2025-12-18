@@ -1,0 +1,40 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: agentstack-api
+  namespace: agentstack
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "1"
+    spec:
+      containers:
+      - image: dev.local/agentstack-api:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+        env:
+        - name: AGENTSTACK_ENVIRONMENT
+          value: development
+        - name: AGENTSTACK_DATABASE_URL
+          value: postgres://agentstack:agentstack@agentstack-postgres:5432/agentstack?sslmode=disable
+        - name: AGENTSTACK_REDIS_URL
+          value: redis://agentstack-redis:6379
+        - name: AGENTSTACK_MLFLOW_URL
+          value: http://agentstack-mlflow:5000
+        - name: AGENTSTACK_AUTH_JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: agentstack-secrets
+              key: JWT_SECRET
+        - name: AGENTSTACK_TELEMETRY_ENABLED
+          value: "false"
+        livenessProbe:
+          httpGet:
+            path: /health
+          initialDelaySeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /health
+          initialDelaySeconds: 5

@@ -78,23 +78,20 @@ make adk-agent
 
 # Check status
 make adk-agent-status
-
-# View logs
-make adk-agent-logs
-
-# Or deploy manually:
-cd kagent-adk-agent
-docker build -t dev.local/kagent-adk-agent:latest .
-kubectl apply -f kagent-deployment.yaml
 ```
 
-**Available ADK Agent Commands:**
-- `make adk-agent` - Build and deploy Google ADK agent
-- `make adk-agent-build` - Build Docker image only
-- `make adk-agent-deploy` - Deploy to kagent only
-- `make adk-agent-status` - Check agent status
-- `make adk-agent-logs` - View agent logs
-- `make adk-agent-delete` - Remove agent
+## AgentStack API Gateway
+
+The stack includes a hardened API Gateway with RBAC, Quota management, and Audit logging.
+
+```bash
+# Build and deploy the full AgentStack (API, Worker, Postgres, Redis, MLflow)
+make agentstack-build
+make agentstack-deploy
+
+# Check status
+make agentstack-status
+```
 
 📖 **[Deployment Guide](docs/deployment-guide.md)** | **[Build ADK Agents](docs/building-google-adk-agents-for-kagent.md)**
 

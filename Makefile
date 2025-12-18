@@ -90,6 +90,32 @@ status: ## Check cluster and kagent status
 	@kubectl get agents -n $(AGENT_NAMESPACE) 2>/dev/null || echo "  No agents found"
 	@echo ""
 
+##@ AgentStack API
+
+agentstack-build: ## Build AgentStack API and Worker images
+	@echo "Building AgentStack images..."
+	cd agentstack && make docker-build
+	docker tag agentstack-api:latest dev.local/agentstack-api:latest
+
+agentstack-deploy: ## Deploy AgentStack full stack to K8s
+	@echo "Deploying AgentStack to Kubernetes..."
+	kubectl apply -f agentstack-k8s.yaml
+
+agentstack-status: ## Check AgentStack status
+	@echo "📊 AgentStack Status"
+	@echo "───────────────────"
+	@kubectl get pods -n agentstack
+	@echo ""
+	@echo "🌐 Services"
+	@echo "──────────"
+	@kubectl get svc -n agentstack
+
+agentstack-logs: ## View AgentStack API logs
+	@kubectl logs -f deployment/agentstack-api -n agentstack
+
+agentstack-worker-logs: ## View AgentStack Worker logs
+	@kubectl logs -f deployment/agentstack-worker -n agentstack
+
 ##@ Installation
 
 check-cluster: ## Check Kubernetes connection
