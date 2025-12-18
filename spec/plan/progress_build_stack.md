@@ -9,7 +9,7 @@
 | **Phase 0: Foundation** | ✅ Complete | 2025-12-18 | 2025-12-18 | Project structure, CI/CD, data layer |
 | **Phase 1: Core API** | ✅ Complete | 2025-12-18 | 2025-12-18 | API Gateway, REST endpoints, auth |
 | **Phase 2: Agent Runtime** | ✅ Complete | 2025-12-18 | 2025-12-19 | Agent lifecycle, A2A protocol, streaming, kagent integration |
-| **Phase 3: Evaluation/Safety** | ⏳ Pending | - | - | MLflow integration, safety gates |
+| **Phase 3: Evaluation/Safety** | ✅ Complete | 2025-12-18 | 2025-12-18 | MLflow integration, safety gates, moderation |
 | **Phase 4: Developer Experience** | ⏳ Pending | - | - | CLI (agentctl), SDKs, docs |
 | **Phase 5: Enterprise Features** | ⏳ Pending | - | - | RBAC, quotas, audit |
 | **Phase 6: Production Hardening** | ⏳ Pending | - | - | Performance, security, multi-region |
@@ -92,6 +92,46 @@
 - [x] SSE streaming implemented for real-time updates
 - [x] K8s client supports Knative Service operations
 - [x] UCM supports A2A, OpenAI, Anthropic translation
+
+---
+
+## Phase 3: Evaluation & Safety
+
+### Week 4 Deliverables
+
+| Task | Status | Date | Notes |
+|------|--------|------|-------|
+| MLflow Go client | ✅ | 2025-12-18 | REST API client for experiments, runs, metrics |
+| Evaluation service | ✅ | 2025-12-18 | Trace logging, async evaluation, feedback collection |
+| Safety service | ✅ | 2025-12-18 | Content moderation, pattern blocking, length limits |
+| OpenAI moderation client | ✅ | 2025-12-18 | Integration with OpenAI moderation API |
+| Evaluation HTTP handlers | ✅ | 2025-12-18 | List/get traces, submit feedback endpoints |
+| Safety middleware | ✅ | 2025-12-18 | Pre-execution input checking, response interception |
+
+### Phase 3 Components
+
+**New Files Created:**
+- `internal/infrastructure/mlflow/client.go` - MLflow REST API client
+- `internal/infrastructure/mlflow/client_test.go` - MLflow client tests
+- `internal/domain/evaluation/service.go` - Evaluation service with trace/feedback
+- `internal/domain/evaluation/service_test.go` - Evaluation service tests
+- `internal/domain/safety/service.go` - Safety service with moderation
+- `internal/domain/safety/service_test.go` - Safety service tests
+- `internal/infrastructure/moderation/openai.go` - OpenAI moderation client
+- `internal/infrastructure/moderation/openai_test.go` - Moderation client tests
+- `internal/api/handlers/evaluation.go` - Evaluation HTTP handlers
+- `internal/api/middleware/safety.go` - Safety middleware
+
+### Definition of Done
+
+- [x] `go build ./...` passes
+- [x] `go test ./...` passes for all packages
+- [x] `go vet ./...` passes with no issues
+- [x] MLflow client can create experiments and log metrics
+- [x] Evaluation service traces interactions and collects feedback
+- [x] Safety service blocks harmful content with configurable thresholds
+- [x] OpenAI moderation integration works
+- [x] Fail-open mode allows requests when moderation service is down
 
 ---
 
