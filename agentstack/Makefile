@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-.PHONY: all build test lint run dev generate migrate-up migrate-down docker-build docker-run clean help
+.PHONY: all build test lint run dev generate migrate-up migrate-down docker-build docker-run clean help mlflow-ui
 
 # Variables
 GO := go
@@ -139,6 +139,10 @@ compose-logs: ## View service logs
 
 compose-ps: ## List running services
 	@docker-compose ps
+
+mlflow-ui: ## Open MLflow UI
+	@echo "Opening MLflow UI at http://localhost:5000..."
+	@open http://localhost:5000
 
 # Development setup
 setup: ## Install development dependencies

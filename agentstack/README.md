@@ -35,6 +35,11 @@ make setup
 # Start infrastructure (PostgreSQL, Redis, MLflow)
 make compose-up
 
+# Open MLflow UI (starts a port-forward and opens http://localhost:5000)
+make mlflow-ui
+# Or build the CLI and run:
+# make build-cli && ./bin/agentctl mlflow
+
 # Run the API server with hot reload
 make dev
 ```
