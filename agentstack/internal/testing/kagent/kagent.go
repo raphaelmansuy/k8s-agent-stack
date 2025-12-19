@@ -494,7 +494,7 @@ func (k *MockKagent) WaitForReady(ctx context.Context, timeout time.Duration) er
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			req, _ := http.NewRequestWithContext(ctx, http.MethodGet, k.URL+"/ready", nil)
+			req, _ := http.NewRequestWithContext(ctx, http.MethodGet, k.URL+"/ready", http.NoBody)
 			resp, err := client.Do(req)
 			if err == nil && resp.StatusCode == http.StatusOK {
 				_ = resp.Body.Close()

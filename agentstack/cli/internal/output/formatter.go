@@ -212,7 +212,7 @@ func stripANSI(s string) string {
 	// Simple regex-free ANSI stripper
 	var b strings.Builder
 	inEscape := false
-	for i := 0; i < len(s); i++ {
+	for i := range len(s) {
 		if s[i] == '\033' {
 			inEscape = true
 			continue

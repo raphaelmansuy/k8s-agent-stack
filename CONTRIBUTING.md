@@ -13,6 +13,7 @@ Thank you for your interest in contributing to k8s-agent-stack! We welcome contr
 ### 1. Report Bugs
 
 If you find a bug, please create an issue with:
+
 - Clear description of the problem
 - Steps to reproduce
 - Expected vs actual behavior
@@ -23,6 +24,7 @@ If you find a bug, please create an issue with:
 ### 2. Suggest Features
 
 We welcome feature requests! Please:
+
 - Check if the feature is already requested
 - Describe the use case clearly
 - Explain why this benefits the project
@@ -39,13 +41,24 @@ We welcome feature requests! Please:
 
 #### Development Guidelines
 
+**SOTA Go Development Environment:**
+We use a "State of the Art" (SOTA) 2025 configuration for Go development. To set it up:
+
+1.  **Install Go 1.24+**
+2.  **Install Tools**: Run `make install-tools` from the root.
+3.  **VS Code**: Use the provided `.vscode/settings.json` for real-time security scanning and strict formatting.
+
 **Code Quality:**
+
 - Follow existing code style
 - Add tests for new features
 - Update documentation
 - Keep commits focused and atomic
+- **Security**: Ensure `govulncheck` passes before submitting.
+- **Formatting**: Use `gofumpt` (handled automatically by VS Code).
 
 **Python Code:**
+
 ```python
 # Use type hints
 def process_request(message: str) -> dict:
@@ -58,6 +71,7 @@ def process_request(message: str) -> dict:
 ```
 
 **Documentation:**
+
 - Update relevant docs in `docs/`
 - Add inline code comments for complex logic
 - Update README if adding features
@@ -91,6 +105,7 @@ test: add integration tests for A2A protocol
 Format: `type: description`
 
 Types:
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation
@@ -111,6 +126,7 @@ Types:
 ### 4. Improve Documentation
 
 Documentation improvements are always welcome:
+
 - Fix typos or unclear sections
 - Add examples and tutorials
 - Improve cross-linking
@@ -169,13 +185,13 @@ See [LICENSE](LICENSE) for details.
 
 ## Quick Reference
 
-| Task | Command |
-|------|---------|
-| Run tests | `make test` |
-| Build agent | `make build` |
+| Task           | Command             |
+| -------------- | ------------------- |
+| Run tests      | `make test`         |
+| Build agent    | `make build`        |
 | Deploy locally | `make deploy-local` |
-| Format code | `make format` |
-| Lint code | `make lint` |
+| Format code    | `make format`       |
+| Lint code      | `make lint`         |
 
 Run `make help` for a full list of available commands.
 

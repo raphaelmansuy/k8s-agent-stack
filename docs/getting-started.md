@@ -13,7 +13,10 @@ Deploy sovereign AI agents on Kubernetes in under 10 minutes.
 kubectl version --client    # Kubernetes CLI (v1.28+)
 helm version                # Helm 3.x
 docker --version            # Docker or OrbStack
+go version                  # Go 1.24+ (for development)
 ```
+
+> **Pro Tip:** Run `make install-tools` to automatically install all necessary Go development tools (linters, security scanners, etc.).
 
 ### Install on macOS
 
@@ -48,9 +51,11 @@ cd k8s-agent-stack
 ### Step 2: Start Kubernetes
 
 **OrbStack (Recommended for macOS):**
+
 - Open OrbStack → Settings → Kubernetes → Enable
 
 **Verify cluster:**
+
 ```bash
 kubectl cluster-info
 ```
@@ -62,6 +67,7 @@ kubectl cluster-info
 ```
 
 This installs:
+
 - **Knative Serving v1.20** - Scale-to-zero, auto-scaling
 - **Contour + Envoy** - L7 ingress and routing
 - **Magic DNS** - Automatic domain routing via sslip.io
@@ -115,6 +121,7 @@ kubectl get agents -n kagent
 ```
 
 Expected output:
+
 ```
 NAME                             TYPE          READY   ACCEPTED
 google-adk-byo-agent             BYO           True    True
@@ -196,13 +203,13 @@ curl -X POST http://localhost:8081/ \
 
 ## What's Installed
 
-| Component | Namespace | Purpose |
-|-----------|-----------|---------|
-| **Knative Serving** | knative-serving | Scale-to-zero, auto-scaling |
-| **Contour + Envoy** | projectcontour | L7 ingress, load balancing |
-| **kagent Controller** | kagent | Agent lifecycle management |
-| **kagent UI** | kagent | Web dashboard |
-| **Demo Agents** | kagent | k8s-agent, helm-agent, etc. |
+| Component             | Namespace       | Purpose                     |
+| --------------------- | --------------- | --------------------------- |
+| **Knative Serving**   | knative-serving | Scale-to-zero, auto-scaling |
+| **Contour + Envoy**   | projectcontour  | L7 ingress, load balancing  |
+| **kagent Controller** | kagent          | Agent lifecycle management  |
+| **kagent UI**         | kagent          | Web dashboard               |
+| **Demo Agents**       | kagent          | k8s-agent, helm-agent, etc. |
 
 ---
 

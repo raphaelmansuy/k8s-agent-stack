@@ -62,7 +62,7 @@ func (s *Service) CheckQuota(ctx context.Context, req CheckQuotaRequest) (*Check
 	quota, err := s.repo.GetQuota(ctx, req.TeamID, req.Type)
 	if err != nil {
 		// No quota defined = unlimited
-		return &CheckQuotaResult{Allowed: true, Limit: -1}, nil //nolint:nilerr
+		return &CheckQuotaResult{Allowed: true, Limit: -1}, nil //nolint:nilerr // No quota found is not an error, it means unlimited
 	}
 
 	// Unlimited quota
@@ -97,7 +97,7 @@ func (s *Service) CheckQuota(ctx context.Context, req CheckQuotaRequest) (*Check
 func (s *Service) IncrementUsage(ctx context.Context, req IncrementUsageRequest) error {
 	quota, err := s.repo.GetQuota(ctx, req.TeamID, req.Type)
 	if err != nil {
-		return nil //nolint:nilerr
+		return nil //nolint:nilerr // If no quota is defined, we don't need to increment anything
 	}
 
 	if quota.Period != "" && s.cache != nil {

@@ -159,7 +159,7 @@ func TestHTTPHandler_Liveness(t *testing.T) {
 	checker := NewChecker(time.Second)
 	handler := NewHTTPHandler(checker, "1.0.0")
 
-	req := httptest.NewRequest(http.MethodGet, "/livez", nil)
+	req := httptest.NewRequest(http.MethodGet, "/livez", http.NoBody)
 	w := httptest.NewRecorder()
 
 	handler.LivenessHandler(w, req)
@@ -173,7 +173,7 @@ func TestHTTPHandler_Readiness_NotReady(t *testing.T) {
 	checker := NewChecker(time.Second)
 	handler := NewHTTPHandler(checker, "1.0.0")
 
-	req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
+	req := httptest.NewRequest(http.MethodGet, "/readyz", http.NoBody)
 	w := httptest.NewRecorder()
 
 	handler.ReadinessHandler(w, req)
@@ -188,7 +188,7 @@ func TestHTTPHandler_Readiness_Ready(t *testing.T) {
 	checker.SetReady()
 	handler := NewHTTPHandler(checker, "1.0.0")
 
-	req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
+	req := httptest.NewRequest(http.MethodGet, "/readyz", http.NoBody)
 	w := httptest.NewRecorder()
 
 	handler.ReadinessHandler(w, req)
@@ -203,7 +203,7 @@ func TestHTTPHandler_Startup(t *testing.T) {
 	handler := NewHTTPHandler(checker, "1.0.0")
 
 	// Not started
-	req := httptest.NewRequest(http.MethodGet, "/startupz", nil)
+	req := httptest.NewRequest(http.MethodGet, "/startupz", http.NoBody)
 	w := httptest.NewRecorder()
 	handler.StartupHandler(w, req)
 

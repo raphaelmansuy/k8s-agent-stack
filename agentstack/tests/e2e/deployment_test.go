@@ -317,7 +317,7 @@ func TestE2EErrorRecovery(t *testing.T) {
 	}
 }
 
-func httpPostWithContext(url, contentType string, body io.Reader) (*http.Response, error) { //nolint:unparam
+func httpPostWithContext(url, contentType string, body io.Reader) (*http.Response, error) { //nolint:unparam // body is used in some cases, keeping for consistency
 	req, _ := http.NewRequestWithContext(context.Background(), "POST", url, body)
 	req.Header.Set("Content-Type", contentType)
 	return http.DefaultClient.Do(req)

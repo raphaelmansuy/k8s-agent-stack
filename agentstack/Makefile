@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-.PHONY: all build test lint run dev generate migrate-up migrate-down docker-build docker-run clean help mlflow-ui
+.PHONY: all build test lint run dev generate migrate-up migrate-down docker-build docker-run clean help mlflow-ui setup install-tools
 
 # Variables
 GO := go
@@ -25,6 +25,10 @@ VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev
 COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 BUILD_TIME := $(shell date -u '+%Y-%m-%d_%H:%M:%S')
 LDFLAGS := -ldflags "-X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.buildTime=$(BUILD_TIME)"
+
+# Add GOPATH/bin to PATH
+GOPATH := $(shell go env GOPATH)
+export PATH := $(GOPATH)/bin:$(PATH)
 
 # Docker
 DOCKER_IMAGE := agentstack-api
@@ -70,11 +74,13 @@ test-integration: ## Run integration tests
 # Lint targets
 lint: ## Run linters
 	@echo "Running linters..."
-	@golangci-lint run ./...
+	@$(GOPATH)/bin/golangci-lint run ./...
+	@echo "Running vulnerability check..."
+	@$(GOPATH)/bin/govulncheck ./...
 
 lint-fix: ## Run linters and fix issues
 	@echo "Running linters with fix..."
-	@golangci-lint run --fix ./...
+	@$(GOPATH)/bin/golangci-lint run --fix ./...
 
 # Run targets
 dev: ## Run with hot reload (requires air)
@@ -145,17 +151,23 @@ mlflow-ui: ## Open MLflow UI
 	@open http://localhost:5000
 
 # Development setup
-setup: ## Install development dependencies
-	@echo "Installing development tools..."
-	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-	@go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
-	@go install ariga.io/atlas/cmd/atlas@latest
-	@go install github.com/air-verse/air@latest
-	@go install github.com/golang/mock/mockgen@latest
+setup: install-tools ## Install development dependencies
 	@echo "Installing Go dependencies..."
 	@$(GO) mod download
 	@$(GO) mod tidy
 	@echo "Setup complete!"
+
+install-tools: ## Install development tools
+	@echo "Installing development tools..."
+	@$(GO) install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	@$(GO) install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+	@$(GO) install github.com/air-verse/air@latest
+	@$(GO) install golang.org/x/vuln/cmd/govulncheck@latest
+	@$(GO) install mvdan.cc/gofumpt@latest
+	@$(GO) install go.uber.org/mock/mockgen@latest
+	@$(GO) install github.com/securego/gosec/v2/cmd/gosec@latest
+	@echo "Installing atlas (via curl)..."
+	@curl -sSf https://atlasgo.sh | sh
 
 # OpenAPI
 openapi: ## Generate OpenAPI spec from code

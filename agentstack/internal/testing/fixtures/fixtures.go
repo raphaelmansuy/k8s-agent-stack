@@ -280,7 +280,7 @@ func (m *MockA2AServer) handleMessageStream(w http.ResponseWriter, r *http.Reque
 	m.writeSSE(w, flusher, workingEvent)
 
 	// Stream chunks
-	for i := 0; i < m.streamChunks; i++ {
+	for i := range m.streamChunks {
 		select {
 		case <-r.Context().Done():
 			return

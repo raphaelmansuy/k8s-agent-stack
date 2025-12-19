@@ -271,7 +271,7 @@ func getClientIP(r *http.Request) string {
 	// Check X-Forwarded-For header first (for proxied requests)
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
 		// Take the first IP in the chain
-		for i := 0; i < len(xff); i++ {
+		for i := range len(xff) {
 			if xff[i] == ',' {
 				return xff[:i]
 			}

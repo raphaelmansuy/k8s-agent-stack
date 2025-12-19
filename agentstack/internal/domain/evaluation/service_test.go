@@ -338,7 +338,7 @@ func TestListTraces(t *testing.T) {
 	svc := NewService(mlflow, queue, repo, idGen)
 
 	// Save multiple traces
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		trace := &Trace{
 			ID:        "trc-list-" + string(rune('0'+i)),
 			AgentID:   "agent-1",

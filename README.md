@@ -16,11 +16,11 @@ The platform enables developers to move from local AI experimentation to product
 
 ### Key Capabilities
 
-*   **🔐 Data Sovereignty**: Run on your own infrastructure (Local, On-Prem, or Cloud). Your data never leaves your control.
-*   **🚀 Serverless Execution**: Built on Knative for automatic scaling and scale-to-zero (pay-only-for-what-you-use).
-*   **🤖 Multi-Framework Support**: Native support for Google ADK, LangGraph, CrewAI, and custom agent runtimes.
-*   **🔄 A2A Protocol**: Standardized agent-to-agent communication protocol for complex multi-agent workflows.
-*   **🔭 Enterprise Ready**: Built-in RBAC, quota management, audit logging, and OpenTelemetry observability.
+- **🔐 Data Sovereignty**: Run on your own infrastructure (Local, On-Prem, or Cloud). Your data never leaves your control.
+- **🚀 Serverless Execution**: Built on Knative for automatic scaling and scale-to-zero (pay-only-for-what-you-use).
+- **🤖 Multi-Framework Support**: Native support for Google ADK, LangGraph, CrewAI, and custom agent runtimes.
+- **🔄 A2A Protocol**: Standardized agent-to-agent communication protocol for complex multi-agent workflows.
+- **🔭 Enterprise Ready**: Built-in RBAC, quota management, audit logging, and OpenTelemetry observability.
 
 ---
 
@@ -28,11 +28,11 @@ The platform enables developers to move from local AI experimentation to product
 
 The repository is organized into several key components:
 
-*   **[agentstack/](agentstack/)**: The core API Gateway and Worker orchestration layer.
-*   **[deploy/](deploy/)**: Kubernetes manifests and deployment configurations.
-*   **[docs/](docs/)**: Comprehensive documentation, architecture guides, and tutorials.
-*   **[kagent-adk-agent/](kagent-adk-agent/)**: A reference implementation of an agent using Google ADK.
-*   **[scripts/](scripts/)**: Automation scripts for cluster setup and maintenance.
+- **[agentstack/](agentstack/)**: The core API Gateway and Worker orchestration layer.
+- **[deploy/](deploy/)**: Kubernetes manifests and deployment configurations.
+- **[docs/](docs/)**: Comprehensive documentation, architecture guides, and tutorials.
+- **[kagent-adk-agent/](kagent-adk-agent/)**: A reference implementation of an agent using Google ADK.
+- **[scripts/](scripts/)**: Automation scripts for cluster setup and maintenance.
 
 ---
 
@@ -40,9 +40,9 @@ The repository is organized into several key components:
 
 ### 1. Prerequisites
 
-*   Kubernetes cluster (OrbStack, GKE, EKS, or local)
-*   `kubectl`, `helm`, and `go` installed
-*   OpenAI API Key (or other supported LLM provider)
+- Kubernetes cluster (OrbStack, GKE, EKS, or local)
+- `kubectl`, `helm`, and `go` installed
+- OpenAI API Key (or other supported LLM provider)
 
 ### 2. Installation
 
@@ -50,6 +50,9 @@ The repository is organized into several key components:
 # Clone the repository
 git clone https://github.com/raphaelmansuy/k8s-agent-stack.git
 cd k8s-agent-stack
+
+# Install development tools (optional, for developers)
+make install-tools
 
 # Set your API key
 export OPENAI_API_KEY="your-key-here"
@@ -66,20 +69,21 @@ The platform includes a comprehensive web interface for managing agents and conv
 # Start the UI with automatic port-forwarding
 make ui
 ```
+
 Access the UI at: **[http://localhost:8080](http://localhost:8080)**
 
 ---
 
 ## 📖 Documentation
 
-| Guide | Description |
-|-------|-------------|
-| **[Getting Started](docs/getting-started.md)** | Detailed installation and setup instructions. |
-| **[Architecture](docs/architecture.md)** | Deep dive into the 5-layer platform design. |
+| Guide                                            | Description                                            |
+| ------------------------------------------------ | ------------------------------------------------------ |
+| **[Getting Started](docs/getting-started.md)**   | Detailed installation and setup instructions.          |
+| **[Architecture](docs/architecture.md)**         | Deep dive into the 5-layer platform design.            |
 | **[Deployment Guide](docs/deployment-guide.md)** | Production deployment, traffic splitting, and scaling. |
-| **[ADK Agent Guide](docs/adk-guide.md)** | Building and deploying Google ADK agents. |
-| **[UI Access Guide](docs/KAGENT_UI_ACCESS.md)** | Detailed information on using the Kagent UI. |
-| **[Troubleshooting](docs/troubleshooting.md)** | Common issues and their resolutions. |
+| **[ADK Agent Guide](docs/adk-guide.md)**         | Building and deploying Google ADK agents.              |
+| **[UI Access Guide](docs/KAGENT_UI_ACCESS.md)**  | Detailed information on using the Kagent UI.           |
+| **[Troubleshooting](docs/troubleshooting.md)**   | Common issues and their resolutions.                   |
 
 ---
 
@@ -87,12 +91,13 @@ Access the UI at: **[http://localhost:8080](http://localhost:8080)**
 
 This is an **Apache 2.0** licensed open-source project. We welcome contributions from the community.
 
-*   **[Contributing Guidelines](CONTRIBUTING.md)**: How to get started with contributions.
-*   **[Code of Conduct](CONTRIBUTING.md#code-of-conduct)**: Our commitment to a welcoming environment.
-*   **[Governance](docs/governance.md)**: Project governance and decision-making process.
+- **[Contributing Guidelines](CONTRIBUTING.md)**: How to get started with contributions.
+- **[Code of Conduct](CONTRIBUTING.md#code-of-conduct)**: Our commitment to a welcoming environment.
+- **[Governance](docs/governance.md)**: Project governance and decision-making process.
 
 ### Maintainers
-*   **[Raphaël MANSUY](https://www.linkedin.com/in/raphaelmansuy/)** - Project Lead
+
+- **[Raphaël MANSUY](https://www.linkedin.com/in/raphaelmansuy/)** - Project Lead
 
 ---
 

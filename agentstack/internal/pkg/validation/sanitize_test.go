@@ -407,7 +407,7 @@ func TestJSONValidator(t *testing.T) {
 
 	t.Run("key too long", func(t *testing.T) {
 		longKey := ""
-		for i := 0; i < 100; i++ {
+		for range 100 {
 			longKey += "a"
 		}
 		data := map[string]any{
