@@ -2,6 +2,19 @@
 
 AgentStack is a sovereign AI agent platform providing a "Cloud Run-like" experience for AI agents on Kubernetes. This document describes the architecture as implemented in the codebase.
 
+## 🗺️ Architecture Map
+
+This document serves as the master architecture reference. For deep dives into specific subsystems, refer to the following specialized documents:
+
+| Component | Deep Dive Document | Focus Area |
+|-----------|-------------------|------------|
+| **Agent Runtime** | [kagent-adk-a2a-architecture.md](kagent-adk-a2a-architecture.md) | Kagent, Google ADK, and A2A Protocol |
+| **Deployment** | [deployment-guide.md](deployment-guide.md) | Knative, Scaling, and Traffic Management |
+| **Operations** | [quick-reference.md](quick-reference.md) | CLI commands, Port-forwarding, and Troubleshooting |
+| **Agent Building** | [building-google-adk-agents-for-kagent.md](building-google-adk-agents-for-kagent.md) | SDK usage and Tool definitions |
+
+---
+
 ## System Overview
 
 ```ascii
@@ -46,12 +59,14 @@ The central entry point for all operations. Built with Go, `chi`, and `huma`.
 ### 2. Agent Runtime (`agentstack/internal/domain/deployment`)
 Agents are managed through a dual-mode orchestration strategy that leverages both **kagent** and **Knative Serving**.
 
-- **kagent Integration**: The stack natively uses **kagent** as its primary orchestration layer. If the `kagent.dev/v1alpha2` CRDs are present in the cluster, AgentStack manages agents via the `Agent` custom resource. This provides:
+- **kagent Integration**: The stack natively uses **kagent** as its primary orchestration layer. If the `kagent.dev/v1alpha2` CRDs are present in the cluster, AgentStack manages agents via the `Agent` custom resource.
     - **Declarative Lifecycle**: Agents are defined as high-level Kubernetes objects.
     - **Unified Management**: Integration with the kagent UI and A2A protocol discovery.
-- **Knative Fallback**: If `kagent` is not installed, the system falls back to direct management of **Knative Services**. This ensures:
+    - See [kagent-adk-a2a-architecture.md](kagent-adk-a2a-architecture.md) for the runtime specification.
+- **Knative Fallback**: If `kagent` is not installed, the system falls back to direct management of **Knative Services**.
     - **Scale-to-Zero**: Agents consume zero resources when idle.
     - **Auto-scaling**: Rapid scaling based on request concurrency (via Knative Pod Autoscaler).
+    - See [deployment-guide.md](deployment-guide.md) for scaling and traffic management details.
 - **Deployment Types**:
     - **BYO (Bring Your Own)**: Custom container images implementing the A2A protocol.
     - **LLM**: Pre-configured agents with specific LLM provider settings.
@@ -62,8 +77,16 @@ A standardized communication layer based on JSON-RPC 2.0 over HTTP/SSE.
 - **Methods**: `message/send`, `message/stream`, `task/get`, `task/cancel`.
 - **Streaming**: Real-time event delivery via Server-Sent Events (SSE).
 - **Discovery**: `.well-known/agent.json` for agent metadata (Agent Card).
+- See [kagent-adk-a2a-architecture.md](kagent-adk-a2a-architecture.md) for the full protocol specification.
 
-### 4. Kagent Web UI Integration
+### 4. Control Plane (`agentstack/internal/domain/controlplane`)
+The Control Plane acts as the brain of the system, coordinating between the API, the database, and the Kubernetes cluster.
+
+- **State Management**: Uses **PostgreSQL** (via `sqlc` generated Go code) to track agent metadata, deployment status, and user configurations.
+- **Kubernetes Controller**: A custom controller loop that watches for changes in the database and reconciles the desired state with the cluster (creating/updating `Agent` or `Service` resources).
+- **A2A Protocol Bridge**: Facilitates communication between the UI and agents by managing discovery and routing.
+
+### 5. Kagent Web UI Integration
 The platform integrates the official Kagent Web UI (`cr.kagent.dev/kagent-dev/kagent/ui`) for cluster administration and agent interaction.
 
 - **Architecture**: The UI is deployed as a standalone Next.js application with an internal Nginx proxy.

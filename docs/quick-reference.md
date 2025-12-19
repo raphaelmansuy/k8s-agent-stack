@@ -39,14 +39,14 @@ kubectl delete agent <agent-name> -n kagent
 ### Port Forwarding
 
 ```bash
-# kagent UI (web dashboard)
-kubectl port-forward -n kagent svc/kagent-ui 8080:8080
+# AgentStack UI (Recommended)
+agentctl ui
+
+# Manual kagent UI (web dashboard)
+kubectl port-forward -n agentstack svc/agentstack-ui 3000:3000 8080:8080 8083:8083 8081:8081
 
 # Agent endpoint
 kubectl port-forward -n kagent svc/<agent-name> 8081:8080
-
-# kagent Controller API
-kubectl port-forward -n kagent svc/kagent-controller 8083:8083
 ```
 
 ### Health Checks

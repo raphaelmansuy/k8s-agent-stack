@@ -82,6 +82,7 @@ https://www.apache.org/licenses/LICENSE-2.0
 - JSON-RPC message format: `{"jsonrpc": "2.0", "method": "...", "params": {...}, "id": 1}`.
 - Server-Sent Events (SSE) for streaming responses: each event is a complete JSON object on its own line.
 - No polling; full-duplex means both sides can push concurrently.
+- **Production Note**: When proxying A2A streams (e.g., via Nginx), `proxy_buffering` must be disabled to prevent event batching, and URI rewrites must preserve the `POST` method (avoiding 301 redirects to trailing slashes).
 
 **Task & Message**
 - A **Task** is work dispatched by Kagent to an agent (or from one agent to another).

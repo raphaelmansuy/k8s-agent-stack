@@ -101,7 +101,24 @@ kn service create my-agent \
   --pull-policy=IfNotPresent
 ```
 
-### Method 4: From Local Docker Image
+### Method 4: AgentStack CLI (`agentctl`)
+
+The `agentctl` CLI provides a high-level interface for managing agents, abstracting the underlying Kubernetes resources.
+
+```bash
+# Deploy an agent from a local directory
+agentctl deploy ./my-agent --name my-agent
+
+# List running agents
+agentctl list
+
+# Access the Kagent Web UI
+agentctl ui
+```
+
+> **Note**: `agentctl ui` automatically manages the complex port-forwarding required for Next.js SSR and A2A streaming. See [KAGENT_UI_ACCESS.md](KAGENT_UI_ACCESS.md) for details.
+
+### Method 5: From Local Docker Image
 
 ```bash
 # Build locally with dev.local prefix
