@@ -108,6 +108,7 @@ func init() {
 	rootCmd.AddCommand(newApplyCmd())
 	rootCmd.AddCommand(newUICmd())
 	rootCmd.AddCommand(newDocsCmd())
+	rootCmd.AddCommand(newMLflowCmd())
 }
 
 func getFormatter() (*output.Formatter, error) {

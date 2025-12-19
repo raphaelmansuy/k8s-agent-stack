@@ -173,6 +173,7 @@ Upgrade: Integrate AI Gateway: Define route in config, deploy model URI to Gatew
 
 # Cheat sheet
 - Start tracking server: `mlflow server --port 5000`.
+- Open the MLflow UI: `make mlflow-ui` (from repo root) or `make mlflow-ui` inside `agentstack/`, or use the CLI `./agentstack/bin/agentctl mlflow` (build with `make -C agentstack build-cli`). This starts a port-forward and opens `http://localhost:5000`.
 - Enable autolog: `mlflow.langchain.autolog()`.
 - Log param: `mlflow.log_param("key", value)`.
 - Trace function: `@mlflow.trace(name="span_name") def fn(): ...`.

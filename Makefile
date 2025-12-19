@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-.PHONY: help start install setup ui status clean uninstall check-deps check-cluster check-api-key docs
+.PHONY: help start install setup ui mlflow-ui status clean uninstall check-deps check-cluster check-api-key docs
 
 # --- Variables ---
 AGENT_NAMESPACE := kagent
@@ -63,6 +63,7 @@ help: ## ℹ️  Show this help message
 	@echo -e "$(BOLD)🚀 Quick Start$(NC)"
 	@echo -e "  $(CYAN)make start$(NC)         Complete setup (one command!)"
 	@echo -e "  $(CYAN)make ui$(NC)            Open Kagent web interface"
+	@echo -e "  $(CYAN)make mlflow-ui$(NC)     Open MLflow interface"
 	@echo -e "  $(CYAN)make docs$(NC)          Open API documentation"
 	@echo -e "  $(CYAN)make status$(NC)        Check everything is running"
 	@echo ""
@@ -78,10 +79,11 @@ start: check-deps check-cluster check-api-key install-cli setup-kagent configure
 	$(call print_success,Setup complete!)
 	@echo ""
 	@echo -e "$(BOLD)Next steps:$(NC)"
-	@echo -e "  $(CYAN)make ui$(NC)     → Open Kagent web interface"
-	@echo -e "  $(CYAN)make docs$(NC)   → Open API documentation"
-	@echo -e "  $(CYAN)make status$(NC) → Check component status"
-	@echo -e "  $(CYAN)make agents$(NC) → List all agents"
+	@echo -e "  $(CYAN)make ui$(NC)        → Open Kagent web interface"
+	@echo -e "  $(CYAN)make mlflow-ui$(NC) → Open MLflow interface"
+	@echo -e "  $(CYAN)make docs$(NC)      → Open API documentation"
+	@echo -e "  $(CYAN)make status$(NC)    → Check component status"
+	@echo -e "  $(CYAN)make agents$(NC)    → List all agents"
 	@echo ""
 
 status: ## 📊 Check cluster and kagent status
@@ -110,6 +112,18 @@ ui: ## 🖥️  Open Kagent UI (http://localhost:8080)
 	@echo "   Press Ctrl+C to stop"
 	@echo ""
 	@kubectl port-forward -n $(AGENT_NAMESPACE) svc/kagent-ui 8080:8080
+
+mlflow-ui: ## 📈 Open MLflow UI (http://localhost:5000)
+	@printf "$(GREEN)╔════════════════════════════════════════╗$(NC)\n"
+	@printf "$(GREEN)║  MLflow UI → http://localhost:5000    ║$(NC)\n"
+	@printf "$(GREEN)╚════════════════════════════════════════╝$(NC)\n"
+	@echo ""
+	@echo -e "$(CYAN)🌐 Starting port-forward for MLflow...$(NC)"
+	@echo "   Keep this terminal open while using the UI"
+	@echo "   Press Ctrl+C to stop"
+	@echo ""
+	@ (sleep 2 && open http://localhost:5000) &
+	@kubectl port-forward -n agentstack svc/agentstack-mlflow 5000:5000
 
 agentstack-ui: ## 🛠️  Open AgentStack Web UI (agentctl)
 	$(call print_step,Opening AgentStack UI)
