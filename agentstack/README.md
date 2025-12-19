@@ -128,25 +128,27 @@ agentstack/
 
 AgentStack is configured via environment variables:
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `AGENTSTACK_ENVIRONMENT` | Environment (development/production) | `development` |
-| `AGENTSTACK_SERVER_PORT` | API server port | `8080` |
-| `AGENTSTACK_DATABASE_URL` | PostgreSQL connection string | `postgres://...` |
-| `AGENTSTACK_REDIS_URL` | Redis connection string | `redis://localhost:6379` |
-| `AGENTSTACK_TELEMETRY_ENABLED` | Enable OpenTelemetry | `false` |
-| `AGENTSTACK_AUTH_JWT_SECRET` | JWT signing secret | Required in production |
+| Variable                       | Description                          | Default                  |
+| ------------------------------ | ------------------------------------ | ------------------------ |
+| `AGENTSTACK_ENVIRONMENT`       | Environment (development/production) | `development`            |
+| `AGENTSTACK_SERVER_PORT`       | API server port                      | `8080`                   |
+| `AGENTSTACK_DATABASE_URL`      | PostgreSQL connection string         | `postgres://...`         |
+| `AGENTSTACK_REDIS_URL`         | Redis connection string              | `redis://localhost:6379` |
+| `AGENTSTACK_TELEMETRY_ENABLED` | Enable OpenTelemetry                 | `false`                  |
+| `AGENTSTACK_AUTH_JWT_SECRET`   | JWT signing secret                   | Required in production   |
 
 See [config.go](internal/config/config.go) for all options.
 
 ## API Endpoints
 
 ### Health
+
 - `GET /health` - Health check with component status
 - `GET /ready` - Kubernetes readiness probe
 - `GET /live` - Kubernetes liveness probe
 
 ### Projects
+
 - `GET /v1/projects` - List projects
 - `POST /v1/projects` - Create project
 - `GET /v1/projects/{id}` - Get project
@@ -154,6 +156,7 @@ See [config.go](internal/config/config.go) for all options.
 - `DELETE /v1/projects/{id}` - Delete project
 
 ### Agents
+
 - `GET /v1/projects/{id}/agents` - List agents
 - `POST /v1/projects/{id}/agents` - Create agent
 - `GET /v1/agents/{id}` - Get agent
@@ -161,6 +164,7 @@ See [config.go](internal/config/config.go) for all options.
 - `DELETE /v1/agents/{id}` - Delete agent
 
 ### Chat
+
 - `POST /v1/agents/{id}/chat` - Create chat session
 - `POST /v1/chat/{session_id}/messages` - Send message
 - `GET /v1/chat/{session_id}` - Get session with messages

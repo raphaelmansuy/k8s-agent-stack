@@ -155,11 +155,13 @@ install-tools: ## Install development tools
 	@echo "Installing development tools..."
 	@$(GO) install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	@$(GO) install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
-	@$(GO) install ariga.io/atlas/cmd/atlas@latest
 	@$(GO) install github.com/air-verse/air@latest
 	@$(GO) install golang.org/x/vuln/cmd/govulncheck@latest
 	@$(GO) install mvdan.cc/gofumpt@latest
-	@$(GO) install github.com/golang/mock/mockgen@latest
+	@$(GO) install go.uber.org/mock/mockgen@latest
+	@$(GO) install github.com/securego/gosec/v2/cmd/gosec@latest
+	@echo "Installing atlas (via curl)..."
+	@curl -sSf https://atlasgo.sh | sh
 
 # OpenAPI
 openapi: ## Generate OpenAPI spec from code
