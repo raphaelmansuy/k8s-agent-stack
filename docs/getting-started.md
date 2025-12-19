@@ -121,10 +121,17 @@ helm-agent                       Declarative   True    True
 
 ### Step 7: Access kagent UI
 
+The platform includes the official Kagent Web UI for managing agents and chatting.
+
 ```bash
-kubectl port-forward -n kagent svc/kagent-ui 8080:8080 &
-open http://localhost:8080
+# Build the agentctl CLI
+make -C agentstack build-cli
+
+# Start the UI with automatic port-forwarding
+./agentstack/bin/agentctl ui --port 3000
 ```
+
+Then open: **`http://localhost:3000`**
 
 ---
 
