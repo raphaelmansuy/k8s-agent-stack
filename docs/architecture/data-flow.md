@@ -106,6 +106,26 @@ sequenceDiagram
 
 ## 4. Auth & RBAC Flow
 
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant G as API Gateway
+    participant A as Auth Service
+    participant R as RBAC Service
+    participant DB as PostgreSQL
+
+    C->>+G: Request + Auth Header
+    G->>+A: Authenticate(Token/Key)
+    A->>+DB: Verify & Fetch Identity
+    DB-->>-A: Identity (Team, Project)
+    A-->>-G: Authenticated Context
+    G->>+R: Authorize(Action, Resource)
+    R->>R: Check Scopes & Roles
+    R-->>-G: Allowed
+    G->>G: Inject Tenant Context
+    G-->>-C: Processed Response
+```
+
 1. **Request** arrives at the API Gateway with an `Authorization` header.
 2. **Auth Middleware** extracts the JWT or API Key.
 3. **API Key Lookup** (via `auth.Service`) verifies the key against **PostgreSQL**.

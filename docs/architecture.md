@@ -29,20 +29,20 @@ architecture-beta
     group runtime(cloud)[Agent Runtime]
     group observability(internet)[Observability]
 
-    service browser(logos:chrome)[Web Browser] in client
-    service cli(logos:gnome-terminal)[agentctl CLI] in client
+    service browser(internet)[Web Browser] in client
+    service cli(server)[agentctl CLI] in client
 
-    service api(logos:go)[API Gateway] in gateway
+    service api(server)[API Gateway] in gateway
     
     service db(database)[PostgreSQL] in control
-    service cache(logos:redis)[Redis] in control
+    service cache(server)[Redis] in control
     
-    service k8s(logos:kubernetes)[Kubernetes] in runtime
-    service knative(logos:knative-icon)[Knative] in runtime
-    service kagent(logos:kagent)[kagent] in runtime
+    service k8s(cloud)[Kubernetes] in runtime
+    service knative(cloud)[Knative] in runtime
+    service kagent(cloud)[kagent] in runtime
     
-    service mlflow(logos:mlflow)[MLflow] in observability
-    service otel(logos:opentelemetry-icon)[OpenTelemetry] in observability
+    service mlflow(server)[MLflow] in observability
+    service otel(server)[OpenTelemetry] in observability
 
     browser:R -- L:api
     cli:R -- L:api

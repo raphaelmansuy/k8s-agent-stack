@@ -8,6 +8,21 @@ The Agent Runtime is responsible for the lifecycle, execution, and scaling of AI
 
 AgentStack supports two primary orchestration modes, allowing it to adapt to the capabilities of the target Kubernetes cluster.
 
+```mermaid
+flowchart TD
+    D[Deployment Request] --> C{kagent CRDs?}
+    C -- Yes --> K[kagent Mode]
+    C -- No --> KN[Knative Mode]
+    
+    K --> K_CRD[Create Agent CRD]
+    K_CRD --> K_CTRL[kagent-controller]
+    K_CTRL --> P[Agent Pod]
+    
+    KN --> KN_SVC[Create Knative Service]
+    KN_SVC --> KN_CTRL[Knative Controller]
+    KN_CTRL --> P
+```
+
 ### 1. kagent Mode (Native)
 If the **kagent** controller and CRDs are installed, AgentStack uses the `Agent` custom resource (`kagent.dev/v1alpha2`) as the primary deployment primitive.
 

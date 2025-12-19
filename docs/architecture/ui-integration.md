@@ -12,17 +12,17 @@ The UI is deployed as a standalone application within the `agentstack` namespace
 architecture-beta
     group local(internet)[Local Machine]
     group cluster(cloud)[Kubernetes Cluster]
-    group ns_agentstack(server)[Namespace: agentstack] in cluster
-    group ns_kagent(server)[Namespace: kagent] in cluster
+    group ns_agentstack(server)[Namespace agentstack] in cluster
+    group ns_kagent(server)[Namespace kagent] in cluster
 
-    service browser(logos:chrome)[Browser] in local
-    service pf(logos:gnome-terminal)[Port-Forward] in local
+    service browser(internet)[Browser] in local
+    service pf(server)[Port-Forward] in local
 
-    service ui(logos:nextjs-icon)[UI Container] in ns_agentstack
-    service nginx(logos:nginx)[Nginx Proxy] in ns_agentstack
-    service socat(logos:linux-tux)[Socat Sidecar] in ns_agentstack
+    service ui(server)[UI Container] in ns_agentstack
+    service nginx(server)[Nginx Proxy] in ns_agentstack
+    service socat(server)[Socat Sidecar] in ns_agentstack
     
-    service controller(logos:kagent)[kagent-controller] in ns_kagent
+    service controller(server)[kagent-controller] in ns_kagent
 
     browser:B -- T:pf
     pf:R -- L:nginx
@@ -40,21 +40,21 @@ architecture-beta
 Accessing the UI in a local development environment requires a complex networking setup, which is automated by the `agentctl ui` command.
 
 ### Quadruple Port-Forwarding
-The UI requires four distinct ports to be forwarded to the local machine:
+The UI requires four distinct ports to be forwarded to the local machine to ensure all features (SSR, API, and WebSockets) work correctly:
 
 | Port | Purpose | Description |
 |------|---------|-------------|
-| **3000** | Main UI | The primary entry point for the browser. |
-| **8080** | SSR Backend | Next.js Server-Side Rendering (required for model loading and initial state). |
-| **8083** | A2A API | The proxy for Agent-to-Agent API calls. |
-| **8081** | WebSockets | Real-time updates and streaming notifications. |
+| **3000** | Main UI | The primary entry point for the browser. Routes to the internal Nginx proxy. |
+| **8080** | API & SSR | Used by the Next.js frontend to communicate with the backend API via Nginx. |
+| **8083** | A2A Tunnel | Direct tunnel to the `kagent-controller` for Agent-to-Agent protocol calls. |
+| **8081** | WebSockets | Dedicated tunnel for real-time streaming updates and notifications. |
 
 ### Cross-Namespace Connectivity
-The UI pod often needs to communicate with the `kagent-controller` which resides in a different namespace (`kagent`). To facilitate this without complex DNS or Ingress setup, AgentStack uses **socat sidecars**.
+The UI pod needs to communicate with the `kagent-controller` which resides in the `kagent` namespace. To facilitate this without complex DNS or Ingress setup, AgentStack uses **socat sidecars** within the UI pod.
 
-- **Sidecar Container**: A lightweight `socat` process running inside the UI pod.
-- **Function**: It listens on a local port (e.g., 8083) and tunnels traffic to `kagent-controller.kagent.svc.cluster.local:8083`.
-- **Benefit**: The UI application can simply talk to `localhost`, and the sidecar handles the cross-namespace routing.
+- **Sidecar Containers**: Lightweight `socat` processes (`backend-proxy` and `ws-proxy`) running alongside the UI container.
+- **Function**: They listen on local ports (8083 and 8081) and tunnel traffic to `kagent-controller.kagent.svc.cluster.local:8083`.
+- **Benefit**: The UI application and Nginx proxy can simply talk to `127.0.0.1`, and the sidecars handle the cross-namespace routing.
 
 ## Nginx Proxy Tuning
 

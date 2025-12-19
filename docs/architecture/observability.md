@@ -16,6 +16,33 @@ The platform uses structured logging to ensure that logs are machine-readable an
 
 AgentStack is instrumented with **OpenTelemetry (Otel)**.
 
+```mermaid
+flowchart LR
+    subgraph Agents
+        A1[Agent A]
+        A2[Agent B]
+    end
+    subgraph Platform
+        G[API Gateway]
+        C[Control Plane]
+    end
+    subgraph Observability Stack
+        O[Otel Collector]
+        J[Jaeger/Tempo]
+        P[Prometheus]
+        M[MLflow]
+    end
+
+    A1 -- Traces --> O
+    A2 -- Traces --> O
+    G -- Traces/Metrics --> O
+    C -- Traces/Metrics --> O
+    
+    O -- Spans --> J
+    O -- Metrics --> P
+    O -- Agent Traces --> M
+```
+
 - **Distributed Tracing**: Tracks requests as they flow from the API Gateway to the Control Plane and out to the Kubernetes API.
 - **Metrics**: Captures key performance indicators (KPIs) such as:
     - Request latency (p50, p95, p99).

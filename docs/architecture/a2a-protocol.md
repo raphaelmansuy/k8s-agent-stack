@@ -6,6 +6,27 @@ The A2A protocol is the standardized communication layer that enables agents to 
 
 ## Protocol Specification
 
+```mermaid
+flowchart TD
+    subgraph A2A Protocol
+        T[Transport: HTTP/SSE]
+        F[Format: JSON-RPC 2.0]
+        D[Discovery: .well-known/agent.json]
+    end
+    
+    subgraph Methods
+        M1[message/send]
+        M2[message/stream]
+        M3[task/get]
+    end
+    
+    T --- F
+    F --- D
+    D --- M1
+    D --- M2
+    D --- M3
+```
+
 - **Transport**: HTTP/1.1 or HTTP/2.
 - **Message Format**: JSON-RPC 2.0.
 - **Streaming**: Server-Sent Events (SSE).
@@ -13,26 +34,26 @@ The A2A protocol is the standardized communication layer that enables agents to 
 
 ## Core Methods
 
-| Method | Description | Payload |
-|--------|-------------|---------|
-| `message/send` | Sends a synchronous message to an agent. | `{ "text": "...", "metadata": {} }` |
-| `message/stream` | Initiates a streaming response from an agent. | `{ "text": "...", "stream": true }` |
+| Method | Description | Payload (JSON-RPC Params) |
+|--------|-------------|---------------------------|
+| `message/send` | Sends a synchronous message to an agent. | `{ "message": { "parts": [{ "kind": "text", "text": "..." }] } }` |
+| `message/stream` | Initiates a streaming response from an agent. | `{ "message": { "parts": [{ "kind": "text", "text": "..." }] }, "stream": true }` |
 | `task/get` | Retrieves the status of a long-running task. | `{ "taskId": "..." }` |
 | `task/cancel` | Cancels an ongoing task. | `{ "taskId": "..." }` |
 
 ## Streaming with SSE
 
-For real-time interactions, the protocol uses SSE. Each event in the stream is a valid JSON-RPC response object.
+For real-time interactions, the protocol uses SSE. Each event in the stream is a valid JSON-RPC response object. The `result` or `params` contains the message parts.
 
 ```text
 event: message
-data: {"jsonrpc": "2.0", "method": "message/stream", "params": {"chunk": "Hello"}}
+data: {"jsonrpc": "2.0", "method": "message/stream", "params": {"taskId": "...", "status": {"state": "working", "message": {"parts": [{"kind": "text", "text": "Hello"}]}}}}
 
 event: message
-data: {"jsonrpc": "2.0", "method": "message/stream", "params": {"chunk": " world"}}
+data: {"jsonrpc": "2.0", "method": "message/stream", "params": {"taskId": "...", "status": {"state": "working", "message": {"parts": [{"kind": "text", "text": " world"}]}}}}
 
 event: message
-data: {"jsonrpc": "2.0", "method": "message/stream", "params": {"status": "completed"}}
+data: {"jsonrpc": "2.0", "method": "message/stream", "params": {"taskId": "...", "status": {"state": "completed"}, "final": true}}
 ```
 
 ## Agent Discovery (The Agent Card)

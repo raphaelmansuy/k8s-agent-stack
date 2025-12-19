@@ -20,6 +20,17 @@ Redis is used for high-performance caching and asynchronous task coordination.
 
 ### 3. Reconciliation Loop
 The Control Plane implements a reconciliation pattern similar to Kubernetes controllers.
+
+```mermaid
+flowchart TD
+    DB[(PostgreSQL)] -- Watch --> R[Reconciler]
+    R -- Compare --> K8s{K8s State}
+    K8s -- Diff --> A[Apply Changes]
+    A -- Update --> KAPI[Kubernetes API]
+    KAPI -- Success --> U[Update DB Status]
+    U -- Write --> DB
+```
+
 - **Watchers**: Monitors the database for changes in agent definitions.
 - **Reconcilers**: Compares the database state with the Kubernetes state and performs the necessary actions (Create, Update, Delete).
 - **Status Updates**: Periodically polls Kubernetes for agent health and updates the database with the latest status and URLs.

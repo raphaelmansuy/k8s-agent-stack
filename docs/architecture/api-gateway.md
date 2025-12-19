@@ -15,6 +15,17 @@ The AgentStack API Gateway is the central entry point for all administrative and
 ## Core Responsibilities
 
 ### 1. Request Routing & Validation
+
+```mermaid
+flowchart LR
+    R[Request] --> M[Middleware Pipeline]
+    M --> V{Validation}
+    V -- Fail --> E[Error Response]
+    V -- Pass --> H[Domain Handler]
+    H --> S[Domain Service]
+    S --> DB[(Database)]
+```
+
 The gateway uses `chi` for routing and `huma` for request/response validation. Every endpoint is defined with a Go struct that automatically generates JSON Schema for validation and OpenAPI 3.1 documentation.
 
 ### 2. Middleware Pipeline
