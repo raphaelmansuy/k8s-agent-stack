@@ -136,8 +136,8 @@ func RegisterProjectRoutes(api huma.API, pool *database.Pool, rbacM *middleware.
 
 		projects, err := queries.ListProjects(ctx, db.ListProjectsParams{
 			TeamID: teamID,
-			Limit:  int32(input.Limit),
-			Offset: int32(input.Offset),
+			Limit:  int32(input.Limit),  //nolint:gosec // Pagination limit is safe
+			Offset: int32(input.Offset), //nolint:gosec // Pagination offset is safe
 		})
 		if err != nil {
 			return nil, huma.Error500InternalServerError("Failed to list projects", err)

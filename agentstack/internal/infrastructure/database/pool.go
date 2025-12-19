@@ -140,11 +140,11 @@ func (d *TenantDB) Query(ctx context.Context, sql string, arguments ...interface
 		defer func() { finish(err) }()
 	}
 	if conn, ok := ctx.Value(connKey).(*pgxpool.Conn); ok {
-		rows, e := conn.Query(ctx, sql, arguments...) //nolint:sqlclosecheck
+		rows, e := conn.Query(ctx, sql, arguments...) //nolint:sqlclosecheck // Rows are closed by the caller
 		err = e
 		return rows, err
 	}
-	rows, e := d.pool.Query(ctx, sql, arguments...) //nolint:sqlclosecheck
+	rows, e := d.pool.Query(ctx, sql, arguments...) //nolint:sqlclosecheck // Rows are closed by the caller
 	err = e
 	return rows, err
 }

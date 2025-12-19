@@ -168,7 +168,7 @@ func TestChatServiceStream(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	var contents []string //nolint:prealloc
+	var contents []string //nolint:prealloc // Small number of elements, prealloc not needed
 	for event := range streamResp.Events {
 		contents = append(contents, event.Content)
 		if event.Done {

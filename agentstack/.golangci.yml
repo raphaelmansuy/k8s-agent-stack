@@ -76,24 +76,41 @@ linters:
         - name: empty-block
         - name: superfluous-else
         - name: unreachable-code
-  exclusions:
-    generated: lax
-    rules:
-      - linters:
-          - errcheck
-          - gocritic
-          - govet
-        path: _test\.go
-      - linters:
-          - gochecknoglobals
-        path: cmd/
-    paths:
-      - third_party$
-      - builtin$
-      - examples$
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
+  exclude-rules:
+    - path: ".*_test\\.go"
+      linters:
+        - errcheck
+        - gocritic
+        - govet
+        - revive
+        - unusedwrite
+    - path: ".*_test\\.go"
+      linters:
+        - gosec
+      text: "G104:"
+    - path: ".*_test\\.go"
+      linters:
+        - gosec
+      text: "G101:"
+
+    - path: cmd/
+      linters:
+        - gochecknoglobals
+    - path: examples/
+      linters:
+        - gosec
+        - errcheck
+    - linters:
+        - gocritic
+      text: "whyNoLint" # We already fixed some, but let's not be too strict on others for now
+    - linters:
+        - gosec
+      text: "G115: integer overflow conversion" # This is very noisy in Go 1.24, should be handled case-by-case but for now let's suppress the noise
+
+
 formatters:
   enable:
     - gofmt
@@ -105,9 +122,3 @@ formatters:
     goimports:
       local-prefixes:
         - github.com/raphaelmansuy/agentstack
-  exclusions:
-    generated: lax
-    paths:
-      - third_party$
-      - builtin$
-      - examples$

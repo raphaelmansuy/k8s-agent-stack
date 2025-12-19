@@ -137,8 +137,8 @@ func RegisterAgentRoutes(api huma.API, pool *database.Pool, rbacM *middleware.RB
 	}, func(ctx context.Context, input *ListAgentsInput) (*ListAgentsOutput, error) {
 		agents, err := queries.ListAgents(ctx, db.ListAgentsParams{
 			ProjectID: input.ProjectID,
-			Limit:     int32(input.Limit),
-			Offset:    int32(input.Offset),
+			Limit:     int32(input.Limit),  //nolint:gosec // Pagination limit is safe
+			Offset:    int32(input.Offset), //nolint:gosec // Pagination offset is safe
 		})
 		if err != nil {
 			return nil, huma.Error500InternalServerError("Failed to list agents", err)

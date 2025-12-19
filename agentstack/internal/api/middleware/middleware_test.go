@@ -47,7 +47,7 @@ func TestDefaultRateLimitKeyFunc(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest("GET", "/", nil)
+			req := httptest.NewRequest("GET", "/", http.NoBody)
 			req.RemoteAddr = tt.remote
 			if tt.xff != "" {
 				req.Header.Set("X-Forwarded-For", tt.xff)
@@ -90,7 +90,7 @@ func TestRateLimitWithoutRedis(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	req := httptest.NewRequest("GET", "/", nil)
+	req := httptest.NewRequest("GET", "/", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	handler.ServeHTTP(rec, req)
@@ -158,7 +158,7 @@ func TestTenantContext(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	req := httptest.NewRequest("GET", "/", nil)
+	req := httptest.NewRequest("GET", "/", http.NoBody)
 	req.Header.Set("X-Tenant-ID", "tenant-123")
 	rec := httptest.NewRecorder()
 
@@ -180,7 +180,7 @@ func TestIdempotencyWithoutRedis(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	req := httptest.NewRequest("POST", "/", nil)
+	req := httptest.NewRequest("POST", "/", http.NoBody)
 	req.Header.Set("Idempotency-Key", "key-123")
 	rec := httptest.NewRecorder()
 
@@ -198,7 +198,7 @@ func TestIdempotencySkipsGET(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	req := httptest.NewRequest("GET", "/", nil)
+	req := httptest.NewRequest("GET", "/", http.NoBody)
 	req.Header.Set("Idempotency-Key", "key-123")
 	rec := httptest.NewRecorder()
 
