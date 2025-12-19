@@ -1,12 +1,12 @@
 # Deployment Guide
 
-This guide covers deploying, updating, and managing agents on k8s-agent-stack.
+This guide covers deploying, updating, and managing agents on k8s-agent-stack. For a deep dive into how agents are orchestrated, see the [Agent Runtime Architecture](architecture/agent-runtime.md).
 
 ## Deploy an Agent
 
 ### Method 1: kagent Agent CRD (Recommended)
 
-Deploy agents using kagent's Agent Custom Resource:
+Deploy agents using kagent's Agent Custom Resource. This method leverages the Kagent Controller for automated lifecycle management. For more details, see the [Control Plane Architecture](architecture/control-plane.md).
 
 ```bash
 # 1. Build your agent image with dev.local prefix
@@ -65,11 +65,8 @@ curl http://localhost:8081/health
 Deploy the included reference agent:
 
 ```bash
-# Navigate to agent directory
-cd kagent-adk-agent
-
 # Deploy to Kubernetes
-kubectl apply -f kagent-deployment.yaml
+kubectl apply -f deploy/kagent-adk-agent.yaml
 
 # Wait for ready (30-60 seconds)
 kubectl wait --for=condition=ready agent \
@@ -101,7 +98,24 @@ kn service create my-agent \
   --pull-policy=IfNotPresent
 ```
 
-### Method 4: From Local Docker Image
+### Method 4: AgentStack CLI (`agentctl`)
+
+The `agentctl` CLI provides a high-level interface for managing agents, abstracting the underlying Kubernetes resources.
+
+```bash
+# Deploy an agent from a local directory
+agentctl deploy ./my-agent --name my-agent
+
+# List running agents
+agentctl list
+
+# Access the Kagent Web UI
+agentctl ui
+```
+
+> **Note**: `agentctl ui` automatically manages the complex port-forwarding required for Next.js SSR and A2A streaming. See [KAGENT_UI_ACCESS.md](KAGENT_UI_ACCESS.md) for details.
+
+### Method 5: From Local Docker Image
 
 ```bash
 # Build locally with dev.local prefix

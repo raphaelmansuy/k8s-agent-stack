@@ -1,4 +1,3 @@
-````markdown
 # Task Log: Kagent Agent Installation
 
 **Date**: 2025-12-13  
@@ -68,8 +67,8 @@ kagent invoke -a k8s-agent -t "List all pods in the kagent namespace" -n kagent
 kagent invoke -a k8s-helper-agent -t "List all pods in the kagent namespace" -n kagent
 ```
 
-**Error**: OpenAI API 403 - unsupported_country_region_territory
-**Cause**: Region restrictions on OpenAI API key
+**Error**: OpenAI API 403 - unsupported_country_region_territory  
+**Cause**: Region restrictions on OpenAI API key  
 **Impact**: Agent infrastructure working correctly, API call blocked
 
 ---
@@ -125,5 +124,3 @@ kagent invoke -a k8s-helper-agent -t "List all pods in the kagent namespace" -n 
 ---
 
 **Status**: ✅ COMPLETE - All tutorial steps successfully executed and validated
-
-````

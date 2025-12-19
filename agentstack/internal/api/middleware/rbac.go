@@ -1,0 +1,257 @@
+/*
+ * Copyright 2025 Raphaël MANSUY
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// Package middleware provides HTTP middleware for the API.
+package middleware
+
+import (
+	"net/http"
+
+	"github.com/danielgtaylor/huma/v2"
+
+	"github.com/raphaelmansuy/agentstack/internal/domain/rbac"
+)
+
+// RBACMiddleware provides RBAC checking middleware.
+type RBACMiddleware struct {
+	api     huma.API
+	rbacSvc *rbac.Service
+}
+
+// NewRBACMiddleware creates a new RBAC middleware.
+func NewRBACMiddleware(api huma.API, rbacSvc *rbac.Service) *RBACMiddleware {
+	return &RBACMiddleware{api: api, rbacSvc: rbacSvc}
+}
+
+// RequirePermission creates middleware that checks for a specific permission.
+func (m *RBACMiddleware) RequirePermission(resource rbac.Resource, action rbac.Action) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			auth := GetAuthFromContext(r.Context())
+			if auth == nil {
+				http.Error(w, "authentication required", http.StatusUnauthorized)
+				return
+			}
+
+			// Check API Key scopes first if applicable
+			if auth.UserID == "" && len(auth.Scopes) > 0 {
+				if !HasScope(r.Context(), string(resource), string(action)) {
+					http.Error(w, "insufficient API key scopes", http.StatusForbidden)
+					return
+				}
+			}
+
+			// Determine scope from request
+			scopeType, scopeID := m.extractScope(r)
+
+			// Build conditions from request context
+			conditions := map[string]string{
+				"user_id": auth.UserID,
+			}
+
+			// Add resource owner if available
+			if ownerID, ok := r.Context().Value(ContextKeyResourceOwner).(string); ok {
+				conditions["owner_id"] = ownerID
+			}
+			if auth.TeamID != "" {
+				conditions["team_id"] = auth.TeamID
+			}
+			if auth.ProjectID != "" {
+				conditions["project_id"] = auth.ProjectID
+			}
+
+			// If it's an API key, we've already checked scopes.
+			// Now we just need to ensure the scope matches the key's ownership.
+			if auth.UserID == "" {
+				if scopeType == rbac.ScopeTeam && scopeID != auth.TeamID {
+					http.Error(w, "API key belongs to a different team", http.StatusForbidden)
+					return
+				}
+				if scopeType == rbac.ScopeProject && auth.ProjectID != "" && scopeID != auth.ProjectID {
+					http.Error(w, "API key is restricted to a different project", http.StatusForbidden)
+					return
+				}
+				// If it passed these checks, it's allowed.
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			result, err := m.rbacSvc.CheckPermission(r.Context(), rbac.PermissionRequest{
+				UserID:     auth.UserID,
+				Resource:   resource,
+				Action:     action,
+				ScopeType:  scopeType,
+				ScopeID:    scopeID,
+				Conditions: conditions,
+			})
+			if err != nil {
+				http.Error(w, "permission check failed", http.StatusInternalServerError)
+				return
+			}
+
+			if !result.Allowed {
+				http.Error(w, "insufficient permissions", http.StatusForbidden)
+				return
+			}
+
+			// Store result for audit logging
+			ctx := SetRBACResultInContext(r.Context(), result)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+// HumaRequirePermission creates a Huma-compatible middleware that checks for a specific permission.
+func (m *RBACMiddleware) HumaRequirePermission(resource rbac.Resource, action rbac.Action) func(huma.Context, func(huma.Context)) {
+	return func(ctx huma.Context, next func(huma.Context)) {
+		auth := GetAuthFromContext(ctx.Context())
+		if auth == nil {
+			_ = huma.WriteErr(m.api, ctx, http.StatusUnauthorized, "authentication required")
+			return
+		}
+
+		// Check API Key scopes first if applicable
+		if auth.UserID == "" && len(auth.Scopes) > 0 {
+			if !HasScope(ctx.Context(), string(resource), string(action)) {
+				_ = huma.WriteErr(m.api, ctx, http.StatusForbidden, "insufficient API key scopes")
+				return
+			}
+			// For API keys, if they have the scope, we allow it as long as it's within their team/project
+			// (which is enforced by TenantMiddleware and the checks below)
+		}
+
+		// Try to extract scope from path parameters
+		scopeType := rbac.ScopeGlobal
+		scopeID := ""
+
+		if projectID := ctx.Param("projectId"); projectID != "" {
+			scopeType = rbac.ScopeProject
+			scopeID = projectID
+		} else if teamID := ctx.Param("teamId"); teamID != "" {
+			scopeType = rbac.ScopeTeam
+			scopeID = teamID
+		} else if auth.TeamID != "" {
+			// Fallback to team scope from auth
+			scopeType = rbac.ScopeTeam
+			scopeID = auth.TeamID
+		}
+
+		conditions := map[string]string{
+			"user_id": auth.UserID,
+		}
+
+		if auth.TeamID != "" {
+			conditions["team_id"] = auth.TeamID
+		}
+		if auth.ProjectID != "" {
+			conditions["project_id"] = auth.ProjectID
+		}
+
+		// If it's an API key, we've already checked scopes.
+		// Now we just need to ensure the scope matches the key's ownership.
+		if auth.UserID == "" {
+			if scopeType == rbac.ScopeTeam && scopeID != auth.TeamID {
+				_ = huma.WriteErr(m.api, ctx, http.StatusForbidden, "API key belongs to a different team")
+				return
+			}
+			if scopeType == rbac.ScopeProject && auth.ProjectID != "" && scopeID != auth.ProjectID {
+				_ = huma.WriteErr(m.api, ctx, http.StatusForbidden, "API key is restricted to a different project")
+				return
+			}
+			// If it passed these checks, it's allowed.
+			next(ctx)
+			return
+		}
+
+		result, err := m.rbacSvc.CheckPermission(ctx.Context(), rbac.PermissionRequest{
+			UserID:     auth.UserID,
+			Resource:   resource,
+			Action:     action,
+			ScopeType:  scopeType,
+			ScopeID:    scopeID,
+			Conditions: conditions,
+		})
+		if err != nil {
+			_ = huma.WriteErr(m.api, ctx, http.StatusInternalServerError, "permission check failed", err)
+			return
+		}
+
+		if !result.Allowed {
+			_ = huma.WriteErr(m.api, ctx, http.StatusForbidden, "insufficient permissions")
+			return
+		}
+
+		next(ctx)
+	}
+}
+
+// RequireRole creates middleware that requires a specific role.
+func (m *RBACMiddleware) RequireRole(roleIDs ...string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			auth := GetAuthFromContext(r.Context())
+			if auth == nil {
+				http.Error(w, "authentication required", http.StatusUnauthorized)
+				return
+			}
+
+			bindings, err := m.rbacSvc.GetUserRoles(r.Context(), auth.UserID)
+			if err != nil {
+				http.Error(w, "failed to get user roles", http.StatusInternalServerError)
+				return
+			}
+
+			hasRole := false
+			for _, binding := range bindings {
+				for _, roleID := range roleIDs {
+					if binding.RoleID == roleID {
+						hasRole = true
+						break
+					}
+				}
+				if hasRole {
+					break
+				}
+			}
+
+			if !hasRole {
+				http.Error(w, "required role not found", http.StatusForbidden)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func (m *RBACMiddleware) extractScope(r *http.Request) (rbac.ScopeType, string) {
+	// Try to extract project ID from path or query
+	projectID := r.URL.Query().Get("project_id")
+	if projectID == "" {
+		projectID = r.PathValue("projectId")
+	}
+	if projectID != "" {
+		return rbac.ScopeProject, projectID
+	}
+
+	// Fall back to team scope
+	auth := GetAuthFromContext(r.Context())
+	if auth != nil && auth.TeamID != "" {
+		return rbac.ScopeTeam, auth.TeamID
+	}
+
+	return rbac.ScopeGlobal, ""
+}

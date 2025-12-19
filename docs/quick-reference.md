@@ -8,7 +8,7 @@ Common commands and workflows for k8s-agent-stack.
 
 ```bash
 # Install Knative + Contour
-./knative_orbstack.sh
+./scripts/knative_orbstack.sh
 
 # Install kagent
 helm install kagent-crds oci://ghcr.io/kagent-dev/kagent/helm/kagent-crds -n kagent
@@ -38,15 +38,20 @@ kubectl delete agent <agent-name> -n kagent
 
 ### Port Forwarding
 
+For a detailed explanation of the multi-port architecture, see [UI Integration Architecture](architecture/ui-integration.md).
+
 ```bash
-# kagent UI (web dashboard)
-kubectl port-forward -n kagent svc/kagent-ui 8080:8080
+# AgentStack UI (Recommended)
+agentctl ui
+
+# API Documentation
+agentctl docs
+
+# Manual kagent UI (web dashboard)
+kubectl port-forward -n agentstack svc/agentstack-ui 3000:3000 8080:8080 8083:8083 8081:8081
 
 # Agent endpoint
 kubectl port-forward -n kagent svc/<agent-name> 8081:8080
-
-# kagent Controller API
-kubectl port-forward -n kagent svc/kagent-controller 8083:8083
 ```
 
 ### Health Checks
@@ -59,7 +64,7 @@ kubectl get pods -n kagent
 kubectl get ksvc --all-namespaces
 
 # Run diagnostics
-./knative_orbstack.sh --debug
+./scripts/knative_orbstack.sh --debug
 
 # Check agent readiness
 kubectl get agents -n kagent -o wide

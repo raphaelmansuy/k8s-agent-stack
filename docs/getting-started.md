@@ -2,6 +2,8 @@
 
 Deploy sovereign AI agents on Kubernetes in under 10 minutes.
 
+> **New to the platform?** Read the [Architecture Overview](architecture.md) to understand how the components work together.
+
 ## Prerequisites
 
 ### Required Tools
@@ -56,7 +58,7 @@ kubectl cluster-info
 ### Step 3: Install Knative + Contour
 
 ```bash
-./knative_orbstack.sh
+./scripts/knative_orbstack.sh
 ```
 
 This installs:
@@ -76,6 +78,8 @@ kubectl patch configmap config-deployment -n knative-serving \
 ```
 
 ### Step 5: Install kagent (Agent Orchestration)
+
+Kagent manages the lifecycle of your agents on Kubernetes. For more details on how the controller and runtime work, see the [Agent Runtime Architecture](architecture/agent-runtime.md).
 
 ```bash
 # Set your OpenAI API key
@@ -121,10 +125,17 @@ helm-agent                       Declarative   True    True
 
 ### Step 7: Access kagent UI
 
+The platform includes the official Kagent Web UI for managing agents and chatting.
+
 ```bash
-kubectl port-forward -n kagent svc/kagent-ui 8080:8080 &
-open http://localhost:8080
+# Build the agentctl CLI
+make -C agentstack build-cli
+
+# Start the UI with automatic port-forwarding
+./agentstack/bin/agentctl ui --port 3000
 ```
+
+Then open: **`http://localhost:3000`**
 
 ---
 
@@ -138,7 +149,7 @@ cd kagent-adk-agent
 docker build -t dev.local/kagent-adk-agent:v30 .
 
 # Deploy using kagent CRD
-kubectl apply -f kagent-deployment.yaml
+kubectl apply -f deploy/kagent-adk-agent.yaml
 
 # Verify
 kubectl get agents -n kagent | grep google-adk
@@ -148,7 +159,7 @@ kubectl get agents -n kagent | grep google-adk
 
 ```bash
 # Deploy using Knative
-kubectl apply -f kagent-setup.yaml
+kubectl apply -f deploy/kagent-setup.yaml
 
 # Get service URL
 kubectl get ksvc -n kagent

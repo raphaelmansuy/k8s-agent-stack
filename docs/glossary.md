@@ -9,7 +9,13 @@ Key terms and concepts used in k8s-agent-stack.
 | Term | Definition |
 |------|------------|
 | **Agent** | An AI-powered service that understands natural language, reasons, and takes actions. Built using frameworks like Google ADK, LangGraph, or CrewAI. |
-| **A2A Protocol** | Agent-to-Agent communication protocol enabling agents to discover and communicate with each other. Part of [kagent](https://github.com/kagent-dev/kagent). |
+| **A2A Protocol** | Agent-to-Agent communication protocol enabling agents to discover and communicate with each other. See [A2A Protocol Architecture](architecture/a2a-protocol.md). |
+| **AgentStack** | The sovereign AI agent platform described in this documentation. |
+| **Control Plane** | The central management layer of AgentStack, handling state and reconciliation. See [Control Plane Architecture](architecture/control-plane.md). |
+| **API Gateway** | The entry point for all administrative and operational requests. See [API Gateway Architecture](architecture/api-gateway.md). |
+| **Agent Runtime** | The execution environment for agents, including sidecars and networking. See [Agent Runtime Architecture](architecture/agent-runtime.md). |
+| **UI Integration** | The connection between the Web UI and the backend services. See [UI Integration Architecture](architecture/ui-integration.md). |
+| **Data Flow** | The path of a request from the user to the agent and back. See [Data Flow Architecture](architecture/data-flow.md). |
 | **Scale-to-Zero** | Automatically scaling down to zero pods when idle, saving resources. Knative Serving's key feature. |
 | **Cold Start** | Latency when scaling from zero to handle the first request. Optimized by reducing image size or keeping warm pods. |
 

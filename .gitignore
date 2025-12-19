@@ -1,2 +1,14 @@
 .playwright-mcp/
 .pytest_cache/
+.vscode/
+*.log
+*.pid
+bin/
+dist/
+node_modules/
+.DS_Store
+agentstack/api
+agentstack/api.pid
+agentstack/bin/
+agentstack/logs/
+agentstack/lint_output.txt

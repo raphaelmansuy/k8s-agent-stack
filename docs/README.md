@@ -9,26 +9,29 @@ Complete documentation for building, deploying, and operating AI agents on Kuber
 | Guide | Description |
 |-------|-------------|
 | **[Getting Started](getting-started.md)** | Installation for local development and production |
-| **[Architecture](architecture.md)** | 5-layer agentic platform design |
+| **[Architecture](architecture.md)** | 5-layer agentic platform design (see [Deep Dives](architecture/)) |
 | **[Deployment Guide](deployment-guide.md)** | Deploy, update, traffic splitting, canary releases |
 | **[Quick Reference](quick-reference.md)** | Essential commands and common workflows |
 | **[Troubleshooting](troubleshooting.md)** | Common issues and solutions |
 | **[Tool Installation](tool-installation.md)** | kubectl, kn, helm, docker setup |
 | **[Glossary](glossary.md)** | Key terms and concepts |
+| **[Governance](governance.md)** | Project governance and decision-making |
 
 ## 🤖 Agent Development
 
 | Guide | Description |
 |-------|-------------|
 | **[Building Google ADK Agents](building-google-adk-agents-for-kagent.md)** | Complete guide from zero to deployed agent |
+| **[ADK Guide](adk-guide.md)** | Comprehensive ADK reference and cheatsheet |
 | **[kagent A2A Architecture](kagent-adk-a2a-architecture.md)** | Agent-to-agent communication protocol |
+| **[Tutorials](tutorial/README.md)** | Step-by-step tutorials for common tasks |
 
 ## 📋 Reference
 
 | Document | Description |
 |----------|-------------|
-| **[KAGENT_INSTALLATION_SUMMARY](KAGENT_INSTALLATION_SUMMARY.md)** | kagent platform setup notes |
-| **[IMPLEMENTATION-COMPLETE](IMPLEMENTATION-COMPLETE.md)** | Implementation status |
+| **[Specifications](spec/README.md)** | Detailed design specifications for the platform |
+| **[UI Access Guide](KAGENT_UI_ACCESS.md)** | Accessing and using the Kagent Web UI |
 
 ## 📁 Assets
 

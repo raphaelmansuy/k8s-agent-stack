@@ -7,7 +7,7 @@ Quick solutions for common issues with k8s-agent-stack.
 Run the built-in diagnostics:
 
 ```bash
-./knative_orbstack.sh --debug
+./scripts/knative_orbstack.sh --debug
 ```
 
 Expected output:
@@ -31,6 +31,7 @@ Expected output:
 | Agent crashes | CrashLoopBackOff | Check previous pod logs |
 | Image pull errors | ImagePullBackOff | Verify image exists |
 | DNS resolution fails | nslookup errors | Check CoreDNS |
+| UI Streaming Failed | "Failed to fetch" in UI | Ensure `agentctl ui` is running; check [UI Integration Architecture](architecture/ui-integration.md) for proxy settings. |
 
 ---
 
@@ -416,7 +417,7 @@ If you can't resolve an issue:
 
 1. **Run full diagnostics:**
    ```bash
-   ./knative_orbstack.sh --debug > diagnostics.txt 2>&1
+   ./scripts/knative_orbstack.sh --debug > diagnostics.txt 2>&1
    ```
 
 2. **Collect logs:**

@@ -1,0 +1,56 @@
+# Copyright 2025 Raphaël MANSUY
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# AgentStack Configuration
+
+# Environment
+environment: development
+
+# Server settings
+server:
+  port: 8080
+  read_timeout: 15s
+  write_timeout: 15s
+  idle_timeout: 60s
+
+# Database settings
+database:
+  url: postgres://agentstack:agentstack@localhost:5432/agentstack?sslmode=disable
+  max_conns: 25
+  min_conns: 5
+  max_conn_lifetime: 1h
+  max_conn_idle_time: 30m
+
+# Redis settings
+redis:
+  url: redis://localhost:6379
+  pool_size: 10
+  min_idle_conns: 2
+  max_retries: 3
+  dial_timeout: 5s
+  read_timeout: 3s
+  write_timeout: 3s
+
+# Telemetry settings
+telemetry:
+  enabled: false
+  service_name: agentstack-api
+  endpoint: localhost:4318
+  insecure: true
+
+# Auth settings
+auth:
+  jwt_secret: change-me-in-production
+  jwt_expiration: 24h
+  api_key_prefix: ask_
