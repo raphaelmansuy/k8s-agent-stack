@@ -100,6 +100,54 @@ brew install helm
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 ```
 
+---
+
+## Go Development Tools (SOTA 2025)
+
+For developers working on the `agentstack` core or Go-based agents, we recommend the following toolset.
+
+### Go 1.24+
+
+**macOS:**
+```bash
+brew install go
+```
+
+**Linux:**
+```bash
+# Follow instructions at https://go.dev/doc/install
+```
+
+### Automated Tool Installation
+
+The project includes a `Makefile` target to install all necessary development tools (linters, formatters, security scanners).
+
+```bash
+# From the project root
+make install-tools
+```
+
+This installs:
+- **golangci-lint**: High-performance Go linter.
+- **govulncheck**: Real-time vulnerability scanning.
+- **gofumpt**: Stricter, more idiomatic Go formatter.
+- **sqlc**: Type-safe SQL generator.
+- **atlas**: Modern database migrations.
+- **air**: Live reload for Go apps.
+- **mockgen**: Mocking framework for testing.
+
+---
+
+## VS Code Optimization
+
+We provide a pre-configured SOTA (State of the Art) VS Code setup in `.vscode/settings.json`.
+
+**Key Features:**
+- **Security**: Real-time vulnerability scanning via `govulncheck`.
+- **Strictness**: Automatic formatting with `gofumpt` and strict linting.
+- **Performance**: Optimized `gopls` settings for large monorepos.
+- **AI Ready**: Optimized for GitHub Copilot or Cursor.
+
 **Verify:**
 ```bash
 helm version

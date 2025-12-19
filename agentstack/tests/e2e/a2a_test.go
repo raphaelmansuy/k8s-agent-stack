@@ -361,7 +361,7 @@ func TestA2AConcurrentMessages(t *testing.T) {
 	numMessages := 10
 	results := make(chan error, numMessages)
 
-	for i := 0; i < numMessages; i++ {
+	for i := range numMessages {
 		go func(idx int) {
 			params := &a2a.SendMessageParams{
 				Message: a2a.MessageInput{
@@ -376,7 +376,7 @@ func TestA2AConcurrentMessages(t *testing.T) {
 
 	// Collect results
 	var errors []error
-	for i := 0; i < numMessages; i++ {
+	for range numMessages {
 		if err := <-results; err != nil {
 			errors = append(errors, err)
 		}

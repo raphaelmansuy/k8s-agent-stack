@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-.PHONY: help start install setup ui mlflow-ui status clean uninstall check-deps check-cluster check-api-key docs
+.PHONY: help start install setup ui mlflow-ui status clean uninstall check-deps check-cluster check-api-key docs install-tools
 
 # --- Variables ---
 AGENT_NAMESPACE := kagent
@@ -306,6 +306,13 @@ adk-agent-status: ## 📈 Check ADK agent status
 
 adk-agent-logs: ## 📝 View ADK agent logs
 	@kubectl logs -n $(AGENT_NAMESPACE) -l app.kubernetes.io/name=google-adk-byo-agent --tail=100 -f
+
+##@ 🛠️  Development
+
+install-tools: ## 🛠️  Install development tools (Go, linters, etc.)
+	$(call print_step,Installing development tools)
+	@cd agentstack && $(MAKE) install-tools
+	$(call print_success,Development tools installed)
 
 knative: ## ⚡ Install Knative (optional)
 	$(call print_step,Installing Knative Serving)

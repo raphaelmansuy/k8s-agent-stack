@@ -39,11 +39,20 @@ We welcome feature requests! Please:
 
 #### Development Guidelines
 
+**SOTA Go Development Environment:**
+We use a "State of the Art" (SOTA) 2025 configuration for Go development. To set it up:
+
+1.  **Install Go 1.24+**
+2.  **Install Tools**: Run `make install-tools` from the root.
+3.  **VS Code**: Use the provided `.vscode/settings.json` for real-time security scanning and strict formatting.
+
 **Code Quality:**
 - Follow existing code style
 - Add tests for new features
 - Update documentation
 - Keep commits focused and atomic
+- **Security**: Ensure `govulncheck` passes before submitting.
+- **Formatting**: Use `gofumpt` (handled automatically by VS Code).
 
 **Python Code:**
 ```python

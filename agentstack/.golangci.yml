@@ -1,17 +1,21 @@
 version: "2"
 run:
-  go: "1.22"
+  go: "1.24"
 linters:
   enable:
     - bodyclose
     - contextcheck
+    - copyloopvar
     - durationcheck
     - errname
     - errorlint
     - exhaustive
     - forcetypeassert
+    - gocritic
     - godot
     - goprintffuncname
+    - gosec
+    - intrange
     - makezero
     - misspell
     - nilerr

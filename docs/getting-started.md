@@ -13,7 +13,10 @@ Deploy sovereign AI agents on Kubernetes in under 10 minutes.
 kubectl version --client    # Kubernetes CLI (v1.28+)
 helm version                # Helm 3.x
 docker --version            # Docker or OrbStack
+go version                  # Go 1.24+ (for development)
 ```
+
+> **Pro Tip:** Run `make install-tools` to automatically install all necessary Go development tools (linters, security scanners, etc.).
 
 ### Install on macOS
 

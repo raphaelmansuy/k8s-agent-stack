@@ -18,7 +18,7 @@ AgentStack is a Kubernetes-native Platform-as-a-Service for deploying, orchestra
 
 ### Prerequisites
 
-- Go 1.22+
+- Go 1.24+
 - Docker and Docker Compose
 - Make
 
@@ -29,7 +29,10 @@ AgentStack is a Kubernetes-native Platform-as-a-Service for deploying, orchestra
 git clone https://github.com/raphaelmansuy/agentstack.git
 cd agentstack
 
-# Install development tools
+# Install development tools (SOTA 2025 toolset)
+make install-tools
+
+# Setup dependencies
 make setup
 
 # Start infrastructure (PostgreSQL, Redis, MLflow)

@@ -52,7 +52,7 @@ func TestCoalescer_ConcurrentSameKey(t *testing.T) {
 	results := make([]string, 10)
 	errs := make([]error, 10)
 
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		wg.Add(1)
 		go func(idx int) {
 			defer wg.Done()
@@ -67,7 +67,7 @@ func TestCoalescer_ConcurrentSameKey(t *testing.T) {
 	wg.Wait()
 
 	// All should succeed with same result
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		if errs[i] != nil {
 			t.Errorf("request %d failed: %v", i, errs[i])
 		}
@@ -87,7 +87,7 @@ func TestCoalescer_DifferentKeys(t *testing.T) {
 	c := New[string, string](100 * time.Millisecond)
 
 	var wg sync.WaitGroup
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		wg.Add(1)
 		go func(idx int) {
 			defer wg.Done()
@@ -115,7 +115,7 @@ func TestCoalescer_ErrorPropagation(t *testing.T) {
 	var wg sync.WaitGroup
 	errs := make([]error, 5)
 
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		wg.Add(1)
 		go func(idx int) {
 			defer wg.Done()
@@ -129,7 +129,7 @@ func TestCoalescer_ErrorPropagation(t *testing.T) {
 	wg.Wait()
 
 	// All should get the same error
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		if !errors.Is(errs[i], expectedErr) {
 			t.Errorf("request %d: expected error %v, got %v", i, expectedErr, errs[i])
 		}
@@ -196,7 +196,7 @@ func TestBatchCoalescer(t *testing.T) {
 	errs := make([]error, 10)
 
 	// Submit 10 requests quickly
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		wg.Add(1)
 		go func(idx int) {
 			defer wg.Done()
@@ -208,7 +208,7 @@ func TestBatchCoalescer(t *testing.T) {
 	wg.Wait()
 
 	// Check all succeeded
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		if errs[i] != nil {
 			t.Errorf("request %d failed: %v", i, errs[i])
 		}
@@ -258,7 +258,7 @@ func TestSingleFlight(t *testing.T) {
 	results := make([]any, 10)
 	errs := make([]error, 10)
 
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		wg.Add(1)
 		go func(idx int) {
 			defer wg.Done()
@@ -273,7 +273,7 @@ func TestSingleFlight(t *testing.T) {
 	wg.Wait()
 
 	// All should succeed
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		if errs[i] != nil {
 			t.Errorf("request %d failed: %v", i, errs[i])
 		}

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-.PHONY: all build test lint run dev generate migrate-up migrate-down docker-build docker-run clean help mlflow-ui
+.PHONY: all build test lint run dev generate migrate-up migrate-down docker-build docker-run clean help mlflow-ui setup install-tools
 
 # Variables
 GO := go
@@ -145,17 +145,21 @@ mlflow-ui: ## Open MLflow UI
 	@open http://localhost:5000
 
 # Development setup
-setup: ## Install development dependencies
-	@echo "Installing development tools..."
-	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-	@go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
-	@go install ariga.io/atlas/cmd/atlas@latest
-	@go install github.com/air-verse/air@latest
-	@go install github.com/golang/mock/mockgen@latest
+setup: install-tools ## Install development dependencies
 	@echo "Installing Go dependencies..."
 	@$(GO) mod download
 	@$(GO) mod tidy
 	@echo "Setup complete!"
+
+install-tools: ## Install development tools
+	@echo "Installing development tools..."
+	@$(GO) install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	@$(GO) install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+	@$(GO) install ariga.io/atlas/cmd/atlas@latest
+	@$(GO) install github.com/air-verse/air@latest
+	@$(GO) install golang.org/x/vuln/cmd/govulncheck@latest
+	@$(GO) install mvdan.cc/gofumpt@latest
+	@$(GO) install github.com/golang/mock/mockgen@latest
 
 # OpenAPI
 openapi: ## Generate OpenAPI spec from code

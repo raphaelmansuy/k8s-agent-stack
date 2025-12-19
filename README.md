@@ -51,6 +51,9 @@ The repository is organized into several key components:
 git clone https://github.com/raphaelmansuy/k8s-agent-stack.git
 cd k8s-agent-stack
 
+# Install development tools (optional, for developers)
+make install-tools
+
 # Set your API key
 export OPENAI_API_KEY="your-key-here"
 
