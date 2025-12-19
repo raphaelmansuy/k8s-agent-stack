@@ -9,26 +9,29 @@ AgentStack integrates the official Kagent Web UI to provide a rich, interactive 
 The UI is deployed as a standalone application within the `agentstack` namespace.
 
 ```mermaid
-architecture-beta
-    group local(internet)[Local Machine]
-    group cluster(cloud)[Kubernetes Cluster]
-    group ns_agentstack(server)[Namespace agentstack] in cluster
-    group ns_kagent(server)[Namespace kagent] in cluster
+flowchart LR
+    subgraph Local_Machine["Local Machine"]
+        browser["Browser"]
+        pf["Port-Forward"]
+        browser --> pf
+    end
 
-    service browser(internet)[Browser] in local
-    service pf(server)[Port-Forward] in local
+    subgraph Kubernetes_Cluster["Kubernetes Cluster"]
+        subgraph agentstack_ns["Namespace: agentstack"]
+            nginx["Nginx Proxy"]
+            ui["UI (Standalone App)"]
+            socat["Socat Sidecar"]
+            nginx --> ui
+            nginx --> socat
+        end
 
-    service ui(server)[UI Container] in ns_agentstack
-    service nginx(server)[Nginx Proxy] in ns_agentstack
-    service socat(server)[Socat Sidecar] in ns_agentstack
-    
-    service controller(server)[kagent-controller] in ns_kagent
+        subgraph kagent_ns["Namespace: kagent"]
+            controller["kagent-controller"]
+        end
 
-    browser:B --> T:pf
-    pf:R --> L:nginx
-    nginx:B --> T:ui
-    nginx:R --> L:socat
-    socat:R --> L:controller
+        pf --> nginx
+        socat --> controller
+    end
 ```
 
 - **Image**: `cr.kagent.dev/kagent-dev/kagent/ui:0.7.7`
