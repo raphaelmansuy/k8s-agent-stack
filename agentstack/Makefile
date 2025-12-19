@@ -80,7 +80,7 @@ lint: ## Run linters
 
 lint-fix: ## Run linters and fix issues
 	@echo "Running linters with fix..."
-	@golangci-lint run --fix ./...
+	@$(GOPATH)/bin/golangci-lint run --fix ./...
 
 # Run targets
 dev: ## Run with hot reload (requires air)
