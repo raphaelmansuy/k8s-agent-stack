@@ -6,6 +6,42 @@ This document describes how data moves through the AgentStack system during comm
 
 When a user deploys a new agent via `agentctl deploy` or the API:
 
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as User (CLI/UI)
+    participant G as API Gateway
+    participant DB as PostgreSQL
+    participant R as Reconciliation Loop
+    participant K as Kubernetes API
+
+    U->>+G: POST /api/agents
+    G->>G: Validate & Auth
+    G->>+DB: Save Agent (Status: Pending)
+    DB-->>-G: OK
+    G-->>-U: 202 Accepted
+    
+    loop Every 5s
+        R->>+DB: Fetch Pending Deployments
+        DB-->>-R: Agent List
+    end
+    
+    R->>+K: Create Agent CRD / Knative Service
+    K-->>-R: Created
+    R->>+DB: Update Status: Creating
+    DB-->>-R: OK
+    
+    K->>K: Pull Image & Start Pod
+    
+    loop Watch
+        R->>+K: Get Pod Status
+        K-->>-R: Ready
+    end
+    
+    R->>+DB: Update Status: Ready (URL: ...)
+    DB-->>-R: OK
+```
+
 1. **CLI/UI** sends a `POST /api/agents` request with the agent spec.
 2. **API Gateway** validates the request, checks Auth/RBAC, and verifies Quotas.
 3. **Control Plane** writes the agent definition to **PostgreSQL** with status `Pending`.
@@ -19,6 +55,34 @@ When a user deploys a new agent via `agentctl deploy` or the API:
 ## 2. A2A Streaming Request Flow
 
 When the Web UI interacts with an agent:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant B as Browser
+    participant PF as Port-Forward
+    box agentstack namespace
+    participant N as Nginx Proxy
+    participant S as Socat Sidecar
+    end
+    box kagent namespace
+    participant C as kagent-controller
+    participant A as Agent Pod
+    end
+
+    B->>+PF: POST /api/a2a/stream
+    PF->>+N: Forward to :8083
+    Note over N: rewrite /a2a/ -> /api/a2a/<br/>proxy_buffering off
+    N->>+S: Forward to localhost:8083
+    S->>+C: Tunnel to kagent-controller:8083
+    C->>+A: Route to Agent
+    A-->>-C: SSE Event (Chunk 1)
+    C-->>-S: SSE Event (Chunk 1)
+    S-->>-N: SSE Event (Chunk 1)
+    N-->>-PF: SSE Event (Chunk 1)
+    PF-->>-B: SSE Event (Chunk 1)
+    Note over B,A: Stream continues...
+```
 
 1. **Browser** sends a `POST /api/a2a/stream` request to `localhost:8083`.
 2. **Port-Forward** tunnels the request to the **UI Pod** in the cluster.

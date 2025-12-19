@@ -6,6 +6,29 @@ AgentStack integrates the official Kagent Web UI to provide a rich, interactive 
 
 The UI is deployed as a standalone application within the `agentstack` namespace.
 
+```mermaid
+architecture-beta
+    group local(internet)[Local Machine]
+    group cluster(cloud)[Kubernetes Cluster]
+    group ns_agentstack(server)[Namespace: agentstack] in cluster
+    group ns_kagent(server)[Namespace: kagent] in cluster
+
+    service browser(logos:chrome)[Browser] in local
+    service pf(logos:gnome-terminal)[Port-Forward] in local
+
+    service ui(logos:nextjs-icon)[UI Container] in ns_agentstack
+    service nginx(logos:nginx)[Nginx Proxy] in ns_agentstack
+    service socat(logos:linux-tux)[Socat Sidecar] in ns_agentstack
+    
+    service controller(logos:kagent)[kagent-controller] in ns_kagent
+
+    browser:B -- T:pf
+    pf:R -- L:nginx
+    nginx:B -- T:ui
+    nginx:R -- L:socat
+    socat:R -- L:controller
+```
+
 - **Image**: `cr.kagent.dev/kagent-dev/kagent/ui:0.7.7`
 - **Framework**: Next.js (React)
 - **Proxy**: Internal Nginx for routing and protocol bridging.

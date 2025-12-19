@@ -13,6 +13,27 @@ Used primarily for user-facing interactions (e.g., Web UI).
 
 ### API Keys
 Used for programmatic access and agent-to-agent communication.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Client
+    participant M as Auth Middleware
+    participant S as Auth Service
+    participant DB as PostgreSQL
+    participant H as Handler
+
+    C->>+M: Request + API Key
+    M->>+S: VerifyKey(keyHash)
+    S->>+DB: SELECT * FROM api_keys WHERE hash = ...
+    DB-->>-S: Key Info (Team, Project, Scopes)
+    S-->>-M: Valid Key
+    M->>M: Inject TeamID/ProjectID into Context
+    M->>+H: Next(Context)
+    H-->>-M: Response
+    M-->>-C: Response
+```
+
 - **Storage**: Keys are hashed (SHA-256) before being stored in PostgreSQL.
 - **Scopes**: Each key can be restricted to specific actions (e.g., `agents:read`, `deploy:write`).
 - **Rotation**: Supported via the API and CLI.

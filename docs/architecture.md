@@ -21,34 +21,41 @@ This document serves as the master architecture reference. For deep dives into s
 
 ## System Overview
 
-```ascii
-                                 +-------------------+
-                                 |   User / Client   |
-                                 +---------+---------+
-                                           |
-                                           | HTTP/JSON-RPC
-                                           v
-+---------------------------------------------------------------------------------------+
-|                                  AgentStack API Gateway                               |
-|  +-------------------+  +-------------------+  +-------------------+  +------------+  |
-|  |   Auth & RBAC     |  |   Quota & Audit   |  |   A2A Protocol    |  | Deployment |  |
-|  +---------+---------+  +---------+---------+  +---------+---------+  +-----+------+  |
-|            |                      |                      |                  |         |
-+------------|----------------------|----------------------|------------------|---------+
-             |                      |                      |                  |         |
-             v                      v                      v                  v
-+-----------------------+  +-----------------------+  +---------------------------------+
-|      PostgreSQL       |  |         Redis         |  |       Kubernetes / Knative      |
-| (Multi-tenant State)  |  | (Cache / Task Queue)  |  | (Agent Runtime / Auto-scaling)  |
-+-----------------------+  +-----------------------+  +---------------------------------+
-             ^                                                 ^
-             |                                                 |
-             +-----------------------+-------------------------+
-                                     |
-                          +----------v----------+
-                          |       MLflow        |
-                          | (Evaluation/Traces) |
-                          +---------------------+
+```mermaid
+architecture-beta
+    group client(internet)[Client Layer]
+    group gateway(cloud)[API Gateway]
+    group control(server)[Control Plane]
+    group runtime(cloud)[Agent Runtime]
+    group observability(internet)[Observability]
+
+    service browser(logos:chrome)[Web Browser] in client
+    service cli(logos:gnome-terminal)[agentctl CLI] in client
+
+    service api(logos:go)[API Gateway] in gateway
+    
+    service db(database)[PostgreSQL] in control
+    service cache(logos:redis)[Redis] in control
+    
+    service k8s(logos:kubernetes)[Kubernetes] in runtime
+    service knative(logos:knative-icon)[Knative] in runtime
+    service kagent(logos:kagent)[kagent] in runtime
+    
+    service mlflow(logos:mlflow)[MLflow] in observability
+    service otel(logos:opentelemetry-icon)[OpenTelemetry] in observability
+
+    browser:R -- L:api
+    cli:R -- L:api
+    
+    api:B -- T:db
+    api:B -- T:cache
+    
+    api:R -- L:k8s
+    k8s:B -- T:knative
+    k8s:B -- T:kagent
+    
+    api:T -- B:otel
+    otel:R -- L:mlflow
 ```
 
 ## Core Components
