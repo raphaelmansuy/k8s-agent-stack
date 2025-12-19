@@ -1,21 +1,24 @@
-# 🎯 Kagent UI - Official Web Interface
+# 🎯 Kagent UI — Quick Access & Setup
 
 **Status**: ✅ **DEPLOYED & OPERATIONAL**  
-**Installation Date**: 2025-12-16  
-**Version**: kagent 0.7.7 (official release)
+**Last updated**: 2025-12-16
 
 ---
 
-## 🚀 Access Kagent UI in 10 Seconds
-
-The easiest way to access the UI is using the `agentctl` CLI, which automatically handles all complex port-forwarding and proxying requirements for A2A streaming.
+## Quick access (recommended)
+Use the bundled `agentctl` which handles port-forwarding and A2A streaming:
 
 ```bash
-# Start the UI with automatic port-forwarding
+# start UI and forward required ports
 ./agentstack/bin/agentctl ui --port 3000
+# then open
+open http://localhost:3000
 ```
 
-Then open your browser to: **`http://localhost:3000`**
+Shortcut:
+```bash
+make agentstack-ui
+```
 
 ---
 
@@ -92,78 +95,26 @@ The official Kagent UI provides:
 
 ## 📖 Access Methods
 
-### Method 1: agentctl ui (Recommended)
-
-The `agentctl` CLI is the most reliable way to access the UI because it forwards multiple ports (3000, 8080, 8083, 8081) required for the full Kagent experience, including A2A streaming and model loading.
+**Recommended:** `agentctl` (handles port-forwarding + A2A streaming)
 
 ```bash
-# Start the UI
 ./agentstack/bin/agentctl ui --port 3000
-
-# Open browser
 open http://localhost:3000
-```
-
-**Advantages:**
-- Handles all A2A streaming requirements automatically.
-- Fixes "Failed to fetch models" errors by forwarding the SSR port.
-- Most reliable for local development.
-
-### Method 2: make agentstack-ui
-
-The `Makefile` includes a shortcut that uses `agentctl` under the hood.
-
-```bash
+# or
 make agentstack-ui
 ```
 
-### Method 3: Manual kubectl port-forward (Advanced)
-
-If you cannot use `agentctl`, you must manually forward multiple ports:
-
+**Manual (only if necessary)**
 ```bash
-# Terminal 1: UI Entry Point
-kubectl -n agentstack port-forward service/agentstack-ui 3000:80
-
-# Terminal 2: SSR Backend (Required for Models)
-kubectl -n agentstack port-forward service/agentstack-ui 8080:8080
-
-# Terminal 3: A2A API (Required for Chat)
-kubectl -n agentstack port-forward service/agentstack-ui 8083:8083
-
-# Terminal 4: WebSockets (Required for Real-time)
-kubectl -n agentstack port-forward service/agentstack-ui 8081:8081
+# UI
+kubectl -n kagent port-forward service/kagent-ui 3000:80 &
+# SSR/models (if models fail to load)
+kubectl -n kagent port-forward service/kagent-ui 8080:8080 &
+# (optional) A2A / websockets for streaming
+kubectl -n kagent port-forward service/kagent-ui 8083:8083 &
 ```
 
-### Method 3: Kubernetes Ingress (Production)
-
-For production access, create an Ingress:
-
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: kagent-ui-ingress
-  namespace: kagent
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-spec:
-  tls:
-  - hosts:
-    - kagent.yourdomain.com
-    secretName: kagent-ui-tls
-  rules:
-  - host: kagent.yourdomain.com
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: kagent-ui
-            port:
-              number: 8080
-```
+**Production:** add an Ingress that routes to `service/kagent-ui:8080` and enable TLS.
 
 ---
 
@@ -206,52 +157,30 @@ Chart: kagent-0.7.7
 Namespace: kagent
 Status: deployed
 ```
-
 ---
 
-## 🎮 Using the Kagent UI
+## 🎮 Using the Kagent UI (short)
 
-### Step 1: Access the UI
+1. Start UI (recommended):
 ```bash
-kubectl -n kagent port-forward service/kagent-ui 8080:8080
+./agentstack/bin/agentctl ui --port 3000
+open http://localhost:3000
 ```
 
-### Step 2: Open Browser
-Navigate to: `http://localhost:8080`
+2. Quick check:
+```bash
+kubectl -n kagent get pods
+kubectl -n kagent get agents
+```
 
-### Step 3: Explore Agents
-- Click "Agents" to see all deployed agents
-- View agent configurations
-- Check agent status
-
-### Step 4: Chat with Agents
-- Select an agent from the list
-- Start a conversation
-- Ask questions or give commands
-- View responses in real-time
-
-### Step 5: Manage Tools
-- Navigate to "Tools" section
-- Browse available MCP tools
-- Configure tool servers
-- Add custom tools
-
-### Step 6: Configure Models
-- Go to "Model Configs"
-- Add LLM provider credentials
-- Configure default models
-- Set model parameters
+3. In the UI: go to **Agents** → select agent → **Chat**.
 
 ---
 
-## 🔐 Adding LLM Provider Credentials
-
-### OpenAI
+## 🔐 Add LLM credentials (example: OpenAI)
 
 ```bash
-kubectl -n kagent create secret generic openai-secret \
-  --from-literal=apiKey=YOUR_OPENAI_API_KEY
-
+kubectl -n kagent create secret generic openai-secret --from-literal=apiKey=YOUR_OPENAI_API_KEY
 kubectl apply -f - <<EOF
 apiVersion: kagent.dev/v1alpha1
 kind: ModelConfig
@@ -267,54 +196,11 @@ spec:
 EOF
 ```
 
-### Anthropic
-
-```bash
-kubectl -n kagent create secret generic anthropic-secret \
-  --from-literal=apiKey=YOUR_ANTHROPIC_API_KEY
-
-kubectl apply -f - <<EOF
-apiVersion: kagent.dev/v1alpha1
-kind: ModelConfig
-metadata:
-  name: anthropic-claude
-  namespace: kagent
-spec:
-  provider: anthropic
-  model: claude-3-opus-20240229
-  apiKeySecret:
-    name: anthropic-secret
-    key: apiKey
-EOF
-```
-
-### Google Gemini
-
-```bash
-kubectl -n kagent create secret generic gemini-secret \
-  --from-literal=apiKey=YOUR_GEMINI_API_KEY
-
-kubectl apply -f - <<EOF
-apiVersion: kagent.dev/v1alpha1
-kind: ModelConfig
-metadata:
-  name: gemini-pro
-  namespace: kagent
-spec:
-  provider: google
-  model: gemini-pro
-  apiKeySecret:
-    name: gemini-secret
-    key: apiKey
-EOF
-```
-
 ---
 
-## 🤖 Creating Your First Agent
+## 🤖 Create an agent (quick)
 
-Via the UI or kubectl:
-
+Save this as `my-agent.yaml` and apply:
 ```yaml
 apiVersion: kagent.dev/v1alpha1
 kind: Agent
@@ -322,77 +208,26 @@ metadata:
   name: my-first-agent
   namespace: kagent
 spec:
-  systemPrompt: |
-    You are a helpful assistant that answers questions about Kubernetes.
+  systemPrompt: "You are a helpful assistant about Kubernetes."
   modelConfig:
     name: openai-gpt4
   tools:
   - name: kagent-tools
 ```
 
-Apply:
 ```bash
 kubectl apply -f my-agent.yaml
 ```
 
-Then access in UI:
-1. Refresh agents list
-2. Select "my-first-agent"
-3. Start chatting!
-
 ---
 
-## 🔍 Troubleshooting
+## 🔍 Troubleshooting (essentials)
 
-### Problem: UI not loading
-
-**Solution:**
-```bash
-# Check pod status
-kubectl -n kagent get pods | grep kagent-ui
-
-# Check logs
-kubectl -n kagent logs -l app.kubernetes.io/name=kagent-ui
-
-# Restart if needed
-kubectl -n kagent rollout restart deployment/kagent-ui
-```
-
-### Problem: Agents showing errors
-
-**Solution:**
-```bash
-# Check agent pod logs
-kubectl -n kagent get pods | grep agent
-
-# View specific agent logs
-kubectl -n kagent logs <agent-pod-name>
-
-# Most common issue: Missing API keys
-# Add model config with credentials (see above)
-```
-
-### Problem: "Connection refused" on localhost:8080
-
-**Solution:**
-```bash
-# Make sure port-forward is running
-pgrep -f "port-forward.*kagent-ui"
-
-# Restart port-forward
-pkill -f "port-forward.*kagent-ui"
-kubectl -n kagent port-forward service/kagent-ui 8080:8080
-```
-
-### Problem: Port 8080 already in use
-
-**Solution:**
-```bash
-# Use different local port
-kubectl -n kagent port-forward service/kagent-ui 8081:8080
-
-# Then access: http://localhost:8081
-```
+- Check pods: `kubectl -n kagent get pods`
+- UI logs: `kubectl -n kagent logs -l app.kubernetes.io/name=kagent-ui -f`
+- Restart UI: `kubectl -n kagent rollout restart deployment/kagent-ui`
+- Port-forward: `pkill -f "port-forward.*kagent-ui"` then re-run port-forward
+- If a local port is busy, forward to a different local port (e.g., `8081:8080`)
 
 ---
 
