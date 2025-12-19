@@ -3,6 +3,8 @@ package commands
 import (
 	"fmt"
 	"os"
+	"regexp"
+	"strings"
 
 	"github.com/raphaelmansuy/agentstack/cli/internal/config"
 	"github.com/raphaelmansuy/agentstack/cli/internal/output"
@@ -53,6 +55,13 @@ var rootCmd = &cobra.Command{
 		client = sdk.NewClient(ep, key)
 		return nil
 	},
+}
+
+func Slugify(s string) string {
+	s = strings.ToLower(s)
+	s = regexp.MustCompile(`[^a-z0-9]+`).ReplaceAllString(s, "-")
+	s = strings.Trim(s, "-")
+	return s
 }
 
 func Execute() {

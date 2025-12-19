@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -265,6 +266,9 @@ func RegisterChatRoutes(api huma.API, pool *database.Pool, redis *cache.Client, 
 		// For now, we use a convention for the agent endpoint
 		// In a real system, this would be looked up in the agent registry/database
 		agentEndpoint := fmt.Sprintf("http://%s.kagent.svc.cluster.local:8080", session.AgentID)
+		if os.Getenv("ENVIRONMENT") == "development" {
+			agentEndpoint = fmt.Sprintf("http://%s.mock.svc.cluster.local:8080", session.AgentID)
+		}
 
 		// If we are running in the same namespace or using full DNS
 		// The agent we deployed is google-adk-byo-agent

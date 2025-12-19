@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -29,7 +30,7 @@ func Auth(config AuthConfig) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Skip auth for health checks and metrics
-			if r.URL.Path == "/health" || r.URL.Path == "/health/detailed" || r.URL.Path == "/healthz" || r.URL.Path == "/readyz" || r.URL.Path == "/livez" || r.URL.Path == "/metrics" {
+			if r.URL.Path == "/health" || r.URL.Path == "/health/detailed" || r.URL.Path == "/healthz" || r.URL.Path == "/readyz" || r.URL.Path == "/livez" || r.URL.Path == "/metrics" || r.URL.Path == "/api/openapi.json" || r.URL.Path == "/api/docs" {
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -86,6 +87,7 @@ func validateJWT(tokenString, secret string) (*Claims, error) {
 		return []byte(secret), nil
 	})
 	if err != nil {
+		fmt.Printf("DEBUG: JWT validation error: %v\n", err)
 		return nil, err
 	}
 	return claims, nil

@@ -134,6 +134,8 @@ func applyAgentWithAction(ctx context.Context, m Manifest) (string, error) {
 			Name:        name,
 			Description: description,
 			ProjectID:   projectID,
+			Slug:        Slugify(name),
+			Framework:   "custom",
 		}
 
 		// Basic mapping for declarative spec
@@ -187,7 +189,7 @@ func applyDeploymentWithAction(ctx context.Context, m Manifest) (string, error) 
 	spinner.Start()
 
 	projectID := getProjectID()
-	agent, err := client.Agents.GetByName(ctx, projectID, agentName)
+	_, err := client.Agents.GetByName(ctx, projectID, agentName)
 	if err != nil {
 		spinner.FailErr(fmt.Sprintf("Failed to find agent %s", agentName), err)
 		return "", err
@@ -196,12 +198,23 @@ func applyDeploymentWithAction(ctx context.Context, m Manifest) (string, error) 
 	// Check if deployment exists (this is simplified, usually we'd check by name/label)
 	// For now, let's just create a new one
 
-	req := &sdk.CreateDeploymentRequest{
-		AgentID: agent.ID,
+	image, _ := m.Spec["image"].(string)
+	if image == "" {
+		image = "nginx" // Default image
 	}
 
-	if version, ok := m.Spec["version"].(string); ok {
-		req.Version = version
+	var replicas int32 = 1
+	if r, ok := m.Spec["replicas"].(int); ok {
+		replicas = int32(r)
+	} else if r, ok := m.Spec["replicas"].(float64); ok {
+		replicas = int32(r)
+	}
+
+	req := &sdk.CreateDeploymentRequest{
+		ID:       Slugify(name),
+		Name:     name,
+		Image:    image,
+		Replicas: replicas,
 	}
 
 	_, err = client.Deployments.Create(ctx, req)

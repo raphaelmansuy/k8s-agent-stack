@@ -78,10 +78,17 @@ func (c *Client) Request(ctx context.Context, method, path string, body interfac
 		return nil, err
 	}
 
-	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", c.userAgent)
+
+	if c.apiKey != "" {
+		if len(c.apiKey) > 100 { // Simple heuristic for JWT vs API Key
+			req.Header.Set("Authorization", "Bearer "+c.apiKey)
+		} else {
+			req.Header.Set("Authorization", "ApiKey "+c.apiKey)
+		}
+	}
 
 	return req, nil
 }

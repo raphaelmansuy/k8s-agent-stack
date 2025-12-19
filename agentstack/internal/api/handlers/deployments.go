@@ -61,7 +61,7 @@ type ListDeploymentsInput struct {
 type ListDeploymentsOutput struct {
 	Body struct {
 		Deployments []*deployment.AgentDeployment `json:"deployments" doc:"List of deployments"`
-		Total       int                 `json:"total" doc:"Total count"`
+		Total       int                           `json:"total" doc:"Total count"`
 	}
 }
 
@@ -101,6 +101,29 @@ type DeleteDeploymentOutput struct {
 	Body struct {
 		Message string `json:"message" doc:"Confirmation message"`
 	}
+}
+
+// ScaleDeploymentInput is the input for scaling a deployment.
+type ScaleDeploymentInput struct {
+	ID   string `path:"id" doc:"Deployment ID"`
+	Body struct {
+		Replicas int32 `json:"replicas" required:"true" doc:"Number of replicas"`
+	}
+}
+
+// ScaleDeploymentOutput is the output for scaling a deployment.
+type ScaleDeploymentOutput struct {
+	Body *deployment.AgentDeployment
+}
+
+// RestartDeploymentInput is the input for restarting a deployment.
+type RestartDeploymentInput struct {
+	ID string `path:"id" doc:"Deployment ID"`
+}
+
+// RestartDeploymentOutput is the output for restarting a deployment.
+type RestartDeploymentOutput struct {
+	Body *deployment.AgentDeployment
 }
 
 // GetDeploymentStatusInput is the input for getting deployment status.
@@ -147,7 +170,7 @@ func RegisterDeploymentRoutes(api huma.API, service *deployment.Service, rbacM *
 		return &ListDeploymentsOutput{
 			Body: struct {
 				Deployments []*deployment.AgentDeployment `json:"deployments" doc:"List of deployments"`
-				Total       int                 `json:"total" doc:"Total count"`
+				Total       int                           `json:"total" doc:"Total count"`
 			}{
 				Deployments: agents,
 				Total:       len(agents),
@@ -265,6 +288,50 @@ func RegisterDeploymentRoutes(api huma.API, service *deployment.Service, rbacM *
 			}{
 				Message: "Deployment deleted successfully",
 			},
+		}, nil
+	})
+
+	// Scale deployment
+	huma.Register(api, huma.Operation{
+		OperationID: "scale-deployment",
+		Method:      http.MethodPost,
+		Path:        "/v1/deployments/{id}/scale",
+		Summary:     "Scale deployment",
+		Tags:        []string{"Deployments"},
+		Middlewares: huma.Middlewares{
+			rbacM.HumaRequirePermission(rbac.ResourceDeployment, rbac.ActionUpdate),
+			auditM.HumaLogAction(audit.EventAgentUpdated, string(rbac.ResourceDeployment)),
+		},
+	}, func(ctx context.Context, input *ScaleDeploymentInput) (*ScaleDeploymentOutput, error) {
+		agent, err := service.ScaleAgent(ctx, input.ID, input.Body.Replicas)
+		if err != nil {
+			return nil, huma.Error500InternalServerError("Failed to scale deployment", err)
+		}
+
+		return &ScaleDeploymentOutput{
+			Body: agent,
+		}, nil
+	})
+
+	// Restart deployment
+	huma.Register(api, huma.Operation{
+		OperationID: "restart-deployment",
+		Method:      http.MethodPost,
+		Path:        "/v1/deployments/{id}/restart",
+		Summary:     "Restart deployment",
+		Tags:        []string{"Deployments"},
+		Middlewares: huma.Middlewares{
+			rbacM.HumaRequirePermission(rbac.ResourceDeployment, rbac.ActionUpdate),
+			auditM.HumaLogAction(audit.EventAgentUpdated, string(rbac.ResourceDeployment)),
+		},
+	}, func(ctx context.Context, input *RestartDeploymentInput) (*RestartDeploymentOutput, error) {
+		agent, err := service.RestartAgent(ctx, input.ID)
+		if err != nil {
+			return nil, huma.Error500InternalServerError("Failed to restart deployment", err)
+		}
+
+		return &RestartDeploymentOutput{
+			Body: agent,
 		}, nil
 	})
 

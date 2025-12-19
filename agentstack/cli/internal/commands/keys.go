@@ -81,8 +81,17 @@ func newKeysCreateCmd() *cobra.Command {
 				spinner.Fail("Failed to create API key")
 				return fmt.Errorf("failed to create API key: %w", err)
 			}
-			spinner.Success("API key created successfully")
+			spinner.Stop()
 
+			formatter, err := getFormatter()
+			if err != nil {
+				return err
+			}
+			if formatter.Format() == output.FormatJSON || formatter.Format() == output.FormatYAML {
+				return formatter.Print(key)
+			}
+
+			fmt.Printf("✓ API key created successfully\n")
 			fmt.Printf("\nIMPORTANT: Copy this key now. It will not be shown again!\n")
 			fmt.Printf("API Key: %s\n\n", key.Key)
 

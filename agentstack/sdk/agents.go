@@ -16,6 +16,9 @@ type AgentsService struct {
 func (s *AgentsService) List(ctx context.Context, opts *ListOptions) (*ListAgentsResponse, error) {
 	params := make(map[string]string)
 	if opts != nil {
+		if opts.ProjectID != "" {
+			params["project_id"] = opts.ProjectID
+		}
 		if opts.Page > 0 {
 			params["page"] = strconv.Itoa(opts.Page)
 		}

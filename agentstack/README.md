@@ -70,6 +70,25 @@ make docker-build
 make run
 ```
 
+## Deploying Agents
+
+To deploy a real agent to AgentStack, you need to build its container image first.
+
+### Building a Google ADK Agent
+
+```bash
+cd kagent-adk-agent
+docker build -t kagent-adk-agent:latest .
+```
+
+### Deploying via CLI
+
+Once the image is built, you can deploy it using `agentctl`:
+
+```bash
+agentctl deploy create --name "my-agent" --image "kagent-adk-agent:latest"
+```
+
 ## Project Structure
 
 ```

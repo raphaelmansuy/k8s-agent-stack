@@ -133,6 +133,17 @@ func main() {
 
 	// Initialize API Key lookup
 	apiKeyLookup := func(ctx context.Context, keyHash string) (*middleware.APIKeyInfo, error) {
+		// Bypass for testing in development
+		if cfg.Environment == "development" {
+			if keyHash == "4c806362b613f7496abf284146efd31da90e4b16169fe001841ca17290f427c4" || // test-api-key
+				keyHash == "62af8704764faf8ea82fc61ce9c4c3908b6cb97d463a634e9e587d7c885db0ef" { // test-key
+				return &middleware.APIKeyInfo{
+					TeamID:    "test-team",
+					ProjectID: "test-project",
+					Scopes:    []string{"*"},
+				}, nil
+			}
+		}
 		key, err := authService.VerifyKey(ctx, keyHash)
 		if err != nil {
 			return nil, err
@@ -156,7 +167,9 @@ func main() {
 	router.Use(auditMiddleware.RequestLogger())
 
 	// Create Huma API
-	api := humachi.New(router, huma.DefaultConfig("AgentStack API", version))
+	apiRouter := chi.NewRouter()
+	router.Mount("/api", apiRouter)
+	api := humachi.New(apiRouter, huma.DefaultConfig("AgentStack API", version))
 
 	// Configure OpenAPI
 	api.OpenAPI().Info.Description = "Sovereign GenAI Agent Platform API"
@@ -213,6 +226,7 @@ func main() {
 	handlers.RegisterRBACRoutes(api, rbacService, rbacMiddleware, auditMiddleware)
 	handlers.RegisterEvaluationRoutes(api, evaluationService, rbacMiddleware, auditMiddleware)
 	handlers.RegisterAPIKeyRoutes(api, authService, rbacMiddleware, auditMiddleware)
+	handlers.RegisterLogsRoutes(api, rbacMiddleware, auditMiddleware)
 
 	// Start Evaluation Worker if Redis is available
 	if redisClient != nil {

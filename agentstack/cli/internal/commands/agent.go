@@ -61,7 +61,9 @@ func newAgentListCmd() *cobra.Command {
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
-			opts := &sdk.ListOptions{}
+			opts := &sdk.ListOptions{
+				ProjectID: getProjectID(),
+			}
 			resp, err := client.Agents.List(ctx, opts)
 			if err != nil {
 				return fmt.Errorf("failed to list agents: %w", err)
@@ -122,7 +124,7 @@ func newAgentGetCmd() *cobra.Command {
 }
 
 func newAgentCreateCmd() *cobra.Command {
-	var name, description string
+	var name, description, framework string
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create a new agent",
@@ -131,10 +133,17 @@ func newAgentCreateCmd() *cobra.Command {
 			if name == "" {
 				return fmt.Errorf("--name is required")
 			}
+			slug := Slugify(name)
+			pid := getProjectID()
+			if verbose {
+				fmt.Printf("DEBUG: Project ID: %s\n", pid)
+			}
 			createReq := &sdk.CreateAgentRequest{
 				Name:        name,
 				Description: description,
-				ProjectID:   getProjectID(),
+				Slug:        slug,
+				ProjectID:   pid,
+				Framework:   framework,
 			}
 			spinner := output.NewSpinner(fmt.Sprintf("Creating agent %s...", name))
 			spinner.Start()
@@ -143,12 +152,23 @@ func newAgentCreateCmd() *cobra.Command {
 				spinner.Fail("Failed to create agent")
 				return fmt.Errorf("failed to create agent: %w", err)
 			}
-			spinner.Success(fmt.Sprintf("Agent created: %s", agent.ID))
+			spinner.Stop()
+
+			formatter, err := getFormatter()
+			if err != nil {
+				return err
+			}
+			if formatter.Format() == output.FormatJSON || formatter.Format() == output.FormatYAML {
+				return formatter.Print(agent)
+			}
+
+			fmt.Printf("✓ Agent created: %s\n", agent.ID)
 			return nil
 		},
 	}
 	cmd.Flags().StringVar(&name, "name", "", "agent name (required)")
 	cmd.Flags().StringVar(&description, "description", "", "agent description")
+	cmd.Flags().StringVar(&framework, "framework", "custom", "agent framework")
 	return cmd
 }
 

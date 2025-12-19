@@ -154,10 +154,10 @@ func (s *DeploymentsService) ListByAgent(ctx context.Context, agentID string, op
 }
 
 // Status returns the status of a deployment.
-func (s *DeploymentsService) Status(ctx context.Context, id string) (string, error) {
+func (s *DeploymentsService) Status(ctx context.Context, id string) (*DeploymentStatus, error) {
 	deployment, err := s.Get(ctx, id)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return deployment.Status, nil
+	return &deployment.Status, nil
 }

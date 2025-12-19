@@ -41,6 +41,7 @@ func newLoginCmd() *cobra.Command {
 				pName = "default"
 			}
 			if loginAPIKey != "" {
+				loginAPIKey = strings.TrimSpace(loginAPIKey)
 				loadedCfg.SetProfile(pName, &config.Profile{
 					Endpoint: ep,
 					APIKey:   loginAPIKey,

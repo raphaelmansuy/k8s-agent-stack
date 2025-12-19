@@ -90,7 +90,12 @@ func newProjectCreateCmd() *cobra.Command {
 			if name == "" {
 				return fmt.Errorf("--name is required")
 			}
-			createReq := &sdk.CreateProjectRequest{Name: name, Description: description}
+			slug := Slugify(name)
+			createReq := &sdk.CreateProjectRequest{
+				Name:        name,
+				Description: description,
+				Slug:        slug,
+			}
 			spinner := output.NewSpinner(fmt.Sprintf("Creating project %s...", name))
 			spinner.Start()
 			project, err := client.Projects.Create(ctx, createReq)
@@ -98,7 +103,17 @@ func newProjectCreateCmd() *cobra.Command {
 				spinner.Fail("Failed to create project")
 				return fmt.Errorf("failed to create project: %w", err)
 			}
-			spinner.Success(fmt.Sprintf("Project created: %s", project.ID))
+			spinner.Stop()
+
+			formatter, err := getFormatter()
+			if err != nil {
+				return err
+			}
+			if formatter.Format() == output.FormatJSON || formatter.Format() == output.FormatYAML {
+				return formatter.Print(project)
+			}
+
+			fmt.Printf("✓ Project created: %s\n", project.ID)
 			return nil
 		},
 	}

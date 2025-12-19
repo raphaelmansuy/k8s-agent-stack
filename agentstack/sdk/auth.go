@@ -45,7 +45,7 @@ func (s *AuthService) CurrentUser(ctx context.Context) (*User, error) {
 // CreateAPIKey creates a new API key.
 func (s *AuthService) CreateAPIKey(ctx context.Context, req *APIKeyRequest) (*APIKey, error) {
 	var apiKey APIKey
-	if err := s.client.Post(ctx, "/v1/api-keys", req, &apiKey); err != nil {
+	if err := s.client.Post(ctx, "/api/v1/api-keys", req, &apiKey); err != nil {
 		return nil, err
 	}
 	return &apiKey, nil
@@ -54,7 +54,7 @@ func (s *AuthService) CreateAPIKey(ctx context.Context, req *APIKeyRequest) (*AP
 // ListAPIKeys lists all API keys for the current user.
 func (s *AuthService) ListAPIKeys(ctx context.Context) (*ListAPIKeysResponse, error) {
 	var response ListAPIKeysResponse
-	if err := s.client.Get(ctx, "/v1/api-keys", &response); err != nil {
+	if err := s.client.Get(ctx, "/api/v1/api-keys", &response); err != nil {
 		return nil, err
 	}
 	return &response, nil
@@ -62,13 +62,13 @@ func (s *AuthService) ListAPIKeys(ctx context.Context) (*ListAPIKeysResponse, er
 
 // RevokeAPIKey revokes an API key by ID.
 func (s *AuthService) RevokeAPIKey(ctx context.Context, id string) error {
-	return s.client.Delete(ctx, "/v1/api-keys/"+id)
+	return s.client.Delete(ctx, "/api/v1/api-keys/"+id)
 }
 
 // RotateAPIKey rotates an API key by ID.
 func (s *AuthService) RotateAPIKey(ctx context.Context, id string) (*APIKey, error) {
 	var apiKey APIKey
-	if err := s.client.Post(ctx, "/v1/api-keys/"+id+"/rotate", nil, &apiKey); err != nil {
+	if err := s.client.Post(ctx, "/api/v1/api-keys/"+id+"/rotate", nil, &apiKey); err != nil {
 		return nil, err
 	}
 	return &apiKey, nil

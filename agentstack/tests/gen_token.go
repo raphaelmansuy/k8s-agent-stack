@@ -8,12 +8,11 @@ import (
 )
 
 func main() {
-	secret := "dev-secret-change-me-in-production"
+	secret := "change-me-in-production"
 	claims := jwt.MapClaims{
 		"team_id":    "team_dev",
 		"project_id": "prj_dev",
-		"user_id":    "user_test",
-		"scopes":     []string{"agent:read", "agent:invoke", "chat:write"},
+		"scopes":     []string{"agent:*", "project:*", "deployment:*", "api_key:*", "chat:*"},
 		"exp":        time.Now().Add(time.Hour).Unix(),
 	}
 

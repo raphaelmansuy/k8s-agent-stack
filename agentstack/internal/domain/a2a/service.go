@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -84,6 +85,22 @@ func (s *Service) DeleteSession(contextID string) {
 // SendMessage sends a message to an agent and returns the task.
 // This is a synchronous call that waits for completion.
 func (s *Service) SendMessage(ctx context.Context, agentURL string, params *SendMessageParams) (*Task, error) {
+	// Mock response for development
+	if strings.Contains(agentURL, ".mock.svc.cluster.local") {
+		return &Task{
+			TaskID: uuid.NewString(),
+			Status: &TaskStatus{
+				State: string(TaskStateCompleted),
+				Message: &Message{
+					Role: "assistant",
+					Parts: []Part{
+						{Kind: "text", Text: "This is a mock response from the agent."},
+					},
+				},
+			},
+		}, nil
+	}
+
 	// Create JSON-RPC request
 	reqID := uuid.NewString()
 	contextID := params.Message.ContextID

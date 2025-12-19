@@ -1,0 +1,20 @@
+kind: Project
+metadata:
+  name: e2e-test-project
+spec:
+  description: "Project for E2E testing"
+---
+kind: Agent
+metadata:
+  name: e2e-test-agent
+  project: e2e-test-project
+spec:
+  description: "Agent for E2E testing"
+  model: "gpt-4o-mini"
+---
+kind: Deployment
+metadata:
+  name: e2e-test-deploy
+spec:
+  agentName: e2e-test-agent
+  replicas: 1

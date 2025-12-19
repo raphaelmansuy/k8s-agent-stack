@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/raphaelmansuy/agentstack/internal/api/middleware"
 	"github.com/raphaelmansuy/agentstack/internal/domain/audit"
@@ -64,6 +65,7 @@ type CreateAgentInput struct {
 		Name        string            `json:"name" required:"true" minLength:"1" maxLength:"255" doc:"Agent name"`
 		Description string            `json:"description,omitempty" maxLength:"1000" doc:"Agent description"`
 		Slug        string            `json:"slug" required:"true" pattern:"^[a-z0-9-]+$" doc:"URL-friendly identifier"`
+		Framework   string            `json:"framework" default:"custom" doc:"Agent framework"`
 		Config      map[string]any    `json:"config,omitempty" doc:"Agent configuration"`
 		Metadata    map[string]string `json:"metadata,omitempty" doc:"Custom metadata"`
 	}
@@ -210,10 +212,12 @@ func RegisterAgentRoutes(api huma.API, pool *database.Pool, rbacM *middleware.RB
 		config, _ := json.Marshal(input.Body.Config)
 
 		a, err := queries.CreateAgent(ctx, db.CreateAgentParams{
-			ProjectID: input.Body.ProjectID,
-			Name:      input.Body.Name,
-			Slug:      input.Body.Slug,
-			Config:    config,
+			ProjectID:   input.Body.ProjectID,
+			Name:        input.Body.Name,
+			Slug:        input.Body.Slug,
+			Description: pgtype.Text{String: input.Body.Description, Valid: input.Body.Description != ""},
+			Framework:   input.Body.Framework,
+			Config:      config,
 		})
 		if err != nil {
 			return nil, huma.Error500InternalServerError("Failed to create agent", err)

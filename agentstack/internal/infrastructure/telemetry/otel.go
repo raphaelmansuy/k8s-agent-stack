@@ -26,7 +26,10 @@ import (
 // NewFromConfig creates a new Telemetry instance from application configuration.
 func NewFromConfig(ctx context.Context, cfg config.OTelConfig, env string) (*Telemetry, error) {
 	if !cfg.Enabled {
-		return &Telemetry{}, nil
+		return &Telemetry{
+			tracer: otel.Tracer("agentstack-noop"),
+			meter:  otel.Meter("agentstack-noop"),
+		}, nil
 	}
 
 	tConfig := TelemetryConfig{
@@ -293,42 +296,54 @@ func (t *Telemetry) RecordHTTPRequest(ctx context.Context, method, path string, 
 		attribute.Int("http.status_code", statusCode),
 	}
 
-	t.requestCounter.Add(ctx, 1, metric.WithAttributes(attrs...))
-	t.requestDuration.Record(ctx, float64(duration.Milliseconds()), metric.WithAttributes(attrs...))
+	if t.requestCounter != nil {
+		t.requestCounter.Add(ctx, 1, metric.WithAttributes(attrs...))
+	}
+	if t.requestDuration != nil {
+		t.requestDuration.Record(ctx, float64(duration.Milliseconds()), metric.WithAttributes(attrs...))
+	}
 
-	if statusCode >= 400 {
+	if statusCode >= 400 && t.errorCounter != nil {
 		t.errorCounter.Add(ctx, 1, metric.WithAttributes(attrs...))
 	}
 }
 
 // RecordActiveRequest increments active requests.
 func (t *Telemetry) RecordActiveRequest(ctx context.Context, delta int64) {
-	t.activeRequests.Add(ctx, delta)
+	if t.activeRequests != nil {
+		t.activeRequests.Add(ctx, delta)
+	}
 }
 
 // RecordDBQuery records database query metrics.
 func (t *Telemetry) RecordDBQuery(ctx context.Context, operation, table string, duration time.Duration, err error) {
-	attrs := []attribute.KeyValue{
-		attribute.String("db.operation", operation),
-		attribute.String("db.table", table),
-		attribute.Bool("db.success", err == nil),
-	}
+	if t.dbQueryDuration != nil {
+		attrs := []attribute.KeyValue{
+			attribute.String("db.operation", operation),
+			attribute.String("db.table", table),
+			attribute.Bool("db.success", err == nil),
+		}
 
-	t.dbQueryDuration.Record(ctx, float64(duration.Milliseconds()), metric.WithAttributes(attrs...))
+		t.dbQueryDuration.Record(ctx, float64(duration.Milliseconds()), metric.WithAttributes(attrs...))
+	}
 }
 
 // RecordCacheHit records a cache hit.
 func (t *Telemetry) RecordCacheHit(ctx context.Context, cacheType string) {
-	t.cacheHitCounter.Add(ctx, 1, metric.WithAttributes(
-		attribute.String("cache.type", cacheType),
-	))
+	if t.cacheHitCounter != nil {
+		t.cacheHitCounter.Add(ctx, 1, metric.WithAttributes(
+			attribute.String("cache.type", cacheType),
+		))
+	}
 }
 
 // RecordCacheMiss records a cache miss.
 func (t *Telemetry) RecordCacheMiss(ctx context.Context, cacheType string) {
-	t.cacheMissCounter.Add(ctx, 1, metric.WithAttributes(
-		attribute.String("cache.type", cacheType),
-	))
+	if t.cacheMissCounter != nil {
+		t.cacheMissCounter.Add(ctx, 1, metric.WithAttributes(
+			attribute.String("cache.type", cacheType),
+		))
+	}
 }
 
 // StartSpan starts a new span.

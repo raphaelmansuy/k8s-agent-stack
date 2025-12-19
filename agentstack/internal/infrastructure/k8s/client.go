@@ -70,6 +70,11 @@ func NewMockClient(namespace string) *Client {
 	}
 }
 
+// IsMock returns true if the client is a mock client.
+func (c *Client) IsMock() bool {
+	return c.clientset == nil
+}
+
 // CreateKnativeService creates a Knative Service for an agent.
 func (c *Client) CreateKnativeService(ctx context.Context, spec *KnativeServiceSpec) error {
 	service := c.buildKnativeService(spec)

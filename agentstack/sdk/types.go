@@ -43,7 +43,9 @@ type ModelConfig struct {
 type CreateAgentRequest struct {
 	Name        string            `json:"name"`
 	Description string            `json:"description,omitempty"`
+	Slug        string            `json:"slug"`
 	ProjectID   string            `json:"project_id"`
+	Framework   string            `json:"framework,omitempty"`
 	Tools       []AgentTool       `json:"tools,omitempty"`
 	ModelConfig *ModelConfig      `json:"model_config,omitempty"`
 	Metadata    map[string]string `json:"metadata,omitempty"`
@@ -81,6 +83,7 @@ type Project struct {
 type CreateProjectRequest struct {
 	Name        string            `json:"name"`
 	Description string            `json:"description,omitempty"`
+	Slug        string            `json:"slug"`
 	Metadata    map[string]string `json:"metadata,omitempty"`
 }
 
@@ -103,16 +106,24 @@ type ListProjectsResponse struct {
 // Deployment represents a deployment in the system.
 type Deployment struct {
 	ID          string            `json:"id"`
-	AgentID     string            `json:"agent_id"`
-	Version     string            `json:"version"`
-	Status      string            `json:"status"`
-	Replicas    int               `json:"replicas"`
-	Endpoint    string            `json:"endpoint,omitempty"`
-	Environment string            `json:"environment,omitempty"`
-	Config      *DeploymentConfig `json:"config,omitempty"`
-	Metadata    map[string]string `json:"metadata,omitempty"`
-	CreatedAt   time.Time         `json:"created_at"`
-	UpdatedAt   time.Time         `json:"updated_at"`
+	Name        string            `json:"name"`
+	Description string            `json:"description,omitempty"`
+	Image       string            `json:"image"`
+	Namespace   string            `json:"namespace"`
+	Type        string            `json:"type"`
+	Env         map[string]string `json:"env,omitempty"`
+	Replicas    int32             `json:"replicas,omitempty"`
+	Status      DeploymentStatus  `json:"status"`
+	CreatedAt   time.Time         `json:"createdAt"`
+	UpdatedAt   time.Time         `json:"updatedAt"`
+}
+
+// DeploymentStatus represents the status of a deployment.
+type DeploymentStatus struct {
+	Phase      string   `json:"phase"`
+	URL        string   `json:"url,omitempty"`
+	Conditions []string `json:"conditions,omitempty"`
+	Message    string   `json:"message,omitempty"`
 }
 
 // DeploymentConfig represents deployment configuration.
@@ -135,11 +146,14 @@ type AutoScalingConfig struct {
 
 // CreateDeploymentRequest represents a request to create a deployment.
 type CreateDeploymentRequest struct {
-	AgentID     string            `json:"agent_id"`
-	Version     string            `json:"version,omitempty"`
-	Environment string            `json:"environment,omitempty"`
-	Config      *DeploymentConfig `json:"config,omitempty"`
-	Metadata    map[string]string `json:"metadata,omitempty"`
+	ID          string            `json:"id"`
+	Name        string            `json:"name"`
+	Description string            `json:"description,omitempty"`
+	Image       string            `json:"image"`
+	Namespace   string            `json:"namespace,omitempty"`
+	Type        string            `json:"type,omitempty"`
+	Env         map[string]string `json:"env,omitempty"`
+	Replicas    int32             `json:"replicas,omitempty"`
 }
 
 // UpdateDeploymentRequest represents a request to update a deployment.
@@ -308,8 +322,9 @@ type ErrorDetail struct {
 
 // ListOptions represents common list options.
 type ListOptions struct {
-	Page     int    `json:"page,omitempty"`
-	PageSize int    `json:"page_size,omitempty"`
-	Sort     string `json:"sort,omitempty"`
-	Order    string `json:"order,omitempty"`
+	ProjectID string `json:"project_id,omitempty"`
+	Page      int    `json:"page,omitempty"`
+	PageSize  int    `json:"page_size,omitempty"`
+	Sort      string `json:"sort,omitempty"`
+	Order     string `json:"order,omitempty"`
 }

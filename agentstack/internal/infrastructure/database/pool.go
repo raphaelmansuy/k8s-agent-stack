@@ -29,6 +29,7 @@ type Pool struct {
 
 // NewPool creates a new PostgreSQL connection pool.
 func NewPool(ctx context.Context, databaseURL string, t *telemetry.Telemetry) (*Pool, error) {
+	fmt.Printf("DEBUG: Connecting to database at %s\n", databaseURL)
 	config, err := pgxpool.ParseConfig(databaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse database URL: %w", err)
