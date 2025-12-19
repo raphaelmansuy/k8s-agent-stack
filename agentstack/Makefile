@@ -26,6 +26,10 @@ COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 BUILD_TIME := $(shell date -u '+%Y-%m-%d_%H:%M:%S')
 LDFLAGS := -ldflags "-X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.buildTime=$(BUILD_TIME)"
 
+# Add GOPATH/bin to PATH
+GOPATH := $(shell go env GOPATH)
+export PATH := $(GOPATH)/bin:$(PATH)
+
 # Docker
 DOCKER_IMAGE := agentstack-api
 DOCKER_TAG := $(VERSION)
@@ -70,7 +74,9 @@ test-integration: ## Run integration tests
 # Lint targets
 lint: ## Run linters
 	@echo "Running linters..."
-	@golangci-lint run ./...
+	@$(GOPATH)/bin/golangci-lint run ./...
+	@echo "Running vulnerability check..."
+	@$(GOPATH)/bin/govulncheck ./...
 
 lint-fix: ## Run linters and fix issues
 	@echo "Running linters with fix..."
