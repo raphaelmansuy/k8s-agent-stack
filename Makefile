@@ -31,25 +31,25 @@ NC           := \033[0m # No Color
 
 # --- UI Helpers ---
 define print_header
-	@printf "$(BLUE)╔════════════════════════════════════════════════════════════════╗$(NC)\n"
-	@printf "$(BLUE)║$(BOLD)         k8s-agent-stack - AI Agent Platform                    $(NC)$(BLUE)║$(NC)\n"
-	@printf "$(BLUE)╚════════════════════════════════════════════════════════════════╝$(NC)\n"
+	printf "$(BLUE)╔════════════════════════════════════════════════════════════════╗$(NC)\n"
+	printf "$(BLUE)║$(BOLD)         k8s-agent-stack - AI Agent Platform                    $(NC)$(BLUE)║$(NC)\n"
+	printf "$(BLUE)╚════════════════════════════════════════════════════════════════╝$(NC)\n"
 endef
 
 define print_success
-	@printf "$(GREEN)✓ %s$(NC)\n" "$(1)"
+	printf "$(GREEN)✓ %s$(NC)\n" "$(1)"
 endef
 
 define print_error
-	@printf "$(RED)✗ %s$(NC)\n" "$(1)"
+	printf "$(RED)✗ %s$(NC)\n" "$(1)"
 endef
 
 define print_warning
-	@printf "$(YELLOW)⚠ %s$(NC)\n" "$(1)"
+	printf "$(YELLOW)⚠ %s$(NC)\n" "$(1)"
 endef
 
 define print_step
-	@printf "$(CYAN)➜ %s...$(NC) " "$(1)"
+	printf "$(CYAN)➜ %s...$(NC) " "$(1)"
 endef
 
 # --- Default Target ---
