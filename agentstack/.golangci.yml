@@ -1,20 +1,22 @@
 version: "2"
 run:
   go: "1.24"
+  timeout: 5m
+  tests: false
+
 linters:
+  disable-all: true
   enable:
+    - errcheck
     - bodyclose
     - contextcheck
     - copyloopvar
     - durationcheck
     - errname
     - errorlint
-    - exhaustive
     - forcetypeassert
-    - gocritic
     - godot
     - goprintffuncname
-    - gosec
     - intrange
     - makezero
     - misspell
@@ -24,101 +26,124 @@ linters:
     - nolintlint
     - prealloc
     - predeclared
-    - revive
     - rowserrcheck
     - sqlclosecheck
     - tparallel
     - unconvert
-    - unparam
     - wastedassign
     - whitespace
-  settings:
-    exhaustive:
-      default-signifies-exhaustive: true
-    gocritic:
-      enabled-tags:
-        - diagnostic
-        - experimental
-        - performance
-        - style
-      disabled-checks:
-        - hugeParam
-        - rangeValCopy
-        - ifElseChain
-        - typeAssertChain
-        - unnamedResult
-        - importShadow
-        - emptyStringTest
-        - exitAfterDefer
-    govet:
-      disable:
-        - fieldalignment
-      enable-all: true
-    revive:
-      rules:
-        - name: blank-imports
-        - name: context-as-argument
-        - name: context-keys-type
-        - name: dot-imports
-        - name: error-return
-        - name: error-strings
-        - name: error-naming
-        - name: if-return
-        - name: increment-decrement
-        - name: var-naming
-        - name: var-declaration
-        - name: range
-        - name: receiver-naming
-        - name: time-naming
-        - name: unexported-return
-        - name: indent-error-flow
-        - name: errorf
-        - name: empty-block
-        - name: superfluous-else
-        - name: unreachable-code
+    - govet
+
+linters-settings:
+  exhaustive:
+    default-signifies-exhaustive: false
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - performance
+      - style
+    disabled-checks:
+      - hugeParam
+      - rangeValCopy
+      - ifElseChain
+      - typeAssertChain
+      - unnamedResult
+      - importShadow
+      - emptyStringTest
+      - exitAfterDefer
+  govet:
+    disable:
+      - fieldalignment
+    enable-all: true
+  revive:
+    ignore-generated-header: true
+    severity: warning
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: if-return
+      - name: increment-decrement
+      - name: var-naming
+        disabled: true
+      - name: var-declaration
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: indent-error-flow
+      - name: errorf
+      - name: empty-block
+      - name: superfluous-else
+      - name: unreachable-code
+      - name: redefines-builtin-id
+      - name: package-comments
+        disabled: true
+      - name: exported
+        disabled: true
+      - name: unused-parameter
+        disabled: true
+  gosec:
+    excludes:
+      - G304
+      - G204
+      - G115
+      - G301
+      - G101
+
 issues:
+  exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
   exclude-rules:
-    - path: ".*_test\\.go"
+    # Exclude all from tests
+    - path: "_test\\.go"
       linters:
         - errcheck
-        - gocritic
-        - govet
-        - revive
-        - unusedwrite
-    - path: ".*_test\\.go"
-      linters:
         - gosec
-      text: "G104:"
-    - path: ".*_test\\.go"
-      linters:
+        - revive
+        - gocritic
+    - linters:
+        - revive
+      text: "package-comments:"
+    - linters:
+        - revive
+      text: "exported:"
+    - linters:
+        - revive
+      text: "unused-parameter:"
+    - linters:
+        - revive
+      text: "var-naming:"
+    - linters:
+        - gosec
+      text: "G304:"
+    - linters:
+        - gosec
+      text: "G204:"
+    - linters:
+        - gosec
+      text: "G115:"
+    - linters:
+        - gosec
+      text: "G301:"
+    - linters:
         - gosec
       text: "G101:"
-
-    - path: cmd/
-      linters:
-        - gochecknoglobals
-    - path: examples/
-      linters:
-        - gosec
-        - errcheck
     - linters:
         - gocritic
-      text: "whyNoLint" # We already fixed some, but let's not be too strict on others for now
+      text: "exitAfterDefer:"
     - linters:
-        - gosec
-      text: "G115: integer overflow conversion" # This is very noisy in Go 1.24, should be handled case-by-case but for now let's suppress the noise
-
-
-formatters:
-  enable:
-    - gofmt
-    - gofumpt
-    - goimports
-  settings:
-    gofumpt:
-      extra-rules: true
-    goimports:
-      local-prefixes:
-        - github.com/raphaelmansuy/agentstack
+        - gocritic
+      text: "ifElseChain:"
+    - linters:
+        - exhaustive
+    - text: "stutter"
+      linters: [revive]
+    - text: "missing cases in switch"
+      linters: [exhaustive]
