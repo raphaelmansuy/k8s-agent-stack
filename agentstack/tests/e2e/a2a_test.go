@@ -420,6 +420,6 @@ func TestA2ATimeout(t *testing.T) {
 }
 
 func httpGetWithContext(url string) (*http.Response, error) {
-	req, _ := http.NewRequestWithContext(context.Background(), "GET", url, nil)
+	req, _ := http.NewRequestWithContext(context.Background(), "GET", url, http.NoBody)
 	return http.DefaultClient.Do(req)
 }
