@@ -8,12 +8,14 @@
 
 ## 🚀 Access Kagent UI in 10 Seconds
 
+The easiest way to access the UI is using the `agentctl` CLI, which automatically handles all complex port-forwarding and proxying requirements for A2A streaming.
+
 ```bash
-# Start port-forward to kagent UI
-kubectl -n kagent port-forward service/kagent-ui 8080:8080
+# Start the UI with automatic port-forwarding
+./agentstack/bin/agentctl ui --port 3000
 ```
 
-Then open your browser to: **`http://localhost:8080`**
+Then open your browser to: **`http://localhost:3000`**
 
 ---
 
@@ -90,38 +92,47 @@ The official Kagent UI provides:
 
 ## 📖 Access Methods
 
-### Method 1: kubectl port-forward (Recommended)
+### Method 1: agentctl ui (Recommended)
+
+The `agentctl` CLI is the most reliable way to access the UI because it forwards multiple ports (3000, 8080, 8083, 8081) required for the full Kagent experience, including A2A streaming and model loading.
 
 ```bash
-# Terminal 1: Start port-forward
-kubectl -n kagent port-forward service/kagent-ui 8080:8080
+# Start the UI
+./agentstack/bin/agentctl ui --port 3000
 
-# Terminal 2: Open browser
-open http://localhost:8080
-
-# Or on Linux:
-xdg-open http://localhost:8080
+# Open browser
+open http://localhost:3000
 ```
 
 **Advantages:**
-- Works immediately
-- No additional configuration
-- Most reliable for local development
+- Handles all A2A streaming requirements automatically.
+- Fixes "Failed to fetch models" errors by forwarding the SSR port.
+- Most reliable for local development.
 
-### Method 2: Create Make Target
+### Method 2: make agentstack-ui
 
-Add to your Makefile:
+The `Makefile` includes a shortcut that uses `agentctl` under the hood.
 
-```makefile
-kagent-ui: ## Access Kagent UI
-	@echo "Opening Kagent UI..."
-	@echo "URL: http://localhost:8080"
-	kubectl -n kagent port-forward service/kagent-ui 8080:8080
+```bash
+make agentstack-ui
 ```
 
-Then access with:
+### Method 3: Manual kubectl port-forward (Advanced)
+
+If you cannot use `agentctl`, you must manually forward multiple ports:
+
 ```bash
-make kagent-ui
+# Terminal 1: UI Entry Point
+kubectl -n agentstack port-forward service/agentstack-ui 3000:80
+
+# Terminal 2: SSR Backend (Required for Models)
+kubectl -n agentstack port-forward service/agentstack-ui 8080:8080
+
+# Terminal 3: A2A API (Required for Chat)
+kubectl -n agentstack port-forward service/agentstack-ui 8083:8083
+
+# Terminal 4: WebSockets (Required for Real-time)
+kubectl -n agentstack port-forward service/agentstack-ui 8081:8081
 ```
 
 ### Method 3: Kubernetes Ingress (Production)

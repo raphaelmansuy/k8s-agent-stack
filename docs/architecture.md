@@ -63,6 +63,18 @@ A standardized communication layer based on JSON-RPC 2.0 over HTTP/SSE.
 - **Streaming**: Real-time event delivery via Server-Sent Events (SSE).
 - **Discovery**: `.well-known/agent.json` for agent metadata (Agent Card).
 
+### 4. Kagent Web UI Integration
+The platform integrates the official Kagent Web UI (`cr.kagent.dev/kagent-dev/kagent/ui`) for cluster administration and agent interaction.
+
+- **Architecture**: The UI is deployed as a standalone Next.js application with an internal Nginx proxy.
+- **Multi-Port Forwarding**: To support the full feature set (SSR, A2A Streaming, WebSockets) through a single CLI command, `agentctl ui` performs a quadruple port-forward:
+    - `3000`: Main UI entry point.
+    - `8080`: Next.js SSR backend (required for model loading).
+    - `8083`: A2A/Backend API proxy.
+    - `8081`: WebSocket gateway for real-time updates.
+- **Streaming Optimization**: The internal Nginx proxy is configured with `proxy_buffering off` and custom `rewrite` rules to handle A2A SSE streams without method-stripping redirects (POST to GET).
+- **Cross-Namespace Proxying**: Uses `socat` sidecars within the UI pod to bridge communication between the `agentstack` namespace and the `kagent-controller` in the `kagent` namespace.
+
 ## Data Flow: Request Lifecycle
 
 ```ascii

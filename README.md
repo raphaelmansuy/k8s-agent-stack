@@ -32,7 +32,7 @@ cd k8s-agent-stack
 make start
 
 # 3. Open the UI (in a separate terminal)
-make ui   # Opens http://localhost:8080 - keep terminal open!
+make agentstack-ui   # Opens http://localhost:3000 - keep terminal open!
 ```
 
 📖 **[Quick Start Tutorial](tutorial/README.md)** | **[Full Installation Guide](docs/getting-started.md)** | **[Production Setup](docs/getting-started.md#production-deployment)**
@@ -57,16 +57,19 @@ Implements a **5-layer agentic platform**: Runtime → Cognitive → Memory → 
 
 ## 🎯 Access Kagent UI
 
-Manage all your agents through the official Kagent web interface:
+Manage all your agents through the official Kagent web interface. The `agentctl` CLI handles all complex port-forwarding for A2A streaming automatically.
 
 ```bash
-make ui
-# Opens: http://localhost:8080
+make agentstack-ui
+# OR
+./agentstack/bin/agentctl ui --port 3000
+
+# Opens: http://localhost:3000
 # Keep this terminal open while using the UI
 # Press Ctrl+C to stop
 ```
 
-**Important:** The `make ui` command creates a port-forward that must remain running. Open http://localhost:8080 in your browser while the command is running.
+**Important:** The UI requires multiple ports (3000, 8080, 8083, 8081) to be forwarded for full functionality (Models, Chat, Streaming). `agentctl ui` manages this for you.
 
 **Features:** Agent chat, management, tools, model configs, observability
 
