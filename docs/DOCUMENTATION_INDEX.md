@@ -12,6 +12,7 @@ This index provides a comprehensive map of all documentation available for the k
 - **[Quick Reference](quick-reference.md)**: CLI commands and cheat sheet.
 - **[Troubleshooting](troubleshooting.md)**: Common issues and fixes.
 - **[Glossary](glossary.md)**: Terminology and concepts.
+- **[Governance](governance.md)**: Project governance and decision-making.
 
 ## 🏗️ Architecture Deep Dives
 
@@ -28,12 +29,15 @@ This index provides a comprehensive map of all documentation available for the k
 ## 🤖 Agent Development
 
 - **[Building Google ADK Agents](building-google-adk-agents-for-kagent.md)**
+- **[ADK Guide](adk-guide.md)**: Comprehensive ADK reference.
 - **[Kagent A2A Architecture](kagent-adk-a2a-architecture.md)**
+- **[Tutorials](tutorial/README.md)**: Step-by-step tutorials.
 
 ## 🛠️ Tools & Setup
 
 - **[Tool Installation](tool-installation.md)**
-- **[Kagent Installation Summary](KAGENT_INSTALLATION_SUMMARY.md)**
+- **[UI Access Guide](KAGENT_UI_ACCESS.md)**
+- **[Specifications](spec/README.md)**: Detailed design specs.
 
 ---
 

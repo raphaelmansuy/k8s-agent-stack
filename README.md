@@ -1,167 +1,105 @@
 # k8s-agent-stack
 
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![kagent](https://img.shields.io/badge/kagent-CNCF-green)](https://github.com/kagent-dev/kagent)
 [![Knative](https://img.shields.io/badge/Knative-1.20+-blue)](https://knative.dev)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
-> Sovereign AI agent platform on Kubernetes. Deploy, orchestrate, and scale agents with agent-to-agent communication—on **your** infrastructure.
-
-**Author**: [Raphaël MANSUY](https://www.linkedin.com/in/raphaelmansuy/)
+**k8s-agent-stack** is a sovereign, Kubernetes-native platform for deploying, orchestrating, and scaling AI agents. It provides a production-grade environment for multi-agent systems with built-in support for agent-to-agent (A2A) communication, scale-to-zero capabilities, and data sovereignty.
 
 ![kagent demo](images/kagent-01.gif)
 
-## Why k8s-agent-stack?
+---
 
-| Feature | k8s-agent-stack | Cloud Vendors |
-|---------|-----------------|---------------|
-| **Run anywhere** | ✅ Local, cloud, on-prem | ❌ Locked to vendor |
-| **Your data** | ✅ Your infrastructure | ❌ Vendor servers |
-| **A2A Protocol** | ✅ Open (kagent) | ❌ Proprietary |
-| **Scale-to-zero** | ✅ Pay for what you use | ⚠️ Varies |
-| **Multi-framework** | ✅ ADK, LangGraph, CrewAI | ❌ Limited |
+## 🚀 Overview
 
-## Quick Start (2 min)
+The platform enables developers to move from local AI experimentation to production-grade agentic infrastructure in minutes. It integrates best-in-class CNCF projects with a specialized agent orchestration layer.
 
-```bash
-# 1. Set your OpenAI API key
-export OPENAI_API_KEY="your-key-here"
+### Key Capabilities
 
-# 2. Clone & run
-git clone https://github.com/raphaelmansuy/k8s-agent-stack.git
-cd k8s-agent-stack
-make start
-
-# 3. Open the UI (in a separate terminal)
-make agentstack-ui   # Opens http://localhost:3000 - keep terminal open!
-```
-
-📖 **[Quick Start Tutorial](tutorial/README.md)** | **[Full Installation Guide](docs/getting-started.md)** | **[Production Setup](docs/getting-started.md#production-deployment)**
-
-## Architecture
-
-```text
-┌────────────────────────────────────────────────────────────┐
-│  YOUR AGENTS (Google ADK │ LangGraph │ CrewAI │ Custom)    │
-├────────────────────────────────────────────────────────────┤
-│  kagent: A2A Protocol • Multi-Framework • Discovery        │
-├────────────────────────────────────────────────────────────┤
-│  Knative: Scale-to-Zero • Auto-Scaling • Traffic Mgmt      │
-├────────────────────────────────────────────────────────────┤
-│  Kubernetes: OrbStack │ GKE │ EKS │ AKS │ On-Prem          │
-└────────────────────────────────────────────────────────────┘
-```
-
-Implements a **5-layer agentic platform**: Runtime → Cognitive → Memory → Interface → Governance
-
-📖 **[Architecture Deep Dive](docs/architecture.md)**
-
-## 🎯 Access Kagent UI
-
-Manage all your agents through the official Kagent web interface. The `agentctl` CLI handles all complex port-forwarding for A2A streaming automatically.
-
-```bash
-make agentstack-ui
-# OR
-./agentstack/bin/agentctl ui --port 3000
-
-# Opens: http://localhost:3000
-# Keep this terminal open while using the UI
-# Press Ctrl+C to stop
-```
-
-**Important:** The UI requires multiple ports (3000, 8080, 8083, 8081) to be forwarded for full functionality (Models, Chat, Streaming). `agentctl ui` manages this for you.
-
-**Features:** Agent chat, management, tools, model configs, observability
-
-## Deploy Your First Agent
-
-```bash
-# Build and deploy the included Google ADK agent (one command!)
-make adk-agent
-
-# Check status
-make adk-agent-status
-```
-
-## AgentStack API Gateway
-
-The stack includes a hardened API Gateway with RBAC, Quota management, and Audit logging.
-
-```bash
-# Build and deploy the full AgentStack (API, Worker, Postgres, Redis, MLflow)
-make agentstack-build
-make agentstack-deploy
-
-# Check status
-make agentstack-status
-```
-
-📖 **[Deployment Guide](docs/deployment-guide.md)** | **[Build ADK Agents](docs/building-google-adk-agents-for-kagent.md)**
-
-## Documentation
-
-| Guide | Description |
-|-------|-------------|
-| **[Getting Started](docs/getting-started.md)** | Installation for local & production |
-| **[Architecture](docs/architecture.md)** | 5-layer platform design |
-| **[Deployment Guide](docs/deployment-guide.md)** | Deploy, update, traffic splitting |
-| **[Troubleshooting](docs/troubleshooting.md)** | Common issues & solutions |
-| **[Building ADK Agents](docs/building-google-adk-agents-for-kagent.md)** | Google ADK integration |
-| **[Glossary](docs/glossary.md)** | Key terms explained |
-| **[Tool Installation](docs/tool-installation.md)** | kubectl, kn, helm, docker |
-
-## What's Included
-
-- **[kagent](https://github.com/kagent-dev/kagent)** – CNCF agent orchestration with A2A protocol
-- **[Knative Serving](https://knative.dev/docs/serving/)** – Serverless execution, auto-scaling
-- **[Contour](https://projectcontour.io/) + Envoy** – L7 ingress & routing
-- **Reference Agent** – [kagent-adk-agent/](kagent-adk-agent/) with Google ADK
-- **40+ Makefile targets** – Build, test, deploy automation
-
-## Repository Structure
-
-```text
-k8s-agent-stack/
-├── knative_orbstack.sh          # Installer + diagnostics
-├── kagent-adk-agent/            # Reference ADK agent
-│   ├── app/agent.py             # Agent logic
-│   ├── Dockerfile               # Container build
-│   └── kagent-deployment.yaml   # K8s manifest
-├── docs/                        # Documentation
-├── examples/                    # Agent configurations
-└── Makefile                     # Automation
-```
-
-## Roadmap
-
-- [x] Knative + kagent + Google ADK integration
-- [x] A2A protocol support
-- [ ] LangGraph/CrewAI support (Q4 2025)
-- [ ] Vector database integration (Q4 2025)
-- [ ] MCP (Model Context Protocol) support (Q4 2025)
-- [ ] Multi-cloud templates (Q1 2026)
-
-## Contributing
-
-We welcome contributions! See [CONTRIBUTORS.md](CONTRIBUTORS.md) for guidelines.
-
-- 🐛 [Report bugs](https://github.com/raphaelmansuy/k8s-agent-stack/issues)
-- 💡 [Request features](https://github.com/raphaelmansuy/k8s-agent-stack/issues)
-- 📖 Improve documentation
-- 🤖 Add agent examples
-
-## License
-
-Apache License 2.0 – see [LICENSE](LICENSE)
-
-**Copyright © 2025 [Raphaël MANSUY](https://www.linkedin.com/in/raphaelmansuy/)**
+*   **🔐 Data Sovereignty**: Run on your own infrastructure (Local, On-Prem, or Cloud). Your data never leaves your control.
+*   **🚀 Serverless Execution**: Built on Knative for automatic scaling and scale-to-zero (pay-only-for-what-you-use).
+*   **🤖 Multi-Framework Support**: Native support for Google ADK, LangGraph, CrewAI, and custom agent runtimes.
+*   **🔄 A2A Protocol**: Standardized agent-to-agent communication protocol for complex multi-agent workflows.
+*   **🔭 Enterprise Ready**: Built-in RBAC, quota management, audit logging, and OpenTelemetry observability.
 
 ---
 
-<div align="center">
+## 🛠️ Project Structure
 
-**k8s-agent-stack** — From zero to production AI agents in 5 minutes
+The repository is organized into several key components:
 
-[Get Started](docs/getting-started.md) • [Docs](docs/) • [Examples](examples/)
+*   **[agentstack/](agentstack/)**: The core API Gateway and Worker orchestration layer.
+*   **[deploy/](deploy/)**: Kubernetes manifests and deployment configurations.
+*   **[docs/](docs/)**: Comprehensive documentation, architecture guides, and tutorials.
+*   **[kagent-adk-agent/](kagent-adk-agent/)**: A reference implementation of an agent using Google ADK.
+*   **[scripts/](scripts/)**: Automation scripts for cluster setup and maintenance.
 
-</div>
+---
+
+## 🏁 Quick Start
+
+### 1. Prerequisites
+
+*   Kubernetes cluster (OrbStack, GKE, EKS, or local)
+*   `kubectl`, `helm`, and `go` installed
+*   OpenAI API Key (or other supported LLM provider)
+
+### 2. Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/raphaelmansuy/k8s-agent-stack.git
+cd k8s-agent-stack
+
+# Set your API key
+export OPENAI_API_KEY="your-key-here"
+
+# Run the automated setup
+make start
+```
+
+### 3. Access the UI
+
+The platform includes a comprehensive web interface for managing agents and conversations.
+
+```bash
+# Start the UI with automatic port-forwarding
+make ui
+```
+Access the UI at: **[http://localhost:8080](http://localhost:8080)**
+
+---
+
+## 📖 Documentation
+
+| Guide | Description |
+|-------|-------------|
+| **[Getting Started](docs/getting-started.md)** | Detailed installation and setup instructions. |
+| **[Architecture](docs/architecture.md)** | Deep dive into the 5-layer platform design. |
+| **[Deployment Guide](docs/deployment-guide.md)** | Production deployment, traffic splitting, and scaling. |
+| **[ADK Agent Guide](docs/adk-guide.md)** | Building and deploying Google ADK agents. |
+| **[UI Access Guide](docs/KAGENT_UI_ACCESS.md)** | Detailed information on using the Kagent UI. |
+| **[Troubleshooting](docs/troubleshooting.md)** | Common issues and their resolutions. |
+
+---
+
+## 🤝 Contributing & Governance
+
+This is an **Apache 2.0** licensed open-source project. We welcome contributions from the community.
+
+*   **[Contributing Guidelines](CONTRIBUTING.md)**: How to get started with contributions.
+*   **[Code of Conduct](CONTRIBUTING.md#code-of-conduct)**: Our commitment to a welcoming environment.
+*   **[Governance](docs/governance.md)**: Project governance and decision-making process.
+
+### Maintainers
+*   **[Raphaël MANSUY](https://www.linkedin.com/in/raphaelmansuy/)** - Project Lead
+
+---
+
+## 📄 License
+
+Copyright © 2025 Raphaël MANSUY.
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at [LICENSE](LICENSE).
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.

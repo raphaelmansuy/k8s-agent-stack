@@ -1,3 +1,19 @@
+/*
+ * Copyright 2025 Raphaël MANSUY
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // Package middleware provides HTTP middleware for the API.
 package middleware
 
@@ -9,6 +25,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
+
 	"github.com/raphaelmansuy/agentstack/internal/domain/audit"
 )
 
@@ -49,7 +66,7 @@ func (m *AuditMiddleware) RequestLogger() func(http.Handler) http.Handler {
 
 			// Log the request after completion
 			duration := time.Since(start)
-			auth := GetAuthFromContext(r.Context())
+			auth := GetAuthFromContext(ctx)
 
 			actorType := audit.ActorSystem
 			actorID := "anonymous"
@@ -78,7 +95,7 @@ func (m *AuditMiddleware) RequestLogger() func(http.Handler) http.Handler {
 				result = audit.ResultFailure
 			}
 
-			_ = m.auditSvc.LogAction(r.Context(), audit.LogParams{
+			_ = m.auditSvc.LogAction(ctx, audit.LogParams{
 				Type:       audit.EventAgentInvoked, // Generic API request type
 				TeamID:     teamID,
 				ActorID:    actorID,

@@ -1,4 +1,20 @@
 // Package output provides output formatting utilities for the CLI.
+/*
+ * Copyright 2025 Raphaël MANSUY
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package output
 
 import (
@@ -91,7 +107,7 @@ func (f *Formatter) printJSON(data interface{}) error {
 func (f *Formatter) printYAML(data interface{}) error {
 	encoder := yaml.NewEncoder(f.writer)
 	encoder.SetIndent(2)
-	defer encoder.Close()
+	defer func() { _ = encoder.Close() }()
 	return encoder.Encode(data)
 }
 
@@ -164,7 +180,7 @@ func (t *TablePrinter) Render() error {
 		}
 		headerLine.WriteString(padRight(strings.ToUpper(h), widths[i]))
 	}
-	fmt.Fprintln(t.writer, headerLine.String())
+	_, _ = fmt.Fprintln(t.writer, headerLine.String())
 
 	// Print rows
 	for _, row := range t.rows {
@@ -178,7 +194,7 @@ func (t *TablePrinter) Render() error {
 			}
 			rowLine.WriteString(padRight(cell, widths[i]))
 		}
-		fmt.Fprintln(t.writer, rowLine.String())
+		_, _ = fmt.Fprintln(t.writer, rowLine.String())
 	}
 
 	return nil
@@ -249,7 +265,7 @@ func (s *Spinner) Start() {
 			case <-s.done:
 				return
 			default:
-				fmt.Fprintf(s.writer, "\r%s %s", frames[i], s.message)
+				_, _ = fmt.Fprintf(s.writer, "\r%s %s", frames[i], s.message)
 				i = (i + 1) % len(frames)
 				time.Sleep(100 * time.Millisecond)
 			}
@@ -265,25 +281,25 @@ func (s *Spinner) Stop() {
 	s.running = false
 	s.done <- true
 	// Clear the spinner line
-	fmt.Fprintf(s.writer, "\r%s\r", strings.Repeat(" ", len(s.message)+3))
+	_, _ = fmt.Fprintf(s.writer, "\r%s\r", strings.Repeat(" ", len(s.message)+3))
 }
 
 // Success stops the spinner and prints a success message.
 func (s *Spinner) Success(message string) {
 	s.Stop()
-	fmt.Fprintf(s.writer, "✓ %s\n", message)
+	_, _ = fmt.Fprintf(s.writer, "✓ %s\n", message)
 }
 
 // Fail stops the spinner and prints a failure message.
 func (s *Spinner) Fail(message string) {
 	s.Stop()
-	fmt.Fprintf(s.writer, "%s %s\n", Colorize("✗", ColorRed), message)
+	_, _ = fmt.Fprintf(s.writer, "%s %s\n", Colorize("✗", ColorRed), message)
 }
 
 // FailErr stops the spinner and prints a failure message with an error.
 func (s *Spinner) FailErr(message string, err error) {
 	s.Stop()
-	fmt.Fprintf(s.writer, "%s %s: %v\n", Colorize("✗", ColorRed), message, err)
+	_, _ = fmt.Fprintf(s.writer, "%s %s: %v\n", Colorize("✗", ColorRed), message, err)
 }
 
 // FormatDuration formats a duration in a human-readable way.

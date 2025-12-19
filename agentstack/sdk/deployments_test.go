@@ -1,3 +1,19 @@
+/*
+ * Copyright 2025 Raphaël MANSUY
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package sdk
 
 import (
@@ -10,8 +26,8 @@ import (
 
 func TestDeploymentsServiceList(t *testing.T) {
 	expectedDeployments := []Deployment{
-		{ID: "deploy-1", AgentID: "agent-1", Status: "running"},
-		{ID: "deploy-2", AgentID: "agent-2", Status: "pending"},
+		{ID: "deploy-1", Status: DeploymentStatus{Phase: "running"}},
+		{ID: "deploy-2", Status: DeploymentStatus{Phase: "pending"}},
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -43,8 +59,8 @@ func TestDeploymentsServiceList(t *testing.T) {
 	if len(response.Deployments) != 2 {
 		t.Errorf("expected 2 deployments, got %d", len(response.Deployments))
 	}
-	if response.Deployments[0].Status != "running" {
-		t.Errorf("expected status 'running', got %s", response.Deployments[0].Status)
+	if response.Deployments[0].Status.Phase != "running" {
+		t.Errorf("expected status 'running', got %s", response.Deployments[0].Status.Phase)
 	}
 }
 
@@ -57,10 +73,8 @@ func TestDeploymentsServiceGet(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(Deployment{
 			ID:       "deploy-123",
-			AgentID:  "agent-456",
-			Status:   "running",
+			Status:   DeploymentStatus{Phase: "running", URL: "https://agent.example.com"},
 			Replicas: 3,
-			Endpoint: "https://agent.example.com",
 		})
 	}))
 	defer server.Close()
@@ -88,16 +102,15 @@ func TestDeploymentsServiceCreate(t *testing.T) {
 
 		var req CreateDeploymentRequest
 		json.NewDecoder(r.Body).Decode(&req)
-		if req.AgentID != "agent-123" {
-			t.Errorf("expected agent_id 'agent-123', got %s", req.AgentID)
+		if req.ID != "deploy-123" {
+			t.Errorf("expected id 'deploy-123', got %s", req.ID)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(Deployment{
-			ID:      "new-deploy-id",
-			AgentID: req.AgentID,
-			Status:  "pending",
+			ID:     "new-deploy-id",
+			Status: DeploymentStatus{Phase: "pending"},
 		})
 	}))
 	defer server.Close()
@@ -105,8 +118,8 @@ func TestDeploymentsServiceCreate(t *testing.T) {
 	client := NewClient(server.URL, "test-api-key")
 
 	deployment, err := client.Deployments.Create(context.Background(), &CreateDeploymentRequest{
-		AgentID:     "agent-123",
-		Environment: "production",
+		ID:   "deploy-123",
+		Name: "production",
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -136,7 +149,7 @@ func TestDeploymentsServiceScale(t *testing.T) {
 		json.NewEncoder(w).Encode(Deployment{
 			ID:       "deploy-123",
 			Replicas: 5,
-			Status:   "scaling",
+			Status:   DeploymentStatus{Phase: "scaling"},
 		})
 	}))
 	defer server.Close()
@@ -165,7 +178,7 @@ func TestDeploymentsServiceRestart(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(Deployment{
 			ID:     "deploy-123",
-			Status: "restarting",
+			Status: DeploymentStatus{Phase: "restarting"},
 		})
 	}))
 	defer server.Close()
@@ -177,8 +190,8 @@ func TestDeploymentsServiceRestart(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if deployment.Status != "restarting" {
-		t.Errorf("expected status 'restarting', got %s", deployment.Status)
+	if deployment.Status.Phase != "restarting" {
+		t.Errorf("expected status 'restarting', got %s", deployment.Status.Phase)
 	}
 }
 
@@ -201,7 +214,7 @@ func TestDeploymentsServiceRollback(t *testing.T) {
 		json.NewEncoder(w).Encode(Deployment{
 			ID:      "deploy-123",
 			Version: "v1.0.0",
-			Status:  "rolling_back",
+			Status:  DeploymentStatus{Phase: "rolling_back"},
 		})
 	}))
 	defer server.Close()
@@ -243,7 +256,7 @@ func TestDeploymentsServiceStatus(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(Deployment{
 			ID:     "deploy-123",
-			Status: "running",
+			Status: DeploymentStatus{Phase: "running"},
 		})
 	}))
 	defer server.Close()
@@ -255,7 +268,7 @@ func TestDeploymentsServiceStatus(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if status != "running" {
-		t.Errorf("expected status 'running', got %s", status)
+	if status.Phase != "running" {
+		t.Errorf("expected status 'running', got %s", status.Phase)
 	}
 }

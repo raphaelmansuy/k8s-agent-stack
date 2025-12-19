@@ -1,3 +1,19 @@
+/*
+ * Copyright 2025 Raphaël MANSUY
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // Package handlers provides HTTP handlers for the API.
 package handlers
 
@@ -131,7 +147,7 @@ func RegisterProjectRoutes(api huma.API, pool *database.Pool, rbacM *middleware.
 		for i, p := range projects {
 			var settings map[string]any
 			if len(p.Settings) > 0 {
-				json.Unmarshal(p.Settings, &settings)
+				_ = json.Unmarshal(p.Settings, &settings)
 			}
 			res[i] = Project{
 				ID:        p.ID,
@@ -173,7 +189,7 @@ func RegisterProjectRoutes(api huma.API, pool *database.Pool, rbacM *middleware.
 
 		var settings map[string]any
 		if len(p.Settings) > 0 {
-			json.Unmarshal(p.Settings, &settings)
+			_ = json.Unmarshal(p.Settings, &settings)
 		}
 
 		return &GetProjectOutput{
@@ -221,7 +237,7 @@ func RegisterProjectRoutes(api huma.API, pool *database.Pool, rbacM *middleware.
 
 		var resSettings map[string]any
 		if len(p.Settings) > 0 {
-			json.Unmarshal(p.Settings, &resSettings)
+			_ = json.Unmarshal(p.Settings, &resSettings)
 		}
 
 		return &CreateProjectOutput{
@@ -269,7 +285,7 @@ func RegisterProjectRoutes(api huma.API, pool *database.Pool, rbacM *middleware.
 
 		var resSettings map[string]any
 		if len(p.Settings) > 0 {
-			json.Unmarshal(p.Settings, &resSettings)
+			_ = json.Unmarshal(p.Settings, &resSettings)
 		}
 
 		return &UpdateProjectOutput{

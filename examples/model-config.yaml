@@ -11,5 +11,5 @@ metadata:
 spec:
   provider: OpenAI
   model: gpt-4o-mini
-  apiKeySecret: openai-api-key
-  apiKeySecretKey: api-key
+  apiKeySecret: kagent-openai
+  apiKeySecretKey: OPENAI_API_KEY

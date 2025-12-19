@@ -65,11 +65,8 @@ curl http://localhost:8081/health
 Deploy the included reference agent:
 
 ```bash
-# Navigate to agent directory
-cd kagent-adk-agent
-
 # Deploy to Kubernetes
-kubectl apply -f kagent-deployment.yaml
+kubectl apply -f deploy/kagent-adk-agent.yaml
 
 # Wait for ready (30-60 seconds)
 kubectl wait --for=condition=ready agent \

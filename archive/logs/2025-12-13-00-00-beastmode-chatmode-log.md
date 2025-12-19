@@ -1,4 +1,3 @@
-```markdown
 Task logs — Final Session Summary
 ═══════════════════════════════════════════════════════════════
 
@@ -66,5 +65,3 @@ Lessons/Insights:
 • Dense doesn't mean complex — every word should teach something
 • Production readiness requires comprehensive diagnostics tooling
 • Local dev (OrbStack) to prod should be identical manifests
-
-```

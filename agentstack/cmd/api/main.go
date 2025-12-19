@@ -1,4 +1,36 @@
+/*
+ * Copyright 2025 Raphaël MANSUY
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // Package main is the entry point for the AgentStack API Gateway.
+/*
+ * Copyright 2025 Raphaël MANSUY
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package main
 
 import (
@@ -166,13 +198,49 @@ func main() {
 	router.Use(dbPool.TenantMiddleware())
 	router.Use(auditMiddleware.RequestLogger())
 
+	// Redirect root documentation requests to the /api prefixed ones
+	router.Get("/docs", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/api/docs", http.StatusMovedPermanently)
+	})
+	router.Get("/openapi.json", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/api/openapi.json", http.StatusMovedPermanently)
+	})
+	router.Get("/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/api/openapi.yaml", http.StatusMovedPermanently)
+	})
+
 	// Create Huma API
 	apiRouter := chi.NewRouter()
 	router.Mount("/api", apiRouter)
 	api := humachi.New(apiRouter, huma.DefaultConfig("AgentStack API", version))
 
 	// Configure OpenAPI
-	api.OpenAPI().Info.Description = "Sovereign GenAI Agent Platform API"
+	api.OpenAPI().Info.Description = `
+## 🚀 Welcome to AgentStack API
+
+AgentStack is a **Sovereign GenAI Agent Platform** designed for building, deploying, and managing autonomous AI agents at scale.
+
+### 🛠️ Key Features
+
+*   **🤖 Agent Management**: Create and manage AI agents with custom configurations and frameworks.
+*   **📡 A2A (Agent-to-Agent)**: Enable seamless communication and task delegation between agents.
+*   **🚀 Deployment**: Deploy agents as scalable services on Kubernetes or Knative.
+*   **🔐 Enterprise Security**: Built-in RBAC (Role-Based Access Control), API Key management, and Audit logging.
+*   **📊 Observability**: Integrated tracing, logging, and evaluation metrics for agent performance.
+*   **⚖️ Quota Management**: Control resource usage and costs with flexible quota policies.
+
+### 🔐 Authentication
+
+Most API endpoints require authentication. You can use:
+1.  **API Keys**: Include "X-API-Key: your_key" or "Authorization: Bearer your_key" in your headers.
+2.  **JWT Tokens**: For user-based sessions.
+
+### 📚 Resources
+
+*   [Official Documentation](https://agentstack.dev/docs)
+*   [GitHub Repository](https://github.com/raphaelmansuy/k8s-agent-stack)
+*   [Support](mailto:team@agentstack.dev)
+`
 	api.OpenAPI().Info.Contact = &huma.Contact{
 		Name:  "AgentStack Team",
 		Email: "team@agentstack.dev",

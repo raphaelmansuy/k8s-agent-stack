@@ -520,7 +520,7 @@ docker push localhost:5000/kagent-adk-agent:v1
 
 ### Step 1: Create the Agent CRD
 
-Create `kagent-deployment.yaml`:
+Create `deploy/kagent-adk-agent.yaml`:
 
 ```yaml
 apiVersion: kagent.dev/v1alpha2
@@ -565,7 +565,7 @@ kubectl create secret generic openai-api-key \
 
 ```bash
 # Apply the agent CRD
-kubectl apply -f kagent-deployment.yaml
+kubectl apply -f deploy/kagent-adk-agent.yaml
 
 # Check deployment status
 kubectl get agents -n kagent
@@ -664,7 +664,7 @@ The key insight is that Kagent expects the **A2A protocol**, which Google ADK su
 docker build -t kagent-adk-agent:v1 .
 
 # Deploy
-kubectl apply -f kagent-deployment.yaml
+kubectl apply -f deploy/kagent-adk-agent.yaml
 
 # Verify
 kubectl get agents -n kagent

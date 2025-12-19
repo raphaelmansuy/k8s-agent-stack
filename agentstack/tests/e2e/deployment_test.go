@@ -1,4 +1,20 @@
 // Package e2e provides end-to-end tests for the AgentStack platform.
+/*
+ * Copyright 2025 Raphaël MANSUY
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package e2e
 
 import (
@@ -82,7 +98,7 @@ func TestE2EAgentDeploymentFlow(t *testing.T) {
 	}
 	reqJSON, _ := json.Marshal(reqBody)
 
-	resp, err := http.Post(server.URL+"/a2a/send", "application/json", bytes.NewReader(reqJSON))
+	resp, err := httpPostWithContext(server.URL+"/a2a/send", "application/json", bytes.NewReader(reqJSON))
 	if err != nil {
 		t.Fatalf("failed to send message: %v", err)
 	}
@@ -144,7 +160,7 @@ func TestE2EAPIChain(t *testing.T) {
 			}
 			reqJSON, _ := json.Marshal(reqBody)
 
-			resp, err := http.Post(server.URL+"/a2a/send", "application/json", bytes.NewReader(reqJSON))
+			resp, err := httpPostWithContext(server.URL+"/a2a/send", "application/json", bytes.NewReader(reqJSON))
 			if err != nil {
 				t.Fatalf("request failed: %v", err)
 			}
@@ -169,7 +185,6 @@ func TestE2EAPIChain(t *testing.T) {
 
 // TestE2EValidation tests input validation across the API.
 func TestE2EValidation(t *testing.T) {
-
 	a2aService := a2a.NewService()
 
 	mux := http.NewServeMux()
@@ -203,7 +218,7 @@ func TestE2EValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			reqJSON, _ := json.Marshal(tt.body)
-			resp, err := http.Post(server.URL+"/a2a/send", "application/json", bytes.NewReader(reqJSON))
+			resp, err := httpPostWithContext(server.URL+"/a2a/send", "application/json", bytes.NewReader(reqJSON))
 			if err != nil {
 				t.Fatalf("request failed: %v", err)
 			}
@@ -221,7 +236,7 @@ func TestE2EAgentDiscovery(t *testing.T) {
 	k := kagent.New(kagent.DefaultConfig())
 	defer k.Close()
 
-	resp, err := http.Get(k.URL + "/.well-known/agent.json")
+	resp, err := httpGetWithContext(k.URL + "/.well-known/agent.json")
 	if err != nil {
 		t.Fatalf("discovery failed: %v", err)
 	}
@@ -272,7 +287,7 @@ func TestE2EErrorRecovery(t *testing.T) {
 	}
 	reqJSON1, _ := json.Marshal(req1)
 
-	resp1, _ := http.Post(server.URL+"/a2a/send", "application/json", bytes.NewReader(reqJSON1))
+	resp1, _ := httpPostWithContext(server.URL+"/a2a/send", "application/json", bytes.NewReader(reqJSON1))
 	resp1.Body.Close()
 
 	if resp1.StatusCode == http.StatusOK {
@@ -291,7 +306,7 @@ func TestE2EErrorRecovery(t *testing.T) {
 	}
 	reqJSON2, _ := json.Marshal(req2)
 
-	resp2, err := http.Post(server.URL+"/a2a/send", "application/json", bytes.NewReader(reqJSON2))
+	resp2, err := httpPostWithContext(server.URL+"/a2a/send", "application/json", bytes.NewReader(reqJSON2))
 	if err != nil {
 		t.Fatalf("recovery request failed: %v", err)
 	}
@@ -300,4 +315,10 @@ func TestE2EErrorRecovery(t *testing.T) {
 	if resp2.StatusCode != http.StatusOK {
 		t.Errorf("expected 200 after recovery, got %d", resp2.StatusCode)
 	}
+}
+
+func httpPostWithContext(url, contentType string, body io.Reader) (*http.Response, error) { //nolint:unparam
+	req, _ := http.NewRequestWithContext(context.Background(), "POST", url, body)
+	req.Header.Set("Content-Type", contentType)
+	return http.DefaultClient.Do(req)
 }

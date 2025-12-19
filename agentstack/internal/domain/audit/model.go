@@ -1,4 +1,20 @@
 // Package audit provides audit logging functionality.
+/*
+ * Copyright 2025 Raphaël MANSUY
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package audit
 
 import (
@@ -10,14 +26,14 @@ import (
 type EventType string
 
 const (
-	// Authentication events
+	// Authentication events.
 	EventLogin         EventType = "auth.login"
 	EventLogout        EventType = "auth.logout"
 	EventAPIKeyCreated EventType = "auth.api_key_created"
 	EventAPIKeyRevoked EventType = "auth.api_key_revoked"
 	EventAPIKeyRotated EventType = "auth.api_key_rotated"
 
-	// Resource events
+	// Resource events.
 	EventAgentCreated  EventType = "agent.created"
 	EventAgentUpdated  EventType = "agent.updated"
 	EventAgentDeleted  EventType = "agent.deleted"
@@ -34,7 +50,7 @@ const (
 	EventDeploymentScaled  EventType = "deployment.scaled"
 	EventDeploymentRestart EventType = "deployment.restarted"
 
-	// Access events
+	// Access events.
 	EventMemberInvited    EventType = "member.invited"
 	EventMemberRemoved    EventType = "member.removed"
 	EventRoleCreated      EventType = "role.created"
@@ -44,7 +60,7 @@ const (
 	EventRoleRevoked      EventType = "role.revoked"
 	EventPermissionDenied EventType = "permission.denied"
 
-	// System events
+	// System events.
 	EventQuotaExceeded     EventType = "quota.exceeded"
 	EventRateLimited       EventType = "rate.limited"
 	EventFeedbackSubmitted EventType = "evaluation.feedback_submitted"

@@ -1,7 +1,24 @@
 // Package sdk provides the AgentStack Go SDK for programmatic access to the API.
+/*
+ * Copyright 2025 Raphaël MANSUY
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package sdk
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -53,7 +70,8 @@ func (e *APIError) IsServerError() bool {
 
 // IsNotFoundError checks if an error is a not found error.
 func IsNotFoundError(err error) bool {
-	if apiErr, ok := err.(*APIError); ok {
+	apiErr := &APIError{}
+	if errors.As(err, &apiErr) {
 		return apiErr.IsNotFound()
 	}
 	return false
@@ -61,7 +79,8 @@ func IsNotFoundError(err error) bool {
 
 // IsUnauthorizedError checks if an error is an unauthorized error.
 func IsUnauthorizedError(err error) bool {
-	if apiErr, ok := err.(*APIError); ok {
+	apiErr := &APIError{}
+	if errors.As(err, &apiErr) {
 		return apiErr.IsUnauthorized()
 	}
 	return false
@@ -69,7 +88,8 @@ func IsUnauthorizedError(err error) bool {
 
 // IsForbiddenError checks if an error is a forbidden error.
 func IsForbiddenError(err error) bool {
-	if apiErr, ok := err.(*APIError); ok {
+	apiErr := &APIError{}
+	if errors.As(err, &apiErr) {
 		return apiErr.IsForbidden()
 	}
 	return false
@@ -77,7 +97,8 @@ func IsForbiddenError(err error) bool {
 
 // IsConflictError checks if an error is a conflict error.
 func IsConflictError(err error) bool {
-	if apiErr, ok := err.(*APIError); ok {
+	apiErr := &APIError{}
+	if errors.As(err, &apiErr) {
 		return apiErr.IsConflict()
 	}
 	return false
@@ -85,7 +106,8 @@ func IsConflictError(err error) bool {
 
 // IsRateLimitedError checks if an error is a rate limit error.
 func IsRateLimitedError(err error) bool {
-	if apiErr, ok := err.(*APIError); ok {
+	apiErr := &APIError{}
+	if errors.As(err, &apiErr) {
 		return apiErr.IsRateLimited()
 	}
 	return false
@@ -93,7 +115,8 @@ func IsRateLimitedError(err error) bool {
 
 // IsServerErrorType checks if an error is a server error.
 func IsServerErrorType(err error) bool {
-	if apiErr, ok := err.(*APIError); ok {
+	apiErr := &APIError{}
+	if errors.As(err, &apiErr) {
 		return apiErr.IsServerError()
 	}
 	return false

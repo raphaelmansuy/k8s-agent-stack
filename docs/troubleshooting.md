@@ -7,7 +7,7 @@ Quick solutions for common issues with k8s-agent-stack.
 Run the built-in diagnostics:
 
 ```bash
-./knative_orbstack.sh --debug
+./scripts/knative_orbstack.sh --debug
 ```
 
 Expected output:
@@ -417,7 +417,7 @@ If you can't resolve an issue:
 
 1. **Run full diagnostics:**
    ```bash
-   ./knative_orbstack.sh --debug > diagnostics.txt 2>&1
+   ./scripts/knative_orbstack.sh --debug > diagnostics.txt 2>&1
    ```
 
 2. **Collect logs:**

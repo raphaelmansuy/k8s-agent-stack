@@ -1,3 +1,19 @@
+/*
+ * Copyright 2025 Raphaël MANSUY
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // Package ucm provides the Universal Content Model (UCM) for content translation.
 // UCM abstracts content types across different LLM providers and agent protocols.
 package ucm
@@ -277,7 +293,7 @@ func (t *A2ATranslator) contentToPart(content *Content) a2a.Part {
 		if !ok {
 			// Convert to map via JSON
 			jsonData, _ := json.Marshal(content.Data)
-			json.Unmarshal(jsonData, &dataMap)
+			_ = json.Unmarshal(jsonData, &dataMap)
 		}
 		return a2a.DataPart(dataMap)
 	default:
@@ -362,7 +378,7 @@ func (t *OpenAITranslator) ToUCM(input interface{}) (*Message, error) {
 	// Handle tool calls
 	for _, tc := range msg.ToolCalls {
 		var args map[string]interface{}
-		json.Unmarshal([]byte(tc.Function.Arguments), &args)
+		_ = json.Unmarshal([]byte(tc.Function.Arguments), &args)
 		ucmMsg.AddContent(NewFunctionCallContent(tc.ID, tc.Function.Name, args))
 	}
 
@@ -462,6 +478,8 @@ func (t *OpenAITranslator) FromUCM(msg *Message) (interface{}, error) {
 				Content:    string(resultJSON),
 				ToolCallID: id,
 			}, nil
+		default:
+			// Skip other content types
 		}
 	}
 
@@ -590,31 +608,37 @@ func (t *AnthropicTranslator) FromUCM(msg *Message) (interface{}, error) {
 			})
 		case ContentTypeImage:
 			if content.Encoding == "base64" {
+				dataStr, _ := content.Data.(string)
 				contents = append(contents, AnthropicContent{
 					Type: "image",
 					Source: &AnthropicSource{
 						Type:      "base64",
 						MediaType: content.MimeType,
-						Data:      content.Data.(string),
+						Data:      dataStr,
 					},
 				})
 			}
 		case ContentTypeFunctionCall:
 			data, _ := content.Data.(map[string]interface{})
+			id, _ := data["id"].(string)
+			name, _ := data["name"].(string)
 			contents = append(contents, AnthropicContent{
 				Type:  "tool_use",
-				ID:    data["id"].(string),
-				Name:  data["name"].(string),
+				ID:    id,
+				Name:  name,
 				Input: data["arguments"],
 			})
 		case ContentTypeFunctionResponse:
 			data, _ := content.Data.(map[string]interface{})
 			resultJSON, _ := json.Marshal(data["result"])
+			id, _ := data["id"].(string)
 			contents = append(contents, AnthropicContent{
 				Type:      "tool_result",
-				ToolUseID: data["id"].(string),
+				ToolUseID: id,
 				Content:   string(resultJSON),
 			})
+		default:
+			// Skip other content types
 		}
 	}
 

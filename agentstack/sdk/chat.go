@@ -1,4 +1,20 @@
 // Package sdk provides the AgentStack Go SDK for programmatic access to the API.
+/*
+ * Copyright 2025 Raphaël MANSUY
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package sdk
 
 import (
@@ -49,7 +65,7 @@ func (s *ChatService) Stream(ctx context.Context, req *ChatRequest) (*StreamResp
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		body, _ := io.ReadAll(resp.Body)
 		var errResp ErrorResponse
 		if err := json.Unmarshal(body, &errResp); err != nil {
@@ -83,7 +99,7 @@ func (s *ChatService) readSSEStream(ctx context.Context, body io.ReadCloser, eve
 	defer close(events)
 	defer close(errors)
 	defer close(done)
-	defer body.Close()
+	defer func() { _ = body.Close() }()
 
 	reader := bufio.NewReader(body)
 
@@ -134,12 +150,6 @@ func (s *ChatService) readSSEStream(ctx context.Context, body io.ReadCloser, eve
 			if delta.Done {
 				return
 			}
-		}
-
-		// Handle "event:" lines (optional metadata)
-		if strings.HasPrefix(line, "event:") {
-			// Event type, can be used for metadata but we focus on data
-			continue
 		}
 	}
 }

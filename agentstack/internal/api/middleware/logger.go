@@ -1,7 +1,24 @@
+/*
+ * Copyright 2025 Raphaël MANSUY
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // Package middleware provides HTTP middleware for the API.
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -18,15 +35,15 @@ func Logger(log *zap.Logger) func(next http.Handler) http.Handler {
 			// Wrap response writer to capture status
 			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 
-			defer func() {
-				auth := GetAuthFromContext(r.Context())
+			defer func(ctx context.Context) {
+				auth := GetAuthFromContext(ctx)
 				fields := []zap.Field{
 					zap.String("method", r.Method),
 					zap.String("path", r.URL.Path),
 					zap.Int("status", ww.Status()),
 					zap.Int("bytes", ww.BytesWritten()),
 					zap.Duration("duration", time.Since(start)),
-					zap.String("request_id", middleware.GetReqID(r.Context())),
+					zap.String("request_id", middleware.GetReqID(ctx)),
 					zap.String("remote_addr", r.RemoteAddr),
 					zap.String("user_agent", r.UserAgent()),
 				}
@@ -50,7 +67,7 @@ func Logger(log *zap.Logger) func(next http.Handler) http.Handler {
 				} else {
 					log.Info("HTTP request", fields...)
 				}
-			}()
+			}(r.Context())
 
 			next.ServeHTTP(ww, r)
 		})

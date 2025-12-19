@@ -1,3 +1,19 @@
+/*
+ * Copyright 2025 Raphaël MANSUY
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package commands
 
 import (
@@ -8,8 +24,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/raphaelmansuy/agentstack/cli/internal/output"
 	"github.com/spf13/cobra"
+
+	"github.com/raphaelmansuy/agentstack/cli/internal/output"
 )
 
 func newUICmd() *cobra.Command {
@@ -33,7 +50,7 @@ func newUICmd() *cobra.Command {
 			}
 
 			// Check if the service exists
-			checkSvc := exec.Command("kubectl", "get", "svc", "agentstack-ui", "-n", namespace)
+			checkSvc := exec.CommandContext(cmd.Context(), "kubectl", "get", "svc", "agentstack-ui", "-n", namespace)
 			if err := checkSvc.Run(); err != nil {
 				return fmt.Errorf("agentstack-ui service not found in namespace %s. Is the stack deployed?", namespace)
 			}
@@ -58,7 +75,7 @@ func newUICmd() *cobra.Command {
 			}
 			pfArgs = append(pfArgs, "8083:8083", "8081:8081")
 
-			uiPfCmd := exec.Command("kubectl", pfArgs...)
+			uiPfCmd := exec.CommandContext(cmd.Context(), "kubectl", pfArgs...)
 			uiPfCmd.Stdout = os.Stdout
 			uiPfCmd.Stderr = os.Stderr
 
@@ -70,7 +87,7 @@ func newUICmd() *cobra.Command {
 			time.Sleep(2 * time.Second)
 
 			if !noBrowser {
-				openBrowser(url)
+				openBrowser(cmd.Context(), url)
 			}
 
 			// Handle graceful shutdown
@@ -80,7 +97,7 @@ func newUICmd() *cobra.Command {
 
 			fmt.Println("\nStopping port-forward...")
 			if uiPfCmd.Process != nil {
-				uiPfCmd.Process.Kill()
+				_ = uiPfCmd.Process.Kill()
 			}
 
 			return nil

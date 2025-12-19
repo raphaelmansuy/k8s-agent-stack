@@ -1,0 +1,54 @@
+# Copyright 2025 Raphaël MANSUY
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: agentstack-api
+  namespace: agentstack
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "1"
+    spec:
+      containers:
+      - image: dev.local/agentstack-api:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+        env:
+        - name: AGENTSTACK_ENVIRONMENT
+          value: development
+        - name: AGENTSTACK_DATABASE_URL
+          value: postgres://agentstack:agentstack@agentstack-postgres:5432/agentstack?sslmode=disable
+        - name: AGENTSTACK_REDIS_URL
+          value: redis://agentstack-redis:6379
+        - name: AGENTSTACK_MLFLOW_URL
+          value: http://agentstack-mlflow:5000
+        - name: AGENTSTACK_AUTH_JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: agentstack-secrets
+              key: JWT_SECRET
+        - name: AGENTSTACK_TELEMETRY_ENABLED
+          value: "false"
+        livenessProbe:
+          httpGet:
+            path: /health
+          initialDelaySeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /health
+          initialDelaySeconds: 5

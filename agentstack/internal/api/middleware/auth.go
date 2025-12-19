@@ -1,3 +1,19 @@
+/*
+ * Copyright 2025 Raphaël MANSUY
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // Package middleware provides HTTP middleware for the API.
 package middleware
 
@@ -29,8 +45,11 @@ type APIKeyInfo struct {
 func Auth(config AuthConfig) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Skip auth for health checks and metrics
-			if r.URL.Path == "/health" || r.URL.Path == "/health/detailed" || r.URL.Path == "/healthz" || r.URL.Path == "/readyz" || r.URL.Path == "/livez" || r.URL.Path == "/metrics" || r.URL.Path == "/api/openapi.json" || r.URL.Path == "/api/docs" {
+			// Skip auth for health checks, metrics, and documentation
+			path := r.URL.Path
+			if path == "/health" || path == "/health/detailed" || path == "/healthz" || path == "/readyz" || path == "/livez" || path == "/metrics" ||
+				strings.HasPrefix(path, "/api/docs") || strings.HasPrefix(path, "/api/openapi.") ||
+				strings.HasPrefix(path, "/docs") || strings.HasPrefix(path, "/openapi.") {
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -150,7 +169,7 @@ func GetScopes(ctx context.Context) []string {
 }
 
 // HasScope checks if the context has a specific scope.
-func HasScope(ctx context.Context, resource string, action string) bool {
+func HasScope(ctx context.Context, resource, action string) bool {
 	scopes := GetScopes(ctx)
 	if len(scopes) == 0 {
 		return false

@@ -1,16 +1,34 @@
+/*
+ * Copyright 2025 Raphaël MANSUY
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package commands
 
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 
-	"github.com/raphaelmansuy/agentstack/cli/internal/output"
-	"github.com/raphaelmansuy/agentstack/sdk"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
+
+	"github.com/raphaelmansuy/agentstack/cli/internal/output"
+	"github.com/raphaelmansuy/agentstack/sdk"
 )
 
 type Manifest struct {
@@ -52,7 +70,7 @@ func newApplyCmd() *cobra.Command {
 			for {
 				var manifest Manifest
 				err := decoder.Decode(&manifest)
-				if err == io.EOF {
+				if errors.Is(err, io.EOF) {
 					break
 				}
 				if err != nil {
@@ -154,23 +172,23 @@ func applyAgentWithAction(ctx context.Context, m Manifest) (string, error) {
 		}
 		spinner.Success(fmt.Sprintf("Agent %s created", name))
 		return "created", nil
-	} else {
-		// Update
-		req := &sdk.UpdateAgentRequest{
-			Name:        &name,
-			Description: &description,
-		}
-
-		spinner := output.NewSpinner(fmt.Sprintf("Updating agent %s...", name))
-		spinner.Start()
-		_, err := client.Agents.Update(ctx, existing.ID, req)
-		if err != nil {
-			spinner.FailErr(fmt.Sprintf("Failed to update agent %s", name), err)
-			return "", err
-		}
-		spinner.Success(fmt.Sprintf("Agent %s updated", name))
-		return "updated", nil
 	}
+
+	// Update
+	req := &sdk.UpdateAgentRequest{
+		Name:        &name,
+		Description: &description,
+	}
+
+	spinner := output.NewSpinner(fmt.Sprintf("Updating agent %s...", name))
+	spinner.Start()
+	_, err := client.Agents.Update(ctx, existing.ID, req)
+	if err != nil {
+		spinner.FailErr(fmt.Sprintf("Failed to update agent %s", name), err)
+		return "", err
+	}
+	spinner.Success(fmt.Sprintf("Agent %s updated", name))
+	return "updated", nil
 }
 
 func applyDeploymentWithAction(ctx context.Context, m Manifest) (string, error) {

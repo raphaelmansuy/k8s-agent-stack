@@ -1,4 +1,20 @@
 // Package k8s provides Kubernetes client for Knative service management.
+/*
+ * Copyright 2025 Raphaël MANSUY
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package k8s
 
 import (
@@ -16,7 +32,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-// Knative Service GVR
+// Knative Service GVR.
 var knativeServiceGVR = schema.GroupVersionResource{
 	Group:    "serving.knative.dev",
 	Version:  "v1",
@@ -31,7 +47,7 @@ type Client struct {
 }
 
 // NewClient creates a new Kubernetes client.
-func NewClient(kubeconfig string, namespace string) (*Client, error) {
+func NewClient(kubeconfig, namespace string) (*Client, error) {
 	var config *rest.Config
 	var err error
 
@@ -82,7 +98,6 @@ func (c *Client) CreateKnativeService(ctx context.Context, spec *KnativeServiceS
 	_, err := c.dynamicClient.Resource(knativeServiceGVR).
 		Namespace(c.namespace).
 		Create(ctx, service, metav1.CreateOptions{})
-
 	if err != nil {
 		return fmt.Errorf("failed to create knative service: %w", err)
 	}
@@ -105,7 +120,6 @@ func (c *Client) UpdateKnativeService(ctx context.Context, spec *KnativeServiceS
 	_, err = c.dynamicClient.Resource(knativeServiceGVR).
 		Namespace(c.namespace).
 		Update(ctx, service, metav1.UpdateOptions{})
-
 	if err != nil {
 		return fmt.Errorf("failed to update knative service: %w", err)
 	}
@@ -118,7 +132,6 @@ func (c *Client) DeleteKnativeService(ctx context.Context, name string) error {
 	err := c.dynamicClient.Resource(knativeServiceGVR).
 		Namespace(c.namespace).
 		Delete(ctx, name, metav1.DeleteOptions{})
-
 	if err != nil {
 		return fmt.Errorf("failed to delete knative service: %w", err)
 	}
@@ -239,10 +252,13 @@ func (c *Client) buildKnativeService(spec *KnativeServiceSpec) *unstructured.Uns
 	}
 
 	if spec.ServiceAccountName != "" {
-		svcSpec := service.Object["spec"].(map[string]interface{})
-		template := svcSpec["template"].(map[string]interface{})
-		templateSpec := template["spec"].(map[string]interface{})
-		templateSpec["serviceAccountName"] = spec.ServiceAccountName
+		if svcSpec, ok := service.Object["spec"].(map[string]interface{}); ok {
+			if template, ok := svcSpec["template"].(map[string]interface{}); ok {
+				if templateSpec, ok := template["spec"].(map[string]interface{}); ok {
+					templateSpec["serviceAccountName"] = spec.ServiceAccountName
+				}
+			}
+		}
 	}
 
 	return service
@@ -279,7 +295,10 @@ func parseServiceStatus(u *unstructured.Unstructured) (*ServiceStatus, error) {
 	}
 
 	statusObj, found, err := unstructured.NestedMap(u.Object, "status")
-	if err != nil || !found {
+	if err != nil {
+		return nil, err
+	}
+	if !found {
 		return status, nil
 	}
 

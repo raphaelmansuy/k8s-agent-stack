@@ -58,7 +58,7 @@ kubectl cluster-info
 ### Step 3: Install Knative + Contour
 
 ```bash
-./knative_orbstack.sh
+./scripts/knative_orbstack.sh
 ```
 
 This installs:
@@ -149,7 +149,7 @@ cd kagent-adk-agent
 docker build -t dev.local/kagent-adk-agent:v30 .
 
 # Deploy using kagent CRD
-kubectl apply -f kagent-deployment.yaml
+kubectl apply -f deploy/kagent-adk-agent.yaml
 
 # Verify
 kubectl get agents -n kagent | grep google-adk
@@ -159,7 +159,7 @@ kubectl get agents -n kagent | grep google-adk
 
 ```bash
 # Deploy using Knative
-kubectl apply -f kagent-setup.yaml
+kubectl apply -f deploy/kagent-setup.yaml
 
 # Get service URL
 kubectl get ksvc -n kagent

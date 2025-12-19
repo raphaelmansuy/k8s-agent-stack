@@ -1,3 +1,19 @@
+/*
+ * Copyright 2025 Raphaël MANSUY
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // Package validation provides input validation and sanitization for security.
 package validation
 
@@ -12,22 +28,21 @@ import (
 )
 
 var (
-	// Patterns for validation
-	slugPattern  = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*[a-z0-9]$`)
-	uuidPattern  = regexp.MustCompile(`^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$`)
-	alphanumeric = regexp.MustCompile(`^[a-zA-Z0-9]+$`)
+	// Patterns for validation.
+	slugPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*[a-z0-9]$`)
+	uuidPattern = regexp.MustCompile(`^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$`)
 
-	// SQL injection patterns (case insensitive)
+	// SQL injection patterns (case insensitive).
 	sqlPatterns = regexp.MustCompile(`(?i)(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|ALTER|CREATE|TRUNCATE|EXEC|EXECUTE|XP_|SP_|0X|WAITFOR|BENCHMARK|SLEEP)[\s\(]`)
 
-	// XSS patterns
+	// XSS patterns.
 	xssPatterns = regexp.MustCompile(`(?i)(<script|javascript:|on\w+\s*=|<iframe|<object|<embed|<link|<style|<img[^>]+onerror)`)
 
-	// Path traversal patterns
+	// Path traversal patterns.
 	pathTraversal = regexp.MustCompile(`(\.\.[\\/]|[\\/]\.\.|\.\.|%2e%2e|%252e%252e)`)
 )
 
-// Errors
+// Errors.
 var (
 	ErrInvalidSlug          = errors.New("invalid slug format")
 	ErrInvalidEmail         = errors.New("invalid email format")
@@ -128,12 +143,12 @@ func ValidateUUID(s string) error {
 }
 
 // ValidateLength checks if a string is within length bounds.
-func ValidateLength(s string, min, max int) error {
+func ValidateLength(s string, minLen, maxLen int) error {
 	length := utf8.RuneCountInString(s)
-	if length < min {
+	if length < minLen {
 		return ErrStringTooShort
 	}
-	if length > max {
+	if length > maxLen {
 		return ErrStringTooLong
 	}
 	return nil
@@ -257,17 +272,17 @@ func (v *FieldValidator) Required(field, name string) *FieldValidator {
 }
 
 // MinLength checks minimum length.
-func (v *FieldValidator) MinLength(field, name string, min int) *FieldValidator {
-	if utf8.RuneCountInString(field) < min {
-		v.errors = append(v.errors, fmt.Sprintf("%s must be at least %d characters", name, min))
+func (v *FieldValidator) MinLength(field, name string, minLen int) *FieldValidator {
+	if utf8.RuneCountInString(field) < minLen {
+		v.errors = append(v.errors, fmt.Sprintf("%s must be at least %d characters", name, minLen))
 	}
 	return v
 }
 
 // MaxLength checks maximum length.
-func (v *FieldValidator) MaxLength(field, name string, max int) *FieldValidator {
-	if utf8.RuneCountInString(field) > max {
-		v.errors = append(v.errors, fmt.Sprintf("%s must be at most %d characters", name, max))
+func (v *FieldValidator) MaxLength(field, name string, maxLen int) *FieldValidator {
+	if utf8.RuneCountInString(field) > maxLen {
+		v.errors = append(v.errors, fmt.Sprintf("%s must be at most %d characters", name, maxLen))
 	}
 	return v
 }

@@ -1,4 +1,20 @@
 // Package evaluation provides the evaluation service for agent interaction tracing and quality assessment.
+/*
+ * Copyright 2025 Raphaël MANSUY
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package evaluation
 
 import (
@@ -80,9 +96,10 @@ func (s *Service) TraceInteraction(ctx context.Context, interaction *Interaction
 	}
 
 	// Queue for async evaluation (non-blocking)
-	go func() {
-		_ = s.queueForEvaluation(context.Background(), trace)
-	}()
+	detachedCtx := context.WithoutCancel(ctx)
+	go func(ctx context.Context) {
+		_ = s.queueForEvaluation(ctx, trace)
+	}(detachedCtx)
 
 	return trace, nil
 }
@@ -204,7 +221,8 @@ func (s *Service) CollectFeedback(ctx context.Context, req *FeedbackRequest) err
 	}
 
 	// Update MLflow run with feedback asynchronously
-	go s.updateRunWithFeedback(context.Background(), feedback)
+	detachedCtx := context.WithoutCancel(ctx)
+	go s.updateRunWithFeedback(detachedCtx, feedback)
 
 	return nil
 }
@@ -302,9 +320,9 @@ type Metrics struct {
 
 // Helper functions
 
-func truncate(s string, max int) string {
-	if len(s) <= max {
+func truncate(s string, maxLen int) string {
+	if len(s) <= maxLen {
 		return s
 	}
-	return s[:max] + "..."
+	return s[:maxLen] + "..."
 }

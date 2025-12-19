@@ -1,3 +1,19 @@
+/*
+ * Copyright 2025 Raphaël MANSUY
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // Package middleware provides HTTP middleware for the API.
 package middleware
 
@@ -48,7 +64,7 @@ type SlidingWindowLimiter struct {
 	config SlidingWindowConfig
 }
 
-// Lua script for atomic sliding window rate limiting
+// Lua script for atomic sliding window rate limiting.
 var slidingWindowScript = redis.NewScript(`
 local key = KEYS[1]
 local now = tonumber(ARGV[1])
@@ -98,9 +114,11 @@ func (l *SlidingWindowLimiter) Allow(ctx context.Context, key string) (bool, int
 		return false, 0, time.Time{}, fmt.Errorf("rate limit script failed: %w", err)
 	}
 
-	allowed := result[0].(int64) == 1
-	remaining := int(result[1].(int64))
-	resetMs := result[2].(int64)
+	allowedInt, _ := result[0].(int64)
+	allowed := allowedInt == 1
+	remainingInt, _ := result[1].(int64)
+	remaining := int(remainingInt)
+	resetMs, _ := result[2].(int64)
 	resetAt := time.UnixMilli(resetMs)
 
 	return allowed, remaining, resetAt, nil
@@ -132,7 +150,7 @@ func (l *InMemoryRateLimiter) Allow(ctx context.Context, key string) (bool, int,
 
 	// Get or create window
 	val, _ := l.windows.LoadOrStore(key, &rateLimitWindow{requests: make([]int64, 0, limit)})
-	w := val.(*rateLimitWindow)
+	w, _ := val.(*rateLimitWindow)
 
 	w.mu.Lock()
 	defer w.mu.Unlock()
@@ -222,9 +240,11 @@ func (l *TokenBucketLimiter) Allow(ctx context.Context, key string) (bool, int, 
 		return false, 0, time.Time{}, fmt.Errorf("token bucket script failed: %w", err)
 	}
 
-	allowed := result[0].(int64) == 1
-	remaining := int(result[1].(int64))
-	resetMs := result[2].(int64)
+	allowedInt, _ := result[0].(int64)
+	allowed := allowedInt == 1
+	remainingInt, _ := result[1].(int64)
+	remaining := int(remainingInt)
+	resetMs, _ := result[2].(int64)
 	resetAt := time.UnixMilli(resetMs)
 
 	return allowed, remaining, resetAt, nil
@@ -236,7 +256,6 @@ func AdvancedRateLimitMiddleware(limiter AdvancedRateLimiter, keyFunc func(*http
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			key := keyFunc(r)
 			allowed, remaining, resetAt, err := limiter.Allow(r.Context(), key)
-
 			if err != nil {
 				// On error, allow the request but log
 				// In production, you might want to fail closed instead
@@ -252,7 +271,7 @@ func AdvancedRateLimitMiddleware(limiter AdvancedRateLimiter, keyFunc func(*http
 				w.Header().Set("Retry-After", strconv.FormatInt(int64(time.Until(resetAt).Seconds()), 10))
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusTooManyRequests)
-				json.NewEncoder(w).Encode(map[string]any{
+				_ = json.NewEncoder(w).Encode(map[string]any{
 					"error":       "rate limit exceeded",
 					"retry_after": time.Until(resetAt).Seconds(),
 				})

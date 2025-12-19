@@ -1,0 +1,266 @@
+# Copyright 2025 Raphaël MANSUY
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Kagent Portal UI - Web Dashboard for Agent Management
+# This deploys a simple portal to view and interact with agents
+# Note: Using nginx as a placeholder - full kagent web UI would be kagent/web:latest
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kagent-portal-config
+  namespace: kagent
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Kagent Portal - Agent Management Dashboard</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        header { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 30px; }
+        header h1 { color: #667eea; margin-bottom: 10px; }
+        header p { color: #666; font-size: 16px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .card h2 { color: #333; margin-bottom: 15px; font-size: 18px; }
+        .card p { color: #666; line-height: 1.6; margin-bottom: 15px; }
+        .button-group { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; text-decoration: none; display: inline-block; transition: all 0.3s; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-primary:hover { background: #5568d3; }
+        .btn-secondary { background: #f0f0f0; color: #333; }
+        .btn-secondary:hover { background: #e0e0e0; }
+        .status { padding: 15px; background: #f0f7ff; border-left: 4px solid #667eea; border-radius: 4px; margin-bottom: 15px; }
+        .status.success { background: #f0fff4; border-left-color: #48bb78; }
+        .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; background: #fbbf24; }
+        .status.success .status-dot { background: #48bb78; }
+        code { background: #f5f5f5; padding: 8px 12px; border-radius: 4px; font-family: 'Monaco', 'Courier New', monospace; }
+        .command { background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 6px; overflow-x: auto; margin: 10px 0; font-family: 'Monaco', 'Courier New', monospace; font-size: 13px; }
+        footer { color: white; text-align: center; margin-top: 40px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <header>
+          <h1>🤖 Kagent Portal</h1>
+          <p>Unified AI Agent Management Dashboard</p>
+        </header>
+
+        <div class="grid">
+          <div class="card">
+            <h2>📊 Dashboard Status</h2>
+            <div class="status success">
+              <span class="status-dot"></span>
+              <strong>System Online</strong>
+            </div>
+            <p>Your Kagent platform is operational and ready for agent management.</p>
+            <ul style="margin-left: 20px; color: #666;">
+              <li>Kubernetes: Connected ✓</li>
+              <li>Agents: Deployed ✓</li>
+              <li>Portal: Active ✓</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h2>🤖 Active Agents</h2>
+            <p>Currently deployed agents in your cluster:</p>
+            <div class="status">
+              <strong>google-adk-agent</strong><br>
+              <small>Cloud Run Hello Container</small>
+            </div>
+            <p style="font-size: 14px; color: #999; margin-top: 10px;">Access at: <code>http://localhost:8080</code></p>
+          </div>
+
+          <div class="card">
+            <h2>🛠️ Quick Access</h2>
+            <p>Connect to your agents using these commands:</p>
+            <div style="margin: 15px 0;">
+              <strong style="display: block; margin-bottom: 8px;">Agent Chat:</strong>
+              <p style="font-size: 13px; color: #666; margin-bottom: 10px;">Access agent via port-forward</p>
+              <div class="button-group">
+                <button class="btn btn-primary" onclick="copyCommand('kubectl port-forward -n kagent svc/google-adk-agent-00001-private 8080:80')">Copy Command</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>📋 Make Commands</h2>
+            <p>Use these Makefile targets to manage your agents:</p>
+            <div style="margin: 10px 0; font-size: 13px;">
+              <code style="display: block; margin: 5px 0;">make agent-status</code>
+              <code style="display: block; margin: 5px 0;">make agent-logs</code>
+              <code style="display: block; margin: 5px 0;">make verify</code>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>🔧 System Components</h2>
+            <ul style="margin-left: 20px; color: #666; line-height: 2;">
+              <li><strong>Kubernetes:</strong> OrbStack</li>
+              <li><strong>Knative:</strong> v1.20.0</li>
+              <li><strong>Ingress:</strong> Contour/Envoy</li>
+              <li><strong>Namespace:</strong> kagent</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h2>📖 Documentation</h2>
+            <p>Learn more about Kagent Portal:</p>
+            <div class="button-group" style="margin-top: 15px;">
+              <a href="file:///Users/raphaelmansuy/Github/40-labs/cloudrun-like/KAGENT_PORTAL_ACCESS.md" class="btn btn-primary">Portal Guide</a>
+              <a href="file:///Users/raphaelmansuy/Github/40-labs/cloudrun-like/QUICK_START.md" class="btn btn-secondary">Quick Start</a>
+            </div>
+          </div>
+        </div>
+
+        <footer>
+          <p>Kagent Portal • Cloud-Native AI Agent Platform</p>
+          <p style="font-size: 12px; margin-top: 10px;">For support, see KAGENT_PORTAL_ACCESS.md</p>
+        </footer>
+      </div>
+
+      <script>
+        function copyCommand(cmd) {
+          navigator.clipboard.writeText(cmd);
+          alert('Command copied to clipboard!');
+        }
+      </script>
+    </body>
+    </html>
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kagent-web
+  namespace: kagent
+  labels:
+    app: kagent-web
+    component: ui
+spec:
+  selector:
+    app: kagent-web
+  type: ClusterIP
+  ports:
+  - name: web
+    port: 3000
+    targetPort: 80
+    protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kagent-web
+  namespace: kagent
+  labels:
+    app: kagent-web
+    component: ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kagent-web
+  template:
+    metadata:
+      labels:
+        app: kagent-web
+        component: ui
+    spec:
+      serviceAccountName: default
+      containers:
+      - name: kagent-web
+        image: nginx:alpine
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: web
+          containerPort: 80
+          protocol: TCP
+        volumeMounts:
+        - name: config
+          mountPath: /usr/share/nginx/html/index.html
+          subPath: index.html
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: config
+        configMap:
+          name: kagent-portal-config
+---
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: kagent-portal
+  namespace: kagent
+spec:
+  traffic:
+  - latestRevision: true
+    percent: 100
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "1"
+        autoscaling.knative.dev/maxScale: "3"
+    spec:
+      containers:
+      - image: nginx:alpine
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: config
+          mountPath: /usr/share/nginx/html/index.html
+          subPath: index.html
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: config
+        configMap:
+          name: kagent-portal-config

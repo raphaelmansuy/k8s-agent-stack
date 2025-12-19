@@ -1,5 +1,21 @@
 // Package kagent provides a mock kagent implementation for E2E testing.
 // This simulates a real kagent that can be deployed and communicated with via A2A.
+/*
+ * Copyright 2025 Raphaël MANSUY
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package kagent
 
 import (
@@ -161,19 +177,19 @@ func (k *MockKagent) TaskCount() int {
 // handleAgentCard serves the A2A agent card.
 func (k *MockKagent) handleAgentCard(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(k.AgentCard)
+	_ = json.NewEncoder(w).Encode(k.AgentCard)
 }
 
 // handleHealth handles health checks.
 func (k *MockKagent) handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "healthy"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "healthy"})
 }
 
 // handleReady handles readiness checks.
 func (k *MockKagent) handleReady(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "ready"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ready"})
 }
 
 // handleJSONRPC handles JSON-RPC 2.0 requests.
@@ -444,7 +460,7 @@ func (k *MockKagent) writeResponse(w http.ResponseWriter, id string, result inte
 		ID:      id,
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 // writeError sends a JSON-RPC error response.
@@ -458,13 +474,13 @@ func (k *MockKagent) writeError(w http.ResponseWriter, id string, code int, mess
 		ID: id,
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 // sendSSE sends an SSE event.
 func (k *MockKagent) sendSSE(w http.ResponseWriter, flusher http.Flusher, event interface{}) {
 	data, _ := json.Marshal(event)
-	fmt.Fprintf(w, "data: %s\n\n", data)
+	_, _ = fmt.Fprintf(w, "data: %s\n\n", data)
 	flusher.Flush()
 }
 
@@ -478,13 +494,14 @@ func (k *MockKagent) WaitForReady(ctx context.Context, timeout time.Duration) er
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			resp, err := client.Get(k.URL + "/ready")
+			req, _ := http.NewRequestWithContext(ctx, http.MethodGet, k.URL+"/ready", nil)
+			resp, err := client.Do(req)
 			if err == nil && resp.StatusCode == http.StatusOK {
-				resp.Body.Close()
+				_ = resp.Body.Close()
 				return nil
 			}
 			if resp != nil {
-				resp.Body.Close()
+				_ = resp.Body.Close()
 			}
 			time.Sleep(100 * time.Millisecond)
 		}

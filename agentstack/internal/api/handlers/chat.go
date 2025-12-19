@@ -1,3 +1,36 @@
+/*
+ * Copyright 2025 Raphaël MANSUY
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// Package handlers provides HTTP handlers for the API.
+/*
+ * Copyright 2025 Raphaël MANSUY
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // Package handlers provides HTTP handlers for the API.
 package handlers
 
@@ -165,7 +198,7 @@ func RegisterChatRoutes(api huma.API, pool *database.Pool, redis *cache.Client, 
 
 		var metadata map[string]string
 		if len(session.Metadata) > 0 {
-			json.Unmarshal(session.Metadata, &metadata)
+			_ = json.Unmarshal(session.Metadata, &metadata)
 		}
 
 		return &GetChatSessionOutput{
@@ -200,11 +233,11 @@ func RegisterChatRoutes(api huma.API, pool *database.Pool, redis *cache.Client, 
 		for i, m := range messages {
 			var toolCalls []ToolCall
 			if len(m.ToolCalls) > 0 {
-				json.Unmarshal(m.ToolCalls, &toolCalls)
+				_ = json.Unmarshal(m.ToolCalls, &toolCalls)
 			}
 			var metadata map[string]any
 			if len(m.Metadata) > 0 {
-				json.Unmarshal(m.Metadata, &metadata)
+				_ = json.Unmarshal(m.Metadata, &metadata)
 			}
 
 			chatMessages[i] = ChatMessage{
@@ -300,8 +333,10 @@ func RegisterChatRoutes(api huma.API, pool *database.Pool, redis *cache.Client, 
 
 		// Trace interaction for evaluation
 		if evalService != nil {
-			go func() {
-				_, _ = evalService.TraceInteraction(context.Background(), &evaluation.Interaction{
+			// Use a context that won't be cancelled when the request ends
+			detachedCtx := context.WithoutCancel(ctx)
+			go func(ctx context.Context) {
+				_, _ = evalService.TraceInteraction(ctx, &evaluation.Interaction{
 					AgentID:   session.AgentID,
 					SessionID: input.SessionID,
 					Input:     input.Body.Content,
@@ -309,7 +344,7 @@ func RegisterChatRoutes(api huma.API, pool *database.Pool, redis *cache.Client, 
 					Latency:   latency,
 					Metadata:  input.Body.Metadata,
 				})
-			}()
+			}(detachedCtx)
 		}
 
 		// If no content in message, check artifacts (common in some ADK agents)

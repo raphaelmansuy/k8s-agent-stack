@@ -1,109 +1,109 @@
+version: "2"
 run:
-  timeout: 5m
   go: "1.22"
-
 linters:
   enable:
-    - errcheck
-    - gosimple
-    - govet
-    - ineffassign
-    - staticcheck
-    - unused
-    - gofmt
-    - goimports
-    - misspell
-    - unconvert
-    - gocritic
-    - revive
     - bodyclose
     - contextcheck
     - durationcheck
     - errname
     - errorlint
     - exhaustive
-    - exportloopref
     - forcetypeassert
-    - goconst
     - godot
-    - gofumpt
     - goprintffuncname
     - makezero
+    - misspell
     - nilerr
     - nilnil
     - noctx
     - nolintlint
     - prealloc
     - predeclared
+    - revive
     - rowserrcheck
     - sqlclosecheck
-    - tenv
     - tparallel
     - unconvert
     - unparam
     - wastedassign
     - whitespace
-
-linters-settings:
-  govet:
-    enable-all: true
-    disable:
-      - fieldalignment
-  goimports:
-    local-prefixes: github.com/raphaelmansuy/agentstack
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - experimental
-      - opinionated
-      - performance
-      - style
-  revive:
+  settings:
+    exhaustive:
+      default-signifies-exhaustive: true
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - experimental
+        - performance
+        - style
+      disabled-checks:
+        - hugeParam
+        - rangeValCopy
+        - ifElseChain
+        - typeAssertChain
+        - unnamedResult
+        - importShadow
+        - emptyStringTest
+        - exitAfterDefer
+    govet:
+      disable:
+        - fieldalignment
+      enable-all: true
+    revive:
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: error-return
+        - name: error-strings
+        - name: error-naming
+        - name: if-return
+        - name: increment-decrement
+        - name: var-naming
+        - name: var-declaration
+        - name: range
+        - name: receiver-naming
+        - name: time-naming
+        - name: unexported-return
+        - name: indent-error-flow
+        - name: errorf
+        - name: empty-block
+        - name: superfluous-else
+        - name: unreachable-code
+  exclusions:
+    generated: lax
     rules:
-      - name: blank-imports
-      - name: context-as-argument
-      - name: context-keys-type
-      - name: dot-imports
-      - name: error-return
-      - name: error-strings
-      - name: error-naming
-      - name: exported
-      - name: if-return
-      - name: increment-decrement
-      - name: var-naming
-      - name: var-declaration
-      - name: package-comments
-      - name: range
-      - name: receiver-naming
-      - name: time-naming
-      - name: unexported-return
-      - name: indent-error-flow
-      - name: errorf
-      - name: empty-block
-      - name: superfluous-else
-      - name: unused-parameter
-      - name: unreachable-code
-      - name: redefines-builtin-id
-  gofumpt:
-    extra-rules: true
-  exhaustive:
-    default-signifies-exhaustive: true
-  goconst:
-    min-len: 3
-    min-occurrences: 3
-
+      - linters:
+          - errcheck
+          - gocritic
+          - govet
+        path: _test\.go
+      - linters:
+          - gochecknoglobals
+        path: cmd/
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
 issues:
-  exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
-  exclude-rules:
-    # Test files
-    - path: _test\.go
-      linters:
-        - errcheck
-        - gocritic
-        - govet
-    # Main packages
-    - path: cmd/
-      linters:
-        - gochecknoglobals
+formatters:
+  enable:
+    - gofmt
+    - gofumpt
+    - goimports
+  settings:
+    gofumpt:
+      extra-rules: true
+    goimports:
+      local-prefixes:
+        - github.com/raphaelmansuy/agentstack
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

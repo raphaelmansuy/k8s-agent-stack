@@ -1,3 +1,19 @@
+/*
+ * Copyright 2025 Raphaël MANSUY
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package database
 
 import (
@@ -6,6 +22,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
+
 	"github.com/raphaelmansuy/agentstack/internal/domain/evaluation"
 	"github.com/raphaelmansuy/agentstack/internal/infrastructure/database/db"
 )
@@ -29,7 +46,7 @@ func (r *EvaluationRepository) SaveTrace(ctx context.Context, trace *evaluation.
 		SessionID: trace.SessionID,
 		Input:     trace.Input,
 		Output:    trace.Output,
-		LatencyMs: int64(trace.Latency.Milliseconds()),
+		LatencyMs: trace.Latency.Milliseconds(),
 		TokensIn:  int32(trace.TokensIn),
 		TokensOut: int32(trace.TokensOut),
 		Steps:     steps,
@@ -103,10 +120,10 @@ func (r *EvaluationRepository) GetFeedback(ctx context.Context, traceID string) 
 
 func (r *EvaluationRepository) mapTrace(row db.Trace) *evaluation.Trace {
 	var metadata map[string]interface{}
-	json.Unmarshal(row.Metadata, &metadata)
+	_ = json.Unmarshal(row.Metadata, &metadata)
 
 	var steps []evaluation.Step
-	json.Unmarshal(row.Steps, &steps)
+	_ = json.Unmarshal(row.Steps, &steps)
 
 	return &evaluation.Trace{
 		ID:        row.ID,

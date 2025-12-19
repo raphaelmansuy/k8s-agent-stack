@@ -1,4 +1,20 @@
 // Package a2a provides the Agent-to-Agent protocol service.
+/*
+ * Copyright 2025 Raphaël MANSUY
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package a2a
 
 import (
@@ -34,7 +50,6 @@ type Session struct {
 	History     []*Message
 	CreatedAt   time.Time
 	LastUpdated time.Time
-	mu          sync.RWMutex
 }
 
 // NewService creates a new A2A service.
@@ -103,9 +118,8 @@ func (s *Service) SendMessage(ctx context.Context, agentURL string, params *Send
 
 	// Create JSON-RPC request
 	reqID := uuid.NewString()
-	contextID := params.Message.ContextID
-	if contextID == "" {
-		contextID = uuid.NewString()
+	if params.Message.ContextID == "" {
+		params.Message.ContextID = uuid.NewString()
 	}
 
 	req := Request{
@@ -130,7 +144,7 @@ func (s *Service) SendMessage(ctx context.Context, agentURL string, params *Send
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("agent returned status %d", resp.StatusCode)
@@ -163,7 +177,7 @@ func (s *Service) SendMessage(ctx context.Context, agentURL string, params *Send
 	if task.TaskID == "" {
 		// Try to get "id" from the raw result if TaskID is empty
 		var rawResult map[string]interface{}
-		json.Unmarshal(resultBytes, &rawResult)
+		_ = json.Unmarshal(resultBytes, &rawResult)
 		if id, ok := rawResult["id"].(string); ok {
 			task.TaskID = id
 		}
@@ -176,9 +190,8 @@ func (s *Service) SendMessage(ctx context.Context, agentURL string, params *Send
 func (s *Service) StreamMessage(ctx context.Context, agentURL string, params *SendMessageParams, handler EventHandler) error {
 	// Create JSON-RPC request for streaming
 	reqID := uuid.NewString()
-	contextID := params.Message.ContextID
-	if contextID == "" {
-		contextID = uuid.NewString()
+	if params.Message.ContextID == "" {
+		params.Message.ContextID = uuid.NewString()
 	}
 
 	req := Request{
@@ -204,7 +217,7 @@ func (s *Service) StreamMessage(ctx context.Context, agentURL string, params *Se
 	if err != nil {
 		return fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("agent returned status %d", resp.StatusCode)
@@ -324,7 +337,7 @@ func (s *Service) dispatchEvent(data []byte, handler EventHandler) error {
 }
 
 // GetTask retrieves a task status from an agent.
-func (s *Service) GetTask(ctx context.Context, agentURL string, taskID string) (*Task, error) {
+func (s *Service) GetTask(ctx context.Context, agentURL, taskID string) (*Task, error) {
 	reqID := uuid.NewString()
 
 	req := Request{
@@ -349,7 +362,7 @@ func (s *Service) GetTask(ctx context.Context, agentURL string, taskID string) (
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var jsonResp Response
 	if err := json.NewDecoder(resp.Body).Decode(&jsonResp); err != nil {
@@ -371,7 +384,7 @@ func (s *Service) GetTask(ctx context.Context, agentURL string, taskID string) (
 }
 
 // CancelTask cancels a running task.
-func (s *Service) CancelTask(ctx context.Context, agentURL string, taskID string) error {
+func (s *Service) CancelTask(ctx context.Context, agentURL, taskID string) error {
 	reqID := uuid.NewString()
 
 	req := Request{
@@ -396,7 +409,7 @@ func (s *Service) CancelTask(ctx context.Context, agentURL string, taskID string
 	if err != nil {
 		return fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var jsonResp Response
 	if err := json.NewDecoder(resp.Body).Decode(&jsonResp); err != nil {
@@ -415,7 +428,7 @@ func (s *Service) GetAgentCard(ctx context.Context, agentURL string) (*AgentCard
 	// Agent cards are typically at /.well-known/agent.json
 	cardURL := agentURL + "/.well-known/agent.json"
 
-	httpReq, err := http.NewRequestWithContext(ctx, "GET", cardURL, nil)
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", cardURL, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -424,7 +437,7 @@ func (s *Service) GetAgentCard(ctx context.Context, agentURL string) (*AgentCard
 	if err != nil {
 		return nil, fmt.Errorf("failed to get agent card: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("agent card returned status %d", resp.StatusCode)

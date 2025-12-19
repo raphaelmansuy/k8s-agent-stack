@@ -63,7 +63,7 @@ To support the streaming nature of AI agents, the internal Nginx proxy is specif
 - **`proxy_buffering off`**: Essential for Server-Sent Events (SSE). Without this, Nginx would buffer the agent's response chunks, breaking the real-time streaming experience.
 - **Trailing Slash Rewrites**: Custom `rewrite` rules ensure that requests to `/api/a2a/my-agent` are internally routed to `/api/a2a/my-agent/` without triggering a 301 redirect. This is critical because 301 redirects convert `POST` requests to `GET`, which would strip the A2A payload.
 
-## Deployment Configuration (`agentstack-k8s.yaml`)
+## Deployment Configuration (`deploy/agentstack-k8s.yaml`)
 
 The UI deployment includes:
 1. **ConfigMap**: Contains the tuned `nginx.conf`.

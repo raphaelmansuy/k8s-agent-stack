@@ -1,4 +1,20 @@
 // Package quota provides resource quota and rate limiting functionality.
+/*
+ * Copyright 2025 Raphaël MANSUY
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package quota
 
 import (
@@ -46,7 +62,7 @@ func (s *Service) CheckQuota(ctx context.Context, req CheckQuotaRequest) (*Check
 	quota, err := s.repo.GetQuota(ctx, req.TeamID, req.Type)
 	if err != nil {
 		// No quota defined = unlimited
-		return &CheckQuotaResult{Allowed: true, Limit: -1}, nil
+		return &CheckQuotaResult{Allowed: true, Limit: -1}, nil //nolint:nilerr
 	}
 
 	// Unlimited quota
@@ -81,7 +97,7 @@ func (s *Service) CheckQuota(ctx context.Context, req CheckQuotaRequest) (*Check
 func (s *Service) IncrementUsage(ctx context.Context, req IncrementUsageRequest) error {
 	quota, err := s.repo.GetQuota(ctx, req.TeamID, req.Type)
 	if err != nil {
-		return nil // No quota = no tracking needed
+		return nil //nolint:nilerr
 	}
 
 	if quota.Period != "" && s.cache != nil {

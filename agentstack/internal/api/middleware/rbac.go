@@ -1,3 +1,19 @@
+/*
+ * Copyright 2025 Raphaël MANSUY
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // Package middleware provides HTTP middleware for the API.
 package middleware
 
@@ -5,6 +21,7 @@ import (
 	"net/http"
 
 	"github.com/danielgtaylor/huma/v2"
+
 	"github.com/raphaelmansuy/agentstack/internal/domain/rbac"
 )
 
@@ -80,7 +97,6 @@ func (m *RBACMiddleware) RequirePermission(resource rbac.Resource, action rbac.A
 				ScopeID:    scopeID,
 				Conditions: conditions,
 			})
-
 			if err != nil {
 				http.Error(w, "permission check failed", http.StatusInternalServerError)
 				return
@@ -103,14 +119,14 @@ func (m *RBACMiddleware) HumaRequirePermission(resource rbac.Resource, action rb
 	return func(ctx huma.Context, next func(huma.Context)) {
 		auth := GetAuthFromContext(ctx.Context())
 		if auth == nil {
-			huma.WriteErr(m.api, ctx, http.StatusUnauthorized, "authentication required")
+			_ = huma.WriteErr(m.api, ctx, http.StatusUnauthorized, "authentication required")
 			return
 		}
 
 		// Check API Key scopes first if applicable
 		if auth.UserID == "" && len(auth.Scopes) > 0 {
 			if !HasScope(ctx.Context(), string(resource), string(action)) {
-				huma.WriteErr(m.api, ctx, http.StatusForbidden, "insufficient API key scopes")
+				_ = huma.WriteErr(m.api, ctx, http.StatusForbidden, "insufficient API key scopes")
 				return
 			}
 			// For API keys, if they have the scope, we allow it as long as it's within their team/project
@@ -148,11 +164,11 @@ func (m *RBACMiddleware) HumaRequirePermission(resource rbac.Resource, action rb
 		// Now we just need to ensure the scope matches the key's ownership.
 		if auth.UserID == "" {
 			if scopeType == rbac.ScopeTeam && scopeID != auth.TeamID {
-				huma.WriteErr(m.api, ctx, http.StatusForbidden, "API key belongs to a different team")
+				_ = huma.WriteErr(m.api, ctx, http.StatusForbidden, "API key belongs to a different team")
 				return
 			}
 			if scopeType == rbac.ScopeProject && auth.ProjectID != "" && scopeID != auth.ProjectID {
-				huma.WriteErr(m.api, ctx, http.StatusForbidden, "API key is restricted to a different project")
+				_ = huma.WriteErr(m.api, ctx, http.StatusForbidden, "API key is restricted to a different project")
 				return
 			}
 			// If it passed these checks, it's allowed.
@@ -168,14 +184,13 @@ func (m *RBACMiddleware) HumaRequirePermission(resource rbac.Resource, action rb
 			ScopeID:    scopeID,
 			Conditions: conditions,
 		})
-
 		if err != nil {
-			huma.WriteErr(m.api, ctx, http.StatusInternalServerError, "permission check failed", err)
+			_ = huma.WriteErr(m.api, ctx, http.StatusInternalServerError, "permission check failed", err)
 			return
 		}
 
 		if !result.Allowed {
-			huma.WriteErr(m.api, ctx, http.StatusForbidden, "insufficient permissions")
+			_ = huma.WriteErr(m.api, ctx, http.StatusForbidden, "insufficient permissions")
 			return
 		}
 

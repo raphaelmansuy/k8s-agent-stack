@@ -1,4 +1,20 @@
 // Package cache provides caching strategies for production use.
+/*
+ * Copyright 2025 Raphaël MANSUY
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package cache
 
 import (
@@ -54,7 +70,8 @@ func (c *CacheAside[T]) Get(ctx context.Context, key string, loader func() (T, e
 	// Try cache first
 	data, err := c.client.Get(ctx, fullKey).Bytes()
 	if err == nil {
-		if err := c.marshaler.Unmarshal(data, &result); err == nil {
+		err = c.marshaler.Unmarshal(data, &result)
+		if err == nil {
 			return result, nil
 		}
 	}
@@ -66,13 +83,14 @@ func (c *CacheAside[T]) Get(ctx context.Context, key string, loader func() (T, e
 	}
 
 	// Store in cache asynchronously
-	go func() {
+	detachedCtx := context.WithoutCancel(ctx)
+	go func(ctx context.Context) {
 		data, err := c.marshaler.Marshal(result)
 		if err != nil {
 			return
 		}
-		c.client.SetEx(context.Background(), fullKey, data, c.defaultTTL)
-	}()
+		_ = c.client.SetEx(ctx, fullKey, data, c.defaultTTL)
+	}(detachedCtx)
 
 	return result, nil
 }
@@ -85,7 +103,8 @@ func (c *CacheAside[T]) GetWithTTL(ctx context.Context, key string, ttl time.Dur
 	// Try cache first
 	data, err := c.client.Get(ctx, fullKey).Bytes()
 	if err == nil {
-		if err := c.marshaler.Unmarshal(data, &result); err == nil {
+		err = c.marshaler.Unmarshal(data, &result)
+		if err == nil {
 			return result, nil
 		}
 	}
@@ -335,7 +354,10 @@ func (c *CachedResponse) CacheJSON(ctx context.Context, key string, ttl time.Dur
 	}
 
 	// Cache asynchronously
-	go c.client.SetEx(context.Background(), fullKey, data, ttl)
+	detachedCtx := context.WithoutCancel(ctx)
+	go func(ctx context.Context) {
+		_ = c.client.SetEx(ctx, fullKey, data, ttl)
+	}(detachedCtx)
 
 	return data, nil
 }

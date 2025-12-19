@@ -1,0 +1,778 @@
+# Copyright 2025 Raphaël MANSUY
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agentstack
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: agentstack-secrets
+  namespace: agentstack
+type: Opaque
+stringData:
+  POSTGRES_PASSWORD: agentstack
+  JWT_SECRET: dev-secret-change-me-in-production
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agentstack-postgres
+  namespace: agentstack
+spec:
+  selector:
+    matchLabels:
+      app: agentstack-postgres
+  template:
+    metadata:
+      labels:
+        app: agentstack-postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:16-alpine
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_USER
+          value: agentstack
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: agentstack-secrets
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          value: agentstack
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        - name: postgres-init
+          mountPath: /docker-entrypoint-initdb.d
+      volumes:
+      - name: postgres-storage
+        emptyDir: {}
+      - name: postgres-init
+        configMap:
+          name: agentstack-postgres-init
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agentstack-postgres-init
+  namespace: agentstack
+data:
+  init.sql: |
+    -- AgentStack Database Initialization
+    -- This file sets up the initial schema for development
+
+    -- Enable UUID extension
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+    -- Create MLflow database
+    -- Note: In some environments, you might need to do this separately
+    -- CREATE DATABASE mlflow;
+
+    -- Teams (multi-tenancy root)
+    CREATE TABLE IF NOT EXISTS teams (
+        id TEXT PRIMARY KEY DEFAULT 'team_' || substr(uuid_generate_v4()::text, 1, 8),
+        name TEXT NOT NULL,
+        slug TEXT NOT NULL UNIQUE,
+        plan TEXT NOT NULL DEFAULT 'free',
+        settings JSONB NOT NULL DEFAULT '{}',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    -- Projects
+    CREATE TABLE IF NOT EXISTS projects (
+        id TEXT PRIMARY KEY DEFAULT 'prj_' || substr(uuid_generate_v4()::text, 1, 8),
+        team_id TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        slug TEXT NOT NULL,
+        settings JSONB NOT NULL DEFAULT '{}',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(team_id, slug)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_projects_team_id ON projects(team_id);
+
+    -- Agents
+    CREATE TABLE IF NOT EXISTS agents (
+        id TEXT PRIMARY KEY DEFAULT 'agt_' || substr(uuid_generate_v4()::text, 1, 8),
+        project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        slug TEXT NOT NULL,
+        description TEXT,
+        status TEXT NOT NULL DEFAULT 'inactive',
+        framework TEXT NOT NULL,
+        config JSONB NOT NULL DEFAULT '{}',
+        source JSONB,
+        tags TEXT[] DEFAULT '{}',
+        current_deployment_id TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(project_id, slug)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_agents_project_id ON agents(project_id);
+    CREATE INDEX IF NOT EXISTS idx_agents_status ON agents(project_id, status);
+    CREATE INDEX IF NOT EXISTS idx_agents_tags ON agents USING GIN(tags);
+
+    -- Deployments
+    CREATE TABLE IF NOT EXISTS deployments (
+        id TEXT PRIMARY KEY DEFAULT 'dpl_' || substr(uuid_generate_v4()::text, 1, 8),
+        agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+        version TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        image TEXT,
+        config JSONB NOT NULL DEFAULT '{}',
+        error TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        deployed_at TIMESTAMPTZ,
+        terminated_at TIMESTAMPTZ
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_deployments_agent_id ON deployments(agent_id);
+    CREATE INDEX IF NOT EXISTS idx_deployments_status ON deployments(status);
+
+    -- API Keys
+    CREATE TABLE IF NOT EXISTS api_keys (
+        id TEXT PRIMARY KEY DEFAULT 'key_' || substr(uuid_generate_v4()::text, 1, 8),
+        team_id TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+        project_id TEXT REFERENCES projects(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        key_hash TEXT NOT NULL UNIQUE,
+        key_prefix TEXT NOT NULL,
+        scopes TEXT[] NOT NULL DEFAULT '{}',
+        last_used_at TIMESTAMPTZ,
+        expires_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_api_keys_team_id ON api_keys(team_id);
+    CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash);
+
+    -- Chat Sessions
+    CREATE TABLE IF NOT EXISTS chat_sessions (
+        id TEXT PRIMARY KEY DEFAULT 'ses_' || substr(uuid_generate_v4()::text, 1, 8),
+        agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+        status TEXT NOT NULL DEFAULT 'active',
+        metadata JSONB NOT NULL DEFAULT '{}',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_chat_sessions_agent_id ON chat_sessions(agent_id);
+    CREATE INDEX IF NOT EXISTS idx_chat_sessions_status ON chat_sessions(status);
+
+    -- Chat Messages
+    CREATE TABLE IF NOT EXISTS chat_messages (
+        id TEXT PRIMARY KEY DEFAULT 'msg_' || substr(uuid_generate_v4()::text, 1, 8),
+        session_id TEXT NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+        role TEXT NOT NULL,
+        content TEXT NOT NULL,
+        tool_calls JSONB,
+        metadata JSONB NOT NULL DEFAULT '{}',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_chat_messages_session_id ON chat_messages(session_id);
+    CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON chat_messages(session_id, created_at);
+
+    -- Audit Log
+    CREATE TABLE IF NOT EXISTS audit_logs (
+        id TEXT PRIMARY KEY DEFAULT 'aud_' || substr(uuid_generate_v4()::text, 1, 8),
+        team_id TEXT NOT NULL,
+        user_id TEXT,
+        action TEXT NOT NULL,
+        resource_type TEXT NOT NULL,
+        resource_id TEXT NOT NULL,
+        changes JSONB,
+        ip_address INET,
+        user_agent TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_audit_logs_team_id ON audit_logs(team_id);
+    CREATE INDEX IF NOT EXISTS idx_audit_logs_resource ON audit_logs(resource_type, resource_id);
+    CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC);
+
+    -- RBAC Tables
+    CREATE TABLE IF NOT EXISTS roles (
+        id TEXT PRIMARY KEY DEFAULT 'rol_' || substr(uuid_generate_v4()::text, 1, 8),
+        team_id TEXT REFERENCES teams(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        description TEXT,
+        permissions JSONB NOT NULL DEFAULT '[]',
+        is_system BOOLEAN NOT NULL DEFAULT false,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS role_bindings (
+        id TEXT PRIMARY KEY DEFAULT 'rb_' || substr(uuid_generate_v4()::text, 1, 8),
+        user_id TEXT NOT NULL,
+        role_id TEXT NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+        scope_type TEXT NOT NULL CHECK (scope_type IN ('global', 'team', 'project')),
+        scope_team_id TEXT REFERENCES teams(id) ON DELETE CASCADE,
+        scope_project_id TEXT REFERENCES projects(id) ON DELETE CASCADE,
+        granted_by TEXT,
+        expires_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_role_bindings_user ON role_bindings(user_id);
+    CREATE INDEX IF NOT EXISTS idx_role_bindings_scope ON role_bindings(scope_type, scope_team_id, scope_project_id);
+
+    -- Quota Tables
+    CREATE TABLE IF NOT EXISTS quotas (
+        id TEXT PRIMARY KEY DEFAULT 'qta_' || substr(uuid_generate_v4()::text, 1, 8),
+        team_id TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+        project_id TEXT REFERENCES projects(id) ON DELETE CASCADE,
+        quota_type TEXT NOT NULL,
+        limit_value BIGINT NOT NULL,
+        period TEXT, -- 'hour', 'day', 'month', NULL (lifetime)
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(team_id, project_id, quota_type)
+    );
+
+    CREATE TABLE IF NOT EXISTS quota_usage (
+        quota_id TEXT PRIMARY KEY REFERENCES quotas(id) ON DELETE CASCADE,
+        current_value BIGINT NOT NULL DEFAULT 0,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    -- Evaluation Tables
+    CREATE TABLE IF NOT EXISTS traces (
+        id TEXT PRIMARY KEY DEFAULT 'trc_' || substr(uuid_generate_v4()::text, 1, 8),
+        agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+        session_id TEXT NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+        input TEXT NOT NULL,
+        output TEXT NOT NULL,
+        latency_ms BIGINT NOT NULL,
+        tokens_in INTEGER NOT NULL DEFAULT 0,
+        tokens_out INTEGER NOT NULL DEFAULT 0,
+        steps JSONB NOT NULL DEFAULT '[]',
+        metadata JSONB NOT NULL DEFAULT '{}',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS feedback (
+        id TEXT PRIMARY KEY DEFAULT 'fb_' || substr(uuid_generate_v4()::text, 1, 8),
+        trace_id TEXT NOT NULL REFERENCES traces(id) ON DELETE CASCADE,
+        rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+        comment TEXT,
+        tags TEXT[] DEFAULT '{}',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    -- Updated_at trigger function
+    CREATE OR REPLACE FUNCTION update_updated_at()
+    RETURNS TRIGGER AS $$
+    BEGIN
+        NEW.updated_at = NOW();
+        RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+
+    -- Apply updated_at triggers
+    DO $$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_teams_updated_at') THEN
+            CREATE TRIGGER update_teams_updated_at BEFORE UPDATE ON teams FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_projects_updated_at') THEN
+            CREATE TRIGGER update_projects_updated_at BEFORE UPDATE ON projects FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_agents_updated_at') THEN
+            CREATE TRIGGER update_agents_updated_at BEFORE UPDATE ON agents FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_deployments_updated_at') THEN
+            CREATE TRIGGER update_deployments_updated_at BEFORE UPDATE ON deployments FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_chat_sessions_updated_at') THEN
+            CREATE TRIGGER update_chat_sessions_updated_at BEFORE UPDATE ON chat_sessions FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_roles_updated_at') THEN
+            CREATE TRIGGER update_roles_updated_at BEFORE UPDATE ON roles FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_quotas_updated_at') THEN
+            CREATE TRIGGER update_quotas_updated_at BEFORE UPDATE ON quotas FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+        END IF;
+    END $$;
+
+    -- Row Level Security (RLS) setup
+    ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE agents ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE deployments ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE api_keys ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE chat_sessions ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE roles ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE role_bindings ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE quotas ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE quota_usage ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE traces ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE feedback ENABLE ROW LEVEL SECURITY;
+
+    -- RLS Policies (tenant isolation)
+    -- These use current_setting('app.tenant_id') which is set per-connection
+
+    CREATE POLICY team_isolation ON teams
+        USING (id = current_setting('app.tenant_id', true));
+
+    CREATE POLICY project_isolation ON projects
+        USING (team_id = current_setting('app.tenant_id', true));
+
+    CREATE POLICY agent_isolation ON agents
+        USING (project_id IN (
+            SELECT id FROM projects WHERE team_id = current_setting('app.tenant_id', true)
+        ));
+
+    CREATE POLICY deployment_isolation ON deployments
+        USING (agent_id IN (
+            SELECT a.id FROM agents a
+            JOIN projects p ON a.project_id = p.id
+            WHERE p.team_id = current_setting('app.tenant_id', true)
+        ));
+
+    CREATE POLICY api_key_isolation ON api_keys
+        USING (team_id = current_setting('app.tenant_id', true));
+
+    CREATE POLICY chat_session_isolation ON chat_sessions
+        USING (agent_id IN (
+            SELECT a.id FROM agents a
+            JOIN projects p ON a.project_id = p.id
+            WHERE p.team_id = current_setting('app.tenant_id', true)
+        ));
+
+    CREATE POLICY chat_message_isolation ON chat_messages
+        USING (session_id IN (
+            SELECT cs.id FROM chat_sessions cs
+            JOIN agents a ON cs.agent_id = a.id
+            JOIN projects p ON a.project_id = p.id
+            WHERE p.team_id = current_setting('app.tenant_id', true)
+        ));
+
+    CREATE POLICY audit_log_isolation ON audit_logs
+        USING (team_id = current_setting('app.tenant_id', true));
+
+    CREATE POLICY role_isolation ON roles
+        USING (team_id = current_setting('app.tenant_id', true) OR team_id IS NULL);
+
+    CREATE POLICY role_binding_isolation ON role_bindings
+        USING (scope_team_id = current_setting('app.tenant_id', true) OR scope_team_id IS NULL);
+
+    CREATE POLICY quota_isolation ON quotas
+        USING (team_id = current_setting('app.tenant_id', true));
+
+    CREATE POLICY quota_usage_isolation ON quota_usage
+        USING (quota_id IN (
+            SELECT id FROM quotas WHERE team_id = current_setting('app.tenant_id', true)
+        ));
+
+    CREATE POLICY trace_isolation ON traces
+        USING (agent_id IN (
+            SELECT a.id FROM agents a
+            JOIN projects p ON a.project_id = p.id
+            WHERE p.team_id = current_setting('app.tenant_id', true)
+        ));
+
+    CREATE POLICY feedback_isolation ON feedback
+        USING (trace_id IN (
+            SELECT id FROM traces WHERE agent_id IN (
+                SELECT a.id FROM agents a
+                JOIN projects p ON a.project_id = p.id
+                WHERE p.team_id = current_setting('app.tenant_id', true)
+            )
+        ));
+
+    -- Insert default team for development
+    INSERT INTO teams (id, name, slug, plan) VALUES
+        ('team_dev', 'Development Team', 'dev-team', 'enterprise')
+    ON CONFLICT (id) DO NOTHING;
+
+    -- Insert default project for development
+    INSERT INTO projects (id, team_id, name, slug) VALUES
+        ('prj_dev', 'team_dev', 'Default Project', 'default')
+    ON CONFLICT (id) DO NOTHING;
+
+    -- Insert default agent for development
+    INSERT INTO agents (id, project_id, name, slug, framework, status) VALUES
+        ('google-adk-byo-agent', 'prj_dev', 'Google ADK Agent', 'google-adk-byo-agent', 'google-adk', 'active')
+    ON CONFLICT (id) DO NOTHING;
+
+    -- Insert default roles
+    INSERT INTO roles (id, name, description, permissions, is_system) VALUES
+        ('role_owner', 'Owner', 'Full access to all resources', '[{"resource": "team", "action": "manage"}, {"resource": "project", "action": "manage"}, {"resource": "agent", "action": "manage"}, {"resource": "deployment", "action": "manage"}, {"resource": "api_key", "action": "manage"}, {"resource": "member", "action": "manage"}, {"resource": "quota", "action": "read"}, {"resource": "audit_log", "action": "read"}]', true),
+        ('role_admin', 'Administrator', 'Full access to all resources', '[{"resource": "team", "action": "read"}, {"resource": "project", "action": "manage"}, {"resource": "agent", "action": "manage"}, {"resource": "deployment", "action": "manage"}, {"resource": "api_key", "action": "manage"}, {"resource": "member", "action": "create"}, {"resource": "member", "action": "read"}, {"resource": "quota", "action": "read"}, {"resource": "audit_log", "action": "read"}]', true),
+        ('role_viewer', 'Viewer', 'Read-only access to all resources', '[{"resource": "team", "action": "read"}, {"resource": "project", "action": "read"}, {"resource": "agent", "action": "read"}, {"resource": "deployment", "action": "read"}]', true)
+    ON CONFLICT (id) DO NOTHING;
+
+    -- Bind dev user to admin role
+    INSERT INTO role_bindings (user_id, role_id, scope_type) VALUES
+        ('user_test', 'role_admin', 'global')
+    ON CONFLICT DO NOTHING;
+
+    -- Grant permissions
+    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO agentstack;
+    GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO agentstack;
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agentstack-postgres
+  namespace: agentstack
+spec:
+  selector:
+    app: agentstack-postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agentstack-redis
+  namespace: agentstack
+spec:
+  selector:
+    matchLabels:
+      app: agentstack-redis
+  template:
+    metadata:
+      labels:
+        app: agentstack-redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        ports:
+        - containerPort: 6379
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agentstack-redis
+  namespace: agentstack
+spec:
+  selector:
+    app: agentstack-redis
+  ports:
+  - port: 6379
+    targetPort: 6379
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agentstack-mlflow
+  namespace: agentstack
+spec:
+  selector:
+    matchLabels:
+      app: agentstack-mlflow
+  template:
+    metadata:
+      labels:
+        app: agentstack-mlflow
+    spec:
+      containers:
+      - name: mlflow
+        image: ghcr.io/mlflow/mlflow:latest
+        ports:
+        - containerPort: 5000
+        command: ["mlflow", "server", "--host", "0.0.0.0", "--port", "5000"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agentstack-mlflow
+  namespace: agentstack
+spec:
+  selector:
+    app: agentstack-mlflow
+  ports:
+  - port: 5000
+    targetPort: 5000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agentstack-api
+  namespace: agentstack
+spec:
+  selector:
+    matchLabels:
+      app: agentstack-api
+  template:
+    metadata:
+      labels:
+        app: agentstack-api
+    spec:
+      containers:
+      - name: api
+        image: dev.local/agentstack-api:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+        env:
+        - name: AGENTSTACK_ENVIRONMENT
+          value: development
+        - name: AGENTSTACK_DATABASE_URL
+          value: postgres://agentstack:agentstack@agentstack-postgres:5432/agentstack?sslmode=disable
+        - name: AGENTSTACK_REDIS_URL
+          value: redis://agentstack-redis:6379
+        - name: AGENTSTACK_MLFLOW_URL
+          value: http://agentstack-mlflow:5000
+        - name: AGENTSTACK_AUTH_JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: agentstack-secrets
+              key: JWT_SECRET
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agentstack-api
+  namespace: agentstack
+spec:
+  selector:
+    app: agentstack-api
+  ports:
+  - port: 8080
+    targetPort: 8080
+---
+# Kagent Web UI - Official Kagent UI for cluster administration
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agentstack-ui
+  namespace: agentstack
+  labels:
+    app: agentstack-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agentstack-ui
+  template:
+    metadata:
+      labels:
+        app: agentstack-ui
+    spec:
+      containers:
+      - name: ui
+        image: cr.kagent.dev/kagent-dev/kagent/ui:0.7.7
+        ports:
+        - containerPort: 8080
+        env:
+        - name: NEXT_PUBLIC_BACKEND_URL
+          value: "http://127.0.0.1:8080/api"
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+        resources:
+          requests:
+            cpu: 200m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+      - name: backend-proxy
+        image: alpine/socat
+        args: ["tcp-listen:8083,fork,reuseaddr", "tcp:kagent-controller.kagent.svc.cluster.local:8083"]
+      - name: ws-proxy
+        image: alpine/socat
+        args: ["tcp-listen:8081,fork,reuseaddr", "tcp:kagent-controller.kagent.svc.cluster.local:8083"]
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: agentstack-ui-nginx-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agentstack-ui
+  namespace: agentstack
+spec:
+  selector:
+    app: agentstack-ui
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+  - name: backend
+    port: 8083
+    targetPort: 8083
+  - name: ws
+    port: 8081
+    targetPort: 8081
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agentstack-ui-nginx-config
+  namespace: agentstack
+data:
+  nginx.conf: |
+    pid /tmp/nginx.pid;
+    error_log /dev/stderr;
+    events {
+        worker_connections 1024;
+    }
+    http {
+        client_body_temp_path /tmp/nginx/client_temp;
+        proxy_temp_path /tmp/nginx/proxy_temp;
+        fastcgi_temp_path /tmp/nginx/fastcgi_temp;
+        uwsgi_temp_path /tmp/nginx/uwsgi_temp;
+        scgi_temp_path /tmp/nginx/scgi_temp;
+        access_log /dev/stdout;
+        log_format main '[$time_local] $remote_addr - $remote_user - $request $status $body_bytes_sent $http_referer $http_user_agent $http_x_forwarded_for';
+        upstream kagent_ui {
+            server 127.0.0.1:8001;
+        }
+        upstream kagent_ws_backend {
+            server 127.0.0.1:8081;
+        }
+        upstream kagent_backend {
+            server 127.0.0.1:8083;
+        }
+        map $http_upgrade $connection_upgrade {
+            default upgrade;
+            ''      close;
+        }
+        server {
+            listen 8080;
+            server_name localhost;
+            location / {
+                proxy_pass http://kagent_ui;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection 'upgrade';
+                proxy_set_header Host $host;
+                proxy_set_header X-Forwarded-Host $host;
+                proxy_set_header X-Forwarded-Proto $scheme;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header Origin $scheme://$host;
+                proxy_cache_bypass $http_upgrade;
+            }
+            location /health {
+                return 200 'OK';
+            }
+            location /api/ {
+                # CORS headers for local development
+                add_header 'Access-Control-Allow-Origin' '*' always;
+                add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+                add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization' always;
+                if ($request_method = 'OPTIONS') {
+                    add_header 'Access-Control-Max-Age' 1728000;
+                    add_header 'Content-Type' 'text/plain; charset=utf-8';
+                    add_header 'Content-Length' 0;
+                    return 204;
+                }
+
+                proxy_pass http://kagent_backend/api/;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection 'upgrade';
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+                proxy_set_header X-Forwarded-Host $server_name;
+                proxy_cache_bypass $http_upgrade;
+                proxy_buffering off;
+            }
+            location /a2a/ {
+                # CORS headers for local development
+                add_header 'Access-Control-Allow-Origin' '*' always;
+                add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+                add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization' always;
+                if ($request_method = 'OPTIONS') {
+                    add_header 'Access-Control-Max-Age' 1728000;
+                    add_header 'Content-Type' 'text/plain; charset=utf-8';
+                    add_header 'Content-Length' 0;
+                    return 204;
+                }
+
+                # Ensure trailing slash and correct prefix for the backend
+                rewrite ^/a2a/(.*[^/])$ /api/a2a/$1/ break;
+                rewrite ^/a2a/(.*)$ /api/a2a/$1 break;
+                
+                proxy_pass http://kagent_backend;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection 'upgrade';
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+                proxy_set_header X-Forwarded-Host $server_name;
+                proxy_cache_bypass $http_upgrade;
+                proxy_buffering off;
+                proxy_read_timeout 3600s;
+            }
+            location /api/a2a/ {
+                # CORS headers for local development
+                add_header 'Access-Control-Allow-Origin' '*' always;
+                add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+                add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization' always;
+                if ($request_method = 'OPTIONS') {
+                    add_header 'Access-Control-Max-Age' 1728000;
+                    add_header 'Content-Type' 'text/plain; charset=utf-8';
+                    add_header 'Content-Length' 0;
+                    return 204;
+                }
+
+                # Ensure trailing slash and correct prefix for the backend
+                rewrite ^/api/a2a/(.*[^/])$ /api/a2a/$1/ break;
+                rewrite ^/api/a2a/(.*)$ /api/a2a/$1 break;
+
+                proxy_pass http://kagent_backend;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection 'upgrade';
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+                proxy_set_header X-Forwarded-Host $server_name;
+                proxy_cache_bypass $http_upgrade;
+                proxy_buffering off;
+                proxy_read_timeout 3600s;
+            }
+            location /api/ws/ {
+                proxy_pass http://kagent_ws_backend/api/ws/;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection $connection_upgrade;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+                proxy_set_header X-Forwarded-Host $server_name;
+                proxy_read_timeout 300s;
+                proxy_send_timeout 300s;
+                proxy_buffering off;
+            }
+        }
+    }

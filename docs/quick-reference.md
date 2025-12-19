@@ -8,7 +8,7 @@ Common commands and workflows for k8s-agent-stack.
 
 ```bash
 # Install Knative + Contour
-./knative_orbstack.sh
+./scripts/knative_orbstack.sh
 
 # Install kagent
 helm install kagent-crds oci://ghcr.io/kagent-dev/kagent/helm/kagent-crds -n kagent
@@ -64,7 +64,7 @@ kubectl get pods -n kagent
 kubectl get ksvc --all-namespaces
 
 # Run diagnostics
-./knative_orbstack.sh --debug
+./scripts/knative_orbstack.sh --debug
 
 # Check agent readiness
 kubectl get agents -n kagent -o wide

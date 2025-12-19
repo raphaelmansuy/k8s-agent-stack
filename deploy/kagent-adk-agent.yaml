@@ -1,0 +1,41 @@
+# Copyright 2025 Raphaël MANSUY
+# Licensed under the Apache License, Version 2.0
+# https://www.apache.org/licenses/LICENSE-2.0
+
+# Google ADK Agent - BYO (Bring Your Own) Deployment for Kagent
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: google-adk-byo-agent
+  namespace: kagent
+  labels:
+    app.kubernetes.io/name: google-adk-byo-agent
+    app.kubernetes.io/part-of: kagent
+    agent-type: byo
+spec:
+  type: BYO
+  description: "Google ADK agent with weather, time, and math calculation capabilities"
+  byo:
+    deployment:
+      image: dev.local/kagent-adk-agent:latest
+      imagePullPolicy: Never
+      resources:
+        requests:
+          cpu: 250m
+          memory: 512Mi
+        limits:
+          cpu: 1000m
+          memory: 2Gi
+      env:
+        - name: GOOGLE_CLOUD_PROJECT
+          value: "demo-project"
+        - name: GOOGLE_CLOUD_LOCATION
+          value: "us-central1"
+        - name: GOOGLE_GENAI_USE_VERTEXAI
+          value: "False"
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: kagent-openai
+              key: OPENAI_API_KEY
+              optional: false

@@ -1,5 +1,11 @@
 # Contributing to k8s-agent-stack
 
+<!--
+Copyright 2025 Raphaël MANSUY
+Licensed under the Apache License, Version 2.0
+https://www.apache.org/licenses/LICENSE-2.0
+-->
+
 Thank you for your interest in contributing to k8s-agent-stack! We welcome contributions from the community.
 
 ## How to Contribute
@@ -171,7 +177,7 @@ See [LICENSE](LICENSE) for details.
 | Format code | `make format` |
 | Lint code | `make lint` |
 
-See [MAKEFILE_GUIDE.md](MAKEFILE_GUIDE.md) for all available commands.
+Run `make help` for a full list of available commands.
 
 ---
 
