@@ -8,10 +8,14 @@ This document serves as the master architecture reference. For deep dives into s
 
 | Component | Deep Dive Document | Focus Area |
 |-----------|-------------------|------------|
-| **Agent Runtime** | [kagent-adk-a2a-architecture.md](kagent-adk-a2a-architecture.md) | Kagent, Google ADK, and A2A Protocol |
-| **Deployment** | [deployment-guide.md](deployment-guide.md) | Knative, Scaling, and Traffic Management |
-| **Operations** | [quick-reference.md](quick-reference.md) | CLI commands, Port-forwarding, and Troubleshooting |
-| **Agent Building** | [building-google-adk-agents-for-kagent.md](building-google-adk-agents-for-kagent.md) | SDK usage and Tool definitions |
+| **API Gateway** | [architecture/api-gateway.md](architecture/api-gateway.md) | Go/Chi/Huma API, Middleware, Auth, RBAC |
+| **Agent Runtime** | [architecture/agent-runtime.md](architecture/agent-runtime.md) | kagent vs Knative, Agent CRDs, Scaling |
+| **A2A Protocol** | [architecture/a2a-protocol.md](architecture/a2a-protocol.md) | JSON-RPC, SSE, Discovery, Streaming |
+| **Control Plane** | [architecture/control-plane.md](architecture/control-plane.md) | Postgres, Redis, Reconciliation Loop |
+| **UI Integration** | [architecture/ui-integration.md](architecture/ui-integration.md) | Kagent UI, Nginx Proxy, Port-Forwarding |
+| **Data Flow** | [architecture/data-flow.md](architecture/data-flow.md) | Request Lifecycle, Streaming, Telemetry |
+| **Security** | [architecture/security.md](architecture/security.md) | Auth, RBAC, Multi-tenancy, Secrets |
+| **Observability** | [architecture/observability.md](architecture/observability.md) | Logging, Tracing, Metrics, MLflow |
 
 ---
 
@@ -49,77 +53,41 @@ This document serves as the master architecture reference. For deep dives into s
 
 ## Core Components
 
-### 1. API Gateway (`agentstack/cmd/api`)
-The central entry point for all operations. Built with Go, `chi`, and `huma`.
-- **Auth**: Implements JWT and API Key verification (`internal/api/middleware/auth.go`).
-- **RBAC**: Resource-based access control for Teams and Projects (`internal/domain/rbac`).
-- **Quota**: Rate limiting and resource usage tracking (`internal/domain/quota`).
-- **Audit**: Event-driven audit logging for all administrative actions (`internal/domain/audit`).
+The AgentStack platform is composed of several modular components that work together to provide a seamless agent orchestration experience.
 
-### 2. Agent Runtime (`agentstack/internal/domain/deployment`)
-Agents are managed through a dual-mode orchestration strategy that leverages both **kagent** and **Knative Serving**.
+### 1. API Gateway
+The central entry point for all operations. Built with Go, `chi`, and `huma`. It handles authentication, RBAC, and provides a type-safe OpenAPI interface.
+- See [API Gateway Deep Dive](architecture/api-gateway.md)
 
-- **kagent Integration**: The stack natively uses **kagent** as its primary orchestration layer. If the `kagent.dev/v1alpha2` CRDs are present in the cluster, AgentStack manages agents via the `Agent` custom resource.
-    - **Declarative Lifecycle**: Agents are defined as high-level Kubernetes objects.
-    - **Unified Management**: Integration with the kagent UI and A2A protocol discovery.
-    - See [kagent-adk-a2a-architecture.md](kagent-adk-a2a-architecture.md) for the runtime specification.
-- **Knative Fallback**: If `kagent` is not installed, the system falls back to direct management of **Knative Services**.
-    - **Scale-to-Zero**: Agents consume zero resources when idle.
-    - **Auto-scaling**: Rapid scaling based on request concurrency (via Knative Pod Autoscaler).
-    - See [deployment-guide.md](deployment-guide.md) for scaling and traffic management details.
-- **Deployment Types**:
-    - **BYO (Bring Your Own)**: Custom container images implementing the A2A protocol.
-    - **LLM**: Pre-configured agents with specific LLM provider settings.
-    - **ADK**: Agents built using the Google Agent Development Kit.
+### 2. Agent Runtime
+Manages the lifecycle of agents using a dual-mode strategy (kagent or Knative). It handles deployment, scaling, and resource management.
+- See [Agent Runtime Deep Dive](architecture/agent-runtime.md)
 
-### 3. A2A Protocol (`agentstack/internal/domain/a2a`)
-A standardized communication layer based on JSON-RPC 2.0 over HTTP/SSE.
-- **Methods**: `message/send`, `message/stream`, `task/get`, `task/cancel`.
-- **Streaming**: Real-time event delivery via Server-Sent Events (SSE).
-- **Discovery**: `.well-known/agent.json` for agent metadata (Agent Card).
-- See [kagent-adk-a2a-architecture.md](kagent-adk-a2a-architecture.md) for the full protocol specification.
+### 3. A2A Protocol
+A standardized communication layer based on JSON-RPC 2.0 over HTTP/SSE, enabling agents to interact in real-time.
+- See [A2A Protocol Deep Dive](architecture/a2a-protocol.md)
 
-### 4. Control Plane (`agentstack/internal/domain/controlplane`)
-The Control Plane acts as the brain of the system, coordinating between the API, the database, and the Kubernetes cluster.
-
-- **State Management**: Uses **PostgreSQL** (via `sqlc` generated Go code) to track agent metadata, deployment status, and user configurations.
-- **Kubernetes Controller**: A custom controller loop that watches for changes in the database and reconciles the desired state with the cluster (creating/updating `Agent` or `Service` resources).
-- **A2A Protocol Bridge**: Facilitates communication between the UI and agents by managing discovery and routing.
+### 4. Control Plane
+The state management and reconciliation engine. It uses PostgreSQL for persistence and Redis for caching and task queuing.
+- See [Control Plane Deep Dive](architecture/control-plane.md)
 
 ### 5. Kagent Web UI Integration
-The platform integrates the official Kagent Web UI (`cr.kagent.dev/kagent-dev/kagent/ui`) for cluster administration and agent interaction.
-
-- **Architecture**: The UI is deployed as a standalone Next.js application with an internal Nginx proxy.
-- **Multi-Port Forwarding**: To support the full feature set (SSR, A2A Streaming, WebSockets) through a single CLI command, `agentctl ui` performs a quadruple port-forward:
-    - `3000`: Main UI entry point.
-    - `8080`: Next.js SSR backend (required for model loading).
-    - `8083`: A2A/Backend API proxy.
-    - `8081`: WebSocket gateway for real-time updates.
-- **Streaming Optimization**: The internal Nginx proxy is configured with `proxy_buffering off` and custom `rewrite` rules to handle A2A SSE streams without method-stripping redirects (POST to GET).
-- **Cross-Namespace Proxying**: Uses `socat` sidecars within the UI pod to bridge communication between the `agentstack` namespace and the `kagent-controller` in the `kagent` namespace.
+A rich dashboard for interacting with agents and managing the cluster, optimized for streaming and cross-namespace connectivity.
+- See [UI Integration Deep Dive](architecture/ui-integration.md)
 
 ## Data Flow: Request Lifecycle
+Detailed request lifecycles for deployment, streaming, and telemetry are documented in the [Data Flow Deep Dive](architecture/data-flow.md).
 
-```ascii
-1. Request  --> [ API Gateway ] --> 2. Auth/RBAC Check (Postgres/Redis)
-                                       |
-                                       v
-4. Response <-- [ Agent Pod ] <--- 3. Knative Ingress (Envoy)
-      ^             |
-      |             +-------------> 5. Telemetry (OTEL)
-      +---------------------------> 6. Audit/Quota Update (Postgres)
-```
+## Security & Multi-Tenancy
+AgentStack provides robust security through JWT/API Key authentication, hierarchical RBAC, and database-level tenant isolation.
+- See [Security Deep Dive](architecture/security.md)
+
+## Observability
+Comprehensive monitoring via OpenTelemetry, structured logging, and AI-specific evaluation with MLflow.
+- See [Observability Deep Dive](architecture/observability.md)
 
 ## Agent Implementation (`kagent-adk-agent`)
 Reference implementation using Google ADK and FastAPI.
 - **A2A Middleware**: Intercepts standard requests to provide A2A-compliant JSON-RPC and SSE streaming.
 - **Runner**: Orchestrates the agent's reasoning loop and tool execution.
 - **Telemetry**: Integrated OpenTelemetry for distributed tracing.
-
-## Infrastructure Stack
-- **Database**: PostgreSQL (via `pgx` and `sqlc`) for persistent multi-tenant data.
-- **Cache**: Redis for fast quota checks and background task queuing (Evaluation).
-- **Observability**: OpenTelemetry for tracing and metrics; MLflow for agent evaluation and trace tracking.
-
-## kagent Usage
-Yes, the stack is built around **kagent**. It serves as the "Cognitive Layer" of the platform, providing the standardized A2A (Agent-to-Agent) communication protocol and the declarative `Agent` CRD used for deployment. The `Makefile` includes targets for installing the `kagent` CLI and setting up the controller in the cluster.
