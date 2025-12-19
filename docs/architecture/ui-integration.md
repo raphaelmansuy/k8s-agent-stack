@@ -24,11 +24,11 @@ architecture-beta
     
     service controller(server)[kagent-controller] in ns_kagent
 
-    browser:B -- T:pf
-    pf:R -- L:nginx
-    nginx:B -- T:ui
-    nginx:R -- L:socat
-    socat:R -- L:controller
+    browser:B --> T:pf
+    pf:R --> L:nginx
+    nginx:B --> T:ui
+    nginx:R --> L:socat
+    socat:R --> L:controller
 ```
 
 - **Image**: `cr.kagent.dev/kagent-dev/kagent/ui:0.7.7`
