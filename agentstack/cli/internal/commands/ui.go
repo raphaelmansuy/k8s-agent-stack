@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"runtime"
 	"syscall"
 	"time"
 
@@ -93,24 +92,4 @@ func newUICmd() *cobra.Command {
 	cmd.Flags().BoolVar(&noBrowser, "no-browser", false, "do not open the browser automatically")
 
 	return cmd
-}
-
-func openBrowser(url string) {
-	var err error
-
-	switch runtime.GOOS {
-	case "linux":
-		err = exec.Command("xdg-open", url).Start()
-	case "windows":
-		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
-	case "darwin":
-		err = exec.Command("open", url).Start()
-	default:
-		err = fmt.Errorf("unsupported platform")
-	}
-
-	if err != nil {
-		fmt.Printf("Failed to open browser: %v\n", err)
-		fmt.Printf("Please open %s manually\n", url)
-	}
 }

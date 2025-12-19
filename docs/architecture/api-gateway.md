@@ -46,6 +46,11 @@ The API applies a series of global and route-specific middlewares:
 ### 3. OpenAPI Documentation
 The gateway automatically serves an interactive OpenAPI documentation (Swagger UI) at `/docs`. This documentation is always in sync with the code because it is generated from the Go types used in the handlers.
 
+You can open the documentation directly from the CLI using:
+```bash
+agentctl docs
+```
+
 ## Internal Structure (`agentstack/internal/api`)
 
 - **`handlers/`**: Contains the business logic for each API endpoint, grouped by domain (e.g., `agents`, `projects`, `keys`).

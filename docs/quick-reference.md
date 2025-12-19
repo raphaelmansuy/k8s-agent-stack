@@ -44,6 +44,9 @@ For a detailed explanation of the multi-port architecture, see [UI Integration A
 # AgentStack UI (Recommended)
 agentctl ui
 
+# API Documentation
+agentctl docs
+
 # Manual kagent UI (web dashboard)
 kubectl port-forward -n agentstack svc/agentstack-ui 3000:3000 8080:8080 8083:8083 8081:8081
 
