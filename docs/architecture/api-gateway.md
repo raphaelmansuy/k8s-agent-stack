@@ -1,5 +1,7 @@
 # API Gateway Architecture
 
+[← Back to Master Architecture](../architecture.md)
+
 The AgentStack API Gateway is the central entry point for all administrative and operational requests. It is designed for high performance, security, and developer productivity.
 
 ## Technology Stack
@@ -25,10 +27,10 @@ The API applies a series of global and route-specific middlewares:
 | **Logger** | Logs request details and timing | `internal/api/middleware/logger.go` |
 | **Recoverer** | Gracefully handles panics | `chi/middleware.Recoverer` |
 | **Timeout** | Enforces a 60s request timeout | `chi/middleware.Timeout` |
-| **Telemetry** | Injects tracing and records metrics | `internal/infrastructure/telemetry` |
-| **Auth** | Validates JWT or API Keys | `internal/api/middleware/auth.go` |
-| **Tenant** | Injects tenant context into the request | `internal/infrastructure/database` |
-| **Audit** | Records administrative actions | `internal/api/middleware/audit.go` |
+| **Telemetry** | Injects tracing and records metrics | [Observability Architecture](observability.md) |
+| **Auth** | Validates JWT or API Keys | [Security Architecture](security.md) |
+| **Tenant** | Injects tenant context into the request | [Security Architecture](security.md) |
+| **Audit** | Records administrative actions | [Observability Architecture](observability.md) |
 
 ### 3. OpenAPI Documentation
 The gateway automatically serves an interactive OpenAPI documentation (Swagger UI) at `/docs`. This documentation is always in sync with the code because it is generated from the Go types used in the handlers.

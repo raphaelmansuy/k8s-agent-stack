@@ -1,5 +1,7 @@
 # Data Flow & Request Lifecycle
 
+[← Back to Master Architecture](../architecture.md)
+
 This document describes how data moves through the AgentStack system during common operations.
 
 ## 1. Agent Deployment Flow

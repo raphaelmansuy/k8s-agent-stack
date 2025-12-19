@@ -38,6 +38,8 @@ kubectl delete agent <agent-name> -n kagent
 
 ### Port Forwarding
 
+For a detailed explanation of the multi-port architecture, see [UI Integration Architecture](architecture/ui-integration.md).
+
 ```bash
 # AgentStack UI (Recommended)
 agentctl ui

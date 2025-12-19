@@ -33,6 +33,8 @@ https://www.apache.org/licenses/LICENSE-2.0
 - **BYO (Bring Your Own) Agent** capability for custom agent deployments
 - **Tool management** and agent configuration through YAML manifests
 
+For a detailed technical breakdown, see the [Architecture Overview](architecture.md) and the [Architecture Deep Dives](architecture/).
+
 Think of Kagent as a "control plane" for AI agents—similar to how Kubernetes manages containers, Kagent manages AI agents.
 
 ![Kagent Chat Interface](images/kagent-streaming-v29-final.png)

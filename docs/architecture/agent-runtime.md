@@ -1,5 +1,7 @@
 # Agent Runtime Architecture
 
+[← Back to Master Architecture](../architecture.md)
+
 The Agent Runtime is responsible for the lifecycle, execution, and scaling of AI agents. It provides a "Cloud Run-like" experience by abstracting the underlying Kubernetes infrastructure.
 
 ## Dual-Mode Orchestration
@@ -10,7 +12,7 @@ AgentStack supports two primary orchestration modes, allowing it to adapt to the
 If the **kagent** controller and CRDs are installed, AgentStack uses the `Agent` custom resource (`kagent.dev/v1alpha2`) as the primary deployment primitive.
 
 - **Declarative Management**: Agents are managed as high-level objects rather than low-level Pods or Deployments.
-- **Integrated A2A**: Native support for the Agent-to-Agent protocol.
+- **Integrated A2A**: Native support for the [Agent-to-Agent protocol](a2a-protocol.md).
 - **Tool Discovery**: Automatic registration of agent tools within the kagent ecosystem.
 
 ### 2. Knative Mode (Fallback)
@@ -45,7 +47,7 @@ The runtime enforces resource constraints to ensure cluster stability and multi-
 
 ## Lifecycle Phases
 
-Agents transition through the following phases:
+Agents transition through the following phases (see [Data Flow](data-flow.md) for the detailed sequence):
 
 1. **Pending**: Deployment request received, resources being allocated.
 2. **Creating**: Kubernetes resources (CRDs, Services, Pods) are being created.

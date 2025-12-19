@@ -1,5 +1,7 @@
 # Control Plane Architecture
 
+[← Back to Master Architecture](../architecture.md)
+
 The Control Plane is the "brain" of AgentStack. It manages the persistent state of the system, coordinates background tasks, and ensures that the actual state of the Kubernetes cluster matches the desired state defined by the user.
 
 ## Components
@@ -12,9 +14,9 @@ PostgreSQL is the single source of truth for all metadata.
 
 ### 2. Caching & Task Queue (Redis)
 Redis is used for high-performance caching and asynchronous task coordination.
-- **RBAC Cache**: Stores compiled permission sets for rapid access during API calls.
+- **RBAC Cache**: Stores compiled permission sets for rapid access during API calls (see [Security](security.md)).
 - **Quota Tracking**: Real-time tracking of resource usage and rate limits.
-- **Evaluation Queue**: Buffers agent traces and evaluation data before processing.
+- **Evaluation Queue**: Buffers agent traces and evaluation data before processing (see [Observability](observability.md)).
 
 ### 3. Reconciliation Loop
 The Control Plane implements a reconciliation pattern similar to Kubernetes controllers.

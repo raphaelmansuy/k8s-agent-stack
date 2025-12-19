@@ -2,6 +2,8 @@
 
 Deploy sovereign AI agents on Kubernetes in under 10 minutes.
 
+> **New to the platform?** Read the [Architecture Overview](architecture.md) to understand how the components work together.
+
 ## Prerequisites
 
 ### Required Tools
@@ -76,6 +78,8 @@ kubectl patch configmap config-deployment -n knative-serving \
 ```
 
 ### Step 5: Install kagent (Agent Orchestration)
+
+Kagent manages the lifecycle of your agents on Kubernetes. For more details on how the controller and runtime work, see the [Agent Runtime Architecture](architecture/agent-runtime.md).
 
 ```bash
 # Set your OpenAI API key

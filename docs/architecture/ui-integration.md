@@ -1,5 +1,7 @@
 # Kagent Web UI Integration
 
+[← Back to Master Architecture](../architecture.md)
+
 AgentStack integrates the official Kagent Web UI to provide a rich, interactive dashboard for managing agents, viewing logs, and interacting with agents via the A2A protocol.
 
 ## Architecture

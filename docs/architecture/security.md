@@ -1,5 +1,7 @@
 # Security Architecture
 
+[← Back to Master Architecture](../architecture.md)
+
 AgentStack is built with a "Security First" mindset, providing robust authentication, authorization, and multi-tenant isolation.
 
 ## 1. Authentication

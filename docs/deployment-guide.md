@@ -1,12 +1,12 @@
 # Deployment Guide
 
-This guide covers deploying, updating, and managing agents on k8s-agent-stack.
+This guide covers deploying, updating, and managing agents on k8s-agent-stack. For a deep dive into how agents are orchestrated, see the [Agent Runtime Architecture](architecture/agent-runtime.md).
 
 ## Deploy an Agent
 
 ### Method 1: kagent Agent CRD (Recommended)
 
-Deploy agents using kagent's Agent Custom Resource:
+Deploy agents using kagent's Agent Custom Resource. This method leverages the Kagent Controller for automated lifecycle management. For more details, see the [Control Plane Architecture](architecture/control-plane.md).
 
 ```bash
 # 1. Build your agent image with dev.local prefix

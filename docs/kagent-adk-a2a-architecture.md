@@ -14,7 +14,7 @@ https://www.apache.org/licenses/LICENSE-2.0
 
 - **Kagent** is a Kubernetes-native agent orchestration platform that abstracts agent lifecycle, scheduling, and multi-agent coordination away from the agent itself.
 - **Google ADK (Agent Development Kit)** provides language-agnostic tool definition, structured I/O, and a standardized agent contract that Kagent expects.
-- **A2A (Agent-to-Agent Protocol)** is a JSON-RPC-over-SSE protocol enabling low-latency, streaming inter-agent communication without polling or message queues.
+- **A2A (Agent-to-Agent Protocol)** is a JSON-RPC-over-SSE protocol enabling low-latency, streaming inter-agent communication without polling or message queues. For a deep dive into the protocol implementation, see the [A2A Protocol Architecture](architecture/a2a-protocol.md).
 - Together they solve the hard problem: **how to write portable, composable agents that integrate seamlessly with Kubernetes and other agents at scale**.
 - Replaces bespoke agent runners (Ray, modal.com, bespoke orchestration) with declarative, cloud-native infrastructure.
 - Complements LLM APIs (Gemini, Claude) by providing the scaffolding for **agentic workflows**—agents calling tools, calling other agents, iterating until solved.

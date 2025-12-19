@@ -1,5 +1,7 @@
 # Agent-to-Agent (A2A) Protocol
 
+[← Back to Master Architecture](../architecture.md)
+
 The A2A protocol is the standardized communication layer that enables agents to discover, call, and stream data to each other. It is designed to be language-agnostic and optimized for the streaming nature of LLM interactions.
 
 ## Protocol Specification
@@ -73,3 +75,9 @@ When deploying A2A agents behind proxies (like Nginx or Envoy):
 1. **Disable Buffering**: `proxy_buffering off` must be set to ensure SSE events are delivered immediately.
 2. **Preserve Methods**: Proxies must be configured to avoid 301 redirects that convert `POST` requests to `GET`, as A2A calls often carry large JSON payloads in the body.
 3. **Keep-Alive**: Long-lived connections should be supported to avoid frequent reconnections during long LLM generations.
+
+---
+
+## Further Reading
+
+- **[Kagent + Google ADK + A2A Deep Dive](../kagent-adk-a2a-architecture.md)**: A comprehensive guide to building and orchestrating production-grade agents.

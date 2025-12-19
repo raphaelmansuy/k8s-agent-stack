@@ -1,5 +1,7 @@
 # Observability Architecture
 
+[← Back to Master Architecture](../architecture.md)
+
 AgentStack provides comprehensive observability into the health, performance, and behavior of the platform and the agents running on it.
 
 ## 1. Logging

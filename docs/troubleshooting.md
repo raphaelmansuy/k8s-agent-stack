@@ -31,6 +31,7 @@ Expected output:
 | Agent crashes | CrashLoopBackOff | Check previous pod logs |
 | Image pull errors | ImagePullBackOff | Verify image exists |
 | DNS resolution fails | nslookup errors | Check CoreDNS |
+| UI Streaming Failed | "Failed to fetch" in UI | Ensure `agentctl ui` is running; check [UI Integration Architecture](architecture/ui-integration.md) for proxy settings. |
 
 ---
 
